@@ -1,0 +1,21 @@
+{
+  "version": 2,
+  "functions": {
+    "api/webhook.js": {
+      "includeFiles": "lib/**"
+    },
+    "api/cron-daily.js": {
+      "includeFiles": "lib/**",
+      "maxDuration": 60
+    },
+    "api/auth/send-code.js": {
+      "includeFiles": "lib/**"
+    }
+  },
+  "crons": [
+    {
+      "path": "/cron-daily",
+      "schedule": "0 11 * * *"
+    }
+  ]
+}

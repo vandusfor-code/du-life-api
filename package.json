@@ -1,0 +1,31 @@
+{
+  "name": "du-life-api",
+  "version": "1.0.0",
+  "description": "Du Life - Asistente Personal con IA",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.27.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "@tabler/icons-react": "^3.44.0",
+    "next": "^14.2.0",
+    "openai": "^4.55.0",
+    "react": "^18.3.0",
+    "react-dom": "^18.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "author": "Duvan Andres Ramos Padilla",
+  "license": "MIT",
+  "devDependencies": {
+    "autoprefixer": "^10.5.2",
+    "postcss": "^8.5.16",
+    "tailwindcss": "^3.4.19"
+  }
+}
