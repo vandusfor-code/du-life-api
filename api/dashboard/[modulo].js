@@ -1,0 +1,189 @@
+// ============================================================
+//  Du Life - Dashboard Consolidado
+//  api/dashboard/[modulo].js
+// ============================================================
+
+import {
+  supabase,
+  obtenerResumenMes,
+  obtenerGastos,
+  obtenerEntidadesPorTipo,
+} from '../../lib/supabase.js';
+import crypto from 'crypto';
+
+// ===== AUTH HELPERS =====
+
+function verificarToken(token) {
+  if (!token) return null;
+  try {
+    const partes = token.split('.');
+    if (partes.length !== 3) return null;
+    const [header, payload, signature] = partes;
+    const secret = process.env.JWT_SECRET || 'dulife_secret_change_in_production';
+    const data = `${header}.${payload}`;
+    const expected = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+    if (signature !== expected) return null;
+    const decoded = JSON.parse(Buffer.from(payload, 'base64url').toString());
+    if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) return null;
+    return decoded;
+  } catch (e) {
+    return null;
+  }
+}
+
+function parseCookies(cookieHeader) {
+  if (!cookieHeader) return {};
+  return cookieHeader.split(';').reduce((acc, cookie) => {
+    const [name, value] = cookie.trim().split('=');
+    acc[name] = value;
+    return acc;
+  }, {});
+}
+
+// ===== HANDLERS POR MÓDULO =====
+
+async function handleResumen(usuarioId) {
+  const { data: usuario } = await supabase
+    .from('usuarios')
+    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url')
+    .eq('id', usuarioId)
+    .single();
+
+  if (!usuario) return { status: 404, body: { error: 'Usuario no encontrado' } };
+
+  const [resumenMes, ultimosGastos, personas] = await Promise.all([
+    obtenerResumenMes(usuarioId),
+    obtenerGastos(usuarioId, { limite: 5 }),
+    obtenerEntidadesPorTipo(usuarioId, 'persona', 5),
+  ]);
+
+  const { count: totalPersonas } = await supabase
+    .from('entidades')
+    .select('id', { count: 'exact', head: true })
+    .eq('usuario_id', usuarioId)
+    .eq('tipo_entidad', 'persona')
+    .eq('activo', true);
+
+  return {
+    status: 200,
+    body: {
+      usuario,
+      resumen: {
+        total_gastos: resumenMes.total_gastos,
+        total_ingresos: resumenMes.total_ingresos,
+        balance: resumenMes.balance,
+        total_personas: totalPersonas || 0,
+        ultimos_gastos: ultimosGastos || [],
+        personas: personas || [],
+      },
+    },
+  };
+}
+
+async function handleGastos(usuarioId) {
+  const gastos = await obtenerGastos(usuarioId, { limite: 50 });
+  const resumen = await obtenerResumenMes(usuarioId);
+  return { status: 200, body: { gastos, resumen } };
+}
+
+async function handlePersonas(usuarioId) {
+  const personas = await obtenerEntidadesPorTipo(usuarioId, 'persona', 50);
+  return { status: 200, body: { personas } };
+}
+
+async function handleArbol(usuarioId) {
+  const { data } = await supabase
+    .from('arbol_vida')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .eq('activo', true)
+    .order('orden', { ascending: true });
+  return { status: 200, body: { areas: data || [] } };
+}
+
+async function handleNotas(usuarioId) {
+  const { data } = await supabase
+    .from('notas')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .is('eliminado_en', null)
+    .neq('archivada', true)
+    .order('pineada', { ascending: false })
+    .order('creado_en', { ascending: false })
+    .limit(100);
+  return { status: 200, body: { notas: data || [] } };
+}
+
+async function handleTareas(usuarioId) {
+  const { data } = await supabase
+    .from('tareas')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .is('eliminado_en', null)
+    .is('completada_en', null)
+    .order('fecha_vencimiento', { ascending: true, nullsFirst: false })
+    .order('creado_en', { ascending: false })
+    .limit(100);
+  return { status: 200, body: { tareas: data || [] } };
+}
+
+async function handleIdeas(usuarioId) {
+  const { data } = await supabase
+    .from('ideas')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .is('eliminado_en', null)
+    .order('favorita', { ascending: false })
+    .order('creado_en', { ascending: false })
+    .limit(100);
+  return { status: 200, body: { ideas: data || [] } };
+}
+
+async function handleUsuario(usuarioId) {
+  const { data: usuario } = await supabase
+    .from('usuarios')
+    .select('*')
+    .eq('id', usuarioId)
+    .single();
+  if (!usuario) return { status: 404, body: { error: 'Usuario no encontrado' } };
+  return { status: 200, body: { usuario } };
+}
+
+// ===== ROUTER =====
+
+const HANDLERS = {
+  resumen: handleResumen,
+  gastos: handleGastos,
+  personas: handlePersonas,
+  arbol: handleArbol,
+  notas: handleNotas,
+  tareas: handleTareas,
+  ideas: handleIdeas,
+  usuario: handleUsuario,
+};
+
+export default async function handler(req, res) {
+  // Auth
+  const cookies = parseCookies(req.headers.cookie);
+  const token = cookies.dulife_token;
+  const sesion = verificarToken(token);
+  if (!sesion || !sesion.usuario_id) {
+    return res.status(401).json({ error: 'No autorizado' });
+  }
+
+  // Router
+  const { modulo } = req.query;
+  const handlerFn = HANDLERS[modulo];
+
+  if (!handlerFn) {
+    return res.status(404).json({ error: `Módulo '${modulo}' no existe` });
+  }
+
+  try {
+    const { status, body } = await handlerFn(sesion.usuario_id);
+    return res.status(status).json(body);
+  } catch (e) {
+    console.error(`Error en ${modulo}:`, e.message);
+    return res.status(500).json({ error: 'Error interno' });
+  }
+}
