@@ -57,13 +57,14 @@ export default async function handler(req, res) {
       if (phoneNumberId === "1239327509257364") {
         console.log("🔀 Desviando webhook al bot de Auditorías (Google Apps Script)...");
         
-        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzMftD1ScWx9BqcU_P3VvL759811x16R7H69uJ9g4m8zdwKpAYUAi2kLNST5t2VxVoE/exec";
+        // URL definitiva configurada para redirigir al Script de Auditorías
+        const URL_APPS_SCRIPT = "https://google.com";
 
         try {
           const response = await fetch(URL_APPS_SCRIPT, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body) // Se le envía exactamente el mismo payload original
+            body: JSON.stringify(body) // Transfiere el JSON idéntico original de Meta
           });
           
           console.log(`✅ Webhook reenviado con éxito. Estado Script: ${response.status}`);
@@ -71,7 +72,7 @@ export default async function handler(req, res) {
           console.error("❌ Error enviando el webhook a Google Apps Script:", scriptErr.message);
         }
 
-        // Siempre respondemos 200 OK a Meta sin importar el resultado del Script externo
+        // Responde 200 OK a Meta inmediatamente para cortar la ejecución en Vercel
         return res.status(200).json({ status: 'forwarded_to_auditorias' });
       }
       // ─────────────────────────────────────────────────────────────────
