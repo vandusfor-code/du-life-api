@@ -57,8 +57,7 @@ export default async function handler(req, res) {
       if (phoneNumberId === "1239327509257364") {
         console.log("🔀 Desviando webhook al bot de Auditorías (Google Apps Script)...");
         
-        // URL definitiva configurada para redirigir al Script de Auditorías
-        const URL_APPS_SCRIPT = "https://google.com";
+        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwWCTZDRQc2YgBbvgM1zSEFB4bVExpcceH6BU0xrDG29s0JsIDuzjOCCgMGaSGIAJ-G9A/exec";
 
         try {
           const response = await fetch(URL_APPS_SCRIPT, {
