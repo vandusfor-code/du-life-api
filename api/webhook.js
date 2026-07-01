@@ -1,5 +1,5 @@
 // ============================================================
-//  DU LIFE & AUDITORÍAS - Webhook Router v2 (con multimedia)
+//  DU LIFE & AUDITORÍAS - Webhook Router v3 (Solución Blindada)
 //  api/webhook.js
 // ============================================================
 
@@ -9,7 +9,7 @@ import { procesarImagen, procesarAudio } from '../lib/multimedia.js';
 
 export default async function handler(req, res) {
   
-  // GET: Verificación
+  // GET: Verificación de Token para Meta
   if (req.method === 'GET') {
     const mode = req.query['hub.mode'];
     const token = req.query['hub.verify_token'];
@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     return res.status(403).send('Forbidden');
   }
 
-  // POST: Mensajes
+  // POST: Mensajes entrantes de WhatsApp
   if (req.method === 'POST') {
     try {
       const body = req.body;
@@ -40,9 +40,7 @@ export default async function handler(req, res) {
       console.log("====================================");
       console.log("📩 WEBHOOK RECIBIDO");
       console.log("🌎 ENV WA_PHONE_NUMBER_ID:", process.env.WA_PHONE_NUMBER_ID);
-      console.log("📞 Metadata:");
-      console.log(JSON.stringify(value.metadata || {}, null, 2));
-
+      
       const phoneNumberId = value.metadata?.phone_number_id;
       const displayPhone = value.metadata?.display_phone_number;
 
@@ -52,27 +50,51 @@ export default async function handler(req, res) {
       // ===== FIN DEBUG =====
 
       // ─────────────────────────────────────────────────────────────────
-      // ENRUTADOR DINÁMICO PARA AUDITORÍAS (Número 311)
+      // RESPUESTA DIRECTA DESDE VERCEL PARA AUDITORÍAS (Número 311)
       // ─────────────────────────────────────────────────────────────────
       if (phoneNumberId === "1239327509257364") {
-        console.log("🔀 Desviando webhook al bot de Auditorías (Google Apps Script)...");
-        
-        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbwWCTZDRQc2YgBbvgM1zSEFB4bVExpcceH6BU0xrDG29s0JsIDuzjOCCgMGaSGIAJ-G9A/exec";
+        console.log("🔀 Mensaje detectado en canal 311. Respondiendo aviso directamente desde Vercel...");
 
-        try {
-          const response = await fetch(URL_APPS_SCRIPT, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(body) // Transfiere el JSON idéntico original de Meta
-          });
+        // Verificamos que contenga un mensaje válido antes de intentar responder
+        if (value.messages && value.messages[0]) {
+          const mensajeIn = value.messages[0];
+          const telefonoCliente = mensajeIn.from;
+
+          const textoRespuesta = "⚠️ *Aviso Importante:* Este canal es únicamente informativo y automático para el envío de auditorías y notificaciones de Du Academy. No se reciben mensajes de texto ni consultas por este medio. ¡Muchas gracias! 😊";
           
-          console.log(`✅ Webhook reenviado con éxito. Estado Script: ${response.status}`);
-        } catch (scriptErr) {
-          console.error("❌ Error enviando el webhook a Google Apps Script:", scriptErr.message);
+          const urlMeta = `https://facebook.com{phoneNumberId}/messages`;
+          
+          const payloadData = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: telefonoCliente,
+            type: "text",
+            text: {
+              preview_url: false,
+              body: textoRespuesta
+            }
+          };
+
+          try {
+            // Disparamos la respuesta hacia Meta utilizando de forma transparente tu token de Vercel
+            const responseMeta = await fetch(urlMeta, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.WA_ACCESS_TOKEN}`
+              },
+              body: JSON.stringify(payloadData)
+            });
+
+            const dataMeta = await responseMeta.json();
+            console.log("📤 Respuesta de API Meta al despachar advertencia:", JSON.stringify(dataMeta));
+          } catch (metaErr) {
+            console.error("❌ Error crítico despachando mensaje desde Vercel hacia Meta:", metaErr.message);
+          }
         }
 
-        // Responde 200 OK a Meta inmediatamente para cortar la ejecución en Vercel
-        return res.status(200).json({ status: 'forwarded_to_auditorias' });
+        // Retornamos un 200 OK absoluto a Meta de inmediato. Sanitiza los logs al instante.
+        return res.status(200).json({ status: 'responded_directly_from_vercel' });
       }
       // ─────────────────────────────────────────────────────────────────
 
@@ -95,7 +117,7 @@ export default async function handler(req, res) {
       let respuesta = null;
 
       // ─────────────────────────────────────
-      // PROCESAR SEGÚN TIPO (LÓGICA ORIGINAL DU LIFE)
+      // PROCESAR SEGÚN TIPO (LÓGICA ORIGINAL DU LIFE - 323)
       // ─────────────────────────────────────
 
       if (mensaje.type === 'text') {
@@ -106,7 +128,6 @@ export default async function handler(req, res) {
       } else if (mensaje.type === 'image') {
         console.log(`📸 Imagen recibida de ${telefono}`);
         
-        // Obtener usuario
         const { obtenerOCrearUsuario } = await import('../lib/supabase.js');
         const usuario = await obtenerOCrearUsuario(telefono, nombre);
         
@@ -135,7 +156,6 @@ export default async function handler(req, res) {
           const result = await procesarAudio(usuario.id, audioId);
           
           if (result.exito && result.transcripcion) {
-            // Procesar el audio transcrito como si fuera texto
             console.log(`📝 Transcripción: "${result.transcripcion}"`);
             respuesta = await procesarMensaje(telefono, nombre, result.transcripcion);
           } else {
@@ -148,7 +168,7 @@ export default async function handler(req, res) {
         respuesta = `Por ahora solo entiendo texto, imágenes y audios. 😊`;
       }
 
-      // Enviar respuesta
+      // Enviar respuesta para Du Life
       if (respuesta) {
         await enviarMensaje(telefono, respuesta);
       }
@@ -157,7 +177,6 @@ export default async function handler(req, res) {
 
     } catch (err) {
       console.error('❌ Error en webhook:', err.message);
-      console.error('Stack:', err.stack);
       return res.status(200).json({ status: 'error', message: err.message });
     }
   }
