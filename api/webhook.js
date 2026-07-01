@@ -1,5 +1,5 @@
 // ============================================================
-//  DU LIFE - Webhook v2 (con multimedia)
+//  DU LIFE & AUDITORÍAS - Webhook Router v2 (con multimedia)
 //  api/webhook.js
 // ============================================================
 
@@ -35,23 +35,47 @@ export default async function handler(req, res) {
       if (!changes || !changes[0]) return res.status(200).json({ status: 'ok' });
 
       const value = changes[0].value;
+      
       // ===== DEBUG =====
-console.log("====================================");
-console.log("📩 WEBHOOK RECIBIDO");
-console.log("📞 Metadata:");
-console.log(JSON.stringify(value.metadata || {}, null, 2));
+      console.log("====================================");
+      console.log("📩 WEBHOOK RECIBIDO");
+      console.log("🌎 ENV WA_PHONE_NUMBER_ID:", process.env.WA_PHONE_NUMBER_ID);
+      console.log("📞 Metadata:");
+      console.log(JSON.stringify(value.metadata || {}, null, 2));
 
-const phoneNumberId = value.metadata?.phone_number_id;
-const displayPhone = value.metadata?.display_phone_number;
+      const phoneNumberId = value.metadata?.phone_number_id;
+      const displayPhone = value.metadata?.display_phone_number;
 
-console.log("📱 Display Phone:", displayPhone);
-console.log("🆔 Phone Number ID:", phoneNumberId);
+      console.log("📱 Display Phone:", displayPhone);
+      console.log("🆔 Phone Number ID:", phoneNumberId);
+      console.log("====================================");
+      // ===== FIN DEBUG =====
 
-console.log("📦 Payload completo:");
-console.log(JSON.stringify(value, null, 2));
+      // ─────────────────────────────────────────────────────────────────
+      // ENRUTADOR DINÁMICO PARA AUDITORÍAS (Número 311)
+      // ─────────────────────────────────────────────────────────────────
+      if (phoneNumberId === "1239327509257364") {
+        console.log("🔀 Desviando webhook al bot de Auditorías (Google Apps Script)...");
+        
+        const URL_APPS_SCRIPT = "https://script.google.com/macros/s/AKfycbzMftD1ScWx9BqcU_P3VvL759811x16R7H69uJ9g4m8zdwKpAYUAi2kLNST5t2VxVoE/exec";
 
-console.log("====================================");
-// ===== FIN DEBUG =====
+        try {
+          const response = await fetch(URL_APPS_SCRIPT, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body) // Se le envía exactamente el mismo payload original
+          });
+          
+          console.log(`✅ Webhook reenviado con éxito. Estado Script: ${response.status}`);
+        } catch (scriptErr) {
+          console.error("❌ Error enviando el webhook a Google Apps Script:", scriptErr.message);
+        }
+
+        // Siempre respondemos 200 OK a Meta sin importar el resultado del Script externo
+        return res.status(200).json({ status: 'forwarded_to_auditorias' });
+      }
+      // ─────────────────────────────────────────────────────────────────
+
       if (!value || !value.messages) return res.status(200).json({ status: 'ok' });
 
       const mensaje = value.messages[0];
@@ -71,7 +95,7 @@ console.log("====================================");
       let respuesta = null;
 
       // ─────────────────────────────────────
-      // PROCESAR SEGÚN TIPO
+      // PROCESAR SEGÚN TIPO (LÓGICA ORIGINAL DU LIFE)
       // ─────────────────────────────────────
 
       if (mensaje.type === 'text') {
