@@ -1,178 +1,320 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  IconArrowLeft, IconArrowUp, IconArrowDown, IconTrendingUp,
+} from '@tabler/icons-react';
 
-export default function GastosPage() {
-  const [gastos, setGastos] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [periodo, setPeriodo] = useState('mes');
+const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
+const formatCOPCorto = (n) => {
+  if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
+  if (n >= 1_000) return '$' + Math.round(n / 1_000) + 'k';
+  return '$' + Math.round(n);
+};
 
-  useEffect(() => {
-    cargarGastos();
-  }, [periodo]);
+const DIAS_SEMANA = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
 
-  const cargarGastos = async () => {
-    setLoading(true);
-    try {
-      const r = await fetch(`/api/dashboard/gastos?periodo=${periodo}`);
-      if (r.ok) {
-        const data = await r.json();
-        setGastos(data.gastos || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
+function formatFechaGrupo(fecha) {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const dt = new Date(fecha + 'T12:00:00');
+  const ayer = new Date(hoy);
+  ayer.setDate(ayer.getDate() - 1);
+  if (dt.toDateString() === hoy.toDateString()) return 'Hoy';
+  if (dt.toDateString() === ayer.toDateString()) return 'Ayer';
+  const diff = Math.floor((hoy - dt) / (1000 * 60 * 60 * 24));
+  if (diff < 7) return dt.toLocaleDateString('es-CO', { weekday: 'long' });
+  return dt.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+}
+
+function BarChart({ gastos }) {
+  const dataPorDia = useMemo(() => {
+    const hoy = new Date();
+    hoy.setHours(0, 0, 0, 0);
+    const dias = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(hoy);
+      d.setDate(d.getDate() - i);
+      const fechaStr = d.toISOString().split('T')[0];
+      const totalDia = gastos
+        .filter((g) => g.fecha === fechaStr)
+        .reduce((sum, g) => sum + Number(g.monto), 0);
+      dias.push({
+        fecha: fechaStr,
+        dia: DIAS_SEMANA[d.getDay()],
+        total: totalDia,
+        esHoy: i === 0,
+      });
     }
-  };
+    return dias;
+  }, [gastos]);
 
-  const formatearMonto = (m) => Number(m || 0).toLocaleString('es-CO');
-  const total = gastos.reduce((s, g) => s + Number(g.monto), 0);
-
-  // Agrupar por categoría/descripción
-  const grupos = {};
-  gastos.forEach(g => {
-    const cat = g.descripcion || 'Sin descripción';
-    if (!grupos[cat]) grupos[cat] = { total: 0, count: 0 };
-    grupos[cat].total += Number(g.monto);
-    grupos[cat].count++;
-  });
-  
-  const categoriasOrdenadas = Object.entries(grupos)
-    .sort((a, b) => b[1].total - a[1].total)
-    .slice(0, 5);
+  const maxValor = Math.max(...dataPorDia.map((d) => d.total), 1);
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+    <div className="flex items-end justify-between gap-2 h-32 mt-4">
+      {dataPorDia.map((d, i) => {
+        const altura = Math.max((d.total / maxValor) * 100, 6);
+        return (
+          <div key={i} className="flex-1 flex flex-col items-center gap-2">
+            <div className="w-full flex-1 flex items-end">
+              <div
+                className="w-full rounded-t-lg"
+                style={{
+                  height: `${altura}%`,
+                  background: d.esHoy ? '#C4E938' : '#242424',
+                  minHeight: '6px',
+                  transition: 'all 0.3s ease',
+                }}
+              />
+            </div>
+            <div
+              className={`text-[11px] font-medium`}
+              style={{ color: d.esHoy ? '#C4E938' : '#71717A' }}
+            >
+              {d.dia}
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function GastosPage() {
+  const router = useRouter();
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [filtro, setFiltro] = useState('todos'); // 'todos' | 'gastos' | 'ingresos'
+
+  useEffect(() => {
+    fetch('/api/dashboard/gastos')
+      .then((r) => r.json())
+      .then((d) => {
+        setData(d);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
+
+  const { movimientos, agrupados, totalGastosSemana } = useMemo(() => {
+    if (!data) return { movimientos: [], agrupados: {}, totalGastosSemana: 0 };
+
+    const gastos = (data.gastos || []).map((g) => ({ ...g, tipo: 'gasto' }));
+    const ingresos = (data.ingresos || []).map((i) => ({ ...i, tipo: 'ingreso' }));
+
+    let movs = [];
+    if (filtro === 'todos') movs = [...gastos, ...ingresos];
+    if (filtro === 'gastos') movs = gastos;
+    if (filtro === 'ingresos') movs = ingresos;
+
+    movs.sort((a, b) => {
+      const dtA = new Date(a.fecha + 'T' + (a.hora || '00:00:00'));
+      const dtB = new Date(b.fecha + 'T' + (b.hora || '00:00:00'));
+      return dtB - dtA;
+    });
+
+    const grupos = {};
+    movs.forEach((m) => {
+      const grupo = formatFechaGrupo(m.fecha);
+      if (!grupos[grupo]) grupos[grupo] = [];
+      grupos[grupo].push(m);
+    });
+
+    const hace7dias = new Date();
+    hace7dias.setDate(hace7dias.getDate() - 7);
+    const totalSemana = gastos
+      .filter((g) => new Date(g.fecha) >= hace7dias)
+      .reduce((sum, g) => sum + Number(g.monto), 0);
+
+    return { movimientos: movs, agrupados: grupos, totalGastosSemana: totalSemana };
+  }, [data, filtro]);
+
+  if (loading) {
+    return (
+      <div className="px-5 pt-4 flex items-center justify-center min-h-screen">
+        <div className="text-muted">Cargando...</div>
+      </div>
+    );
+  }
+
+  const resumen = data?.resumen || { total_gastos: 0, total_ingresos: 0, balance: 0 };
+
+  return (
+    <div className="px-5 pt-4 pb-32">
+
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        >
+          <IconArrowLeft size={18} color="#fff" />
+        </button>
         <div>
-          <h1 style={{ fontSize: '2rem', margin: 0, color: '#1a1a1a' }}>💸 Gastos</h1>
-          <p style={{ color: '#666', marginTop: '0.25rem' }}>Tus registros de gastos</p>
+          <div className="text-[13px] text-muted">Movimientos</div>
+          <div className="text-[19px] font-bold tracking-tight text-white">Gastos</div>
         </div>
-        
-        {/* Filtros */}
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          {['hoy', 'semana', 'mes', 'año'].map(p => (
+      </div>
+
+      {/* Bar chart card */}
+      <div
+        className="rounded-hero p-5"
+        style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+      >
+        <div className="flex justify-between items-start">
+          <div>
+            <div className="text-[12px] text-muted uppercase tracking-wide font-medium">
+              Últimos 7 días
+            </div>
+            <div className="text-[28px] font-bold tracking-tight mt-1 text-white">
+              {formatCOP(totalGastosSemana)}
+            </div>
+          </div>
+          <div
+            className="flex items-center gap-1 px-2.5 py-1 rounded-[10px]"
+            style={{ background: 'rgba(196, 233, 56, 0.15)' }}
+          >
+            <IconTrendingUp size={12} color="#C4E938" />
+            <span className="text-[11px] font-bold" style={{ color: '#C4E938' }}>
+              esta semana
+            </span>
+          </div>
+        </div>
+
+        <BarChart gastos={data?.gastos || []} />
+      </div>
+
+      {/* Stats mini */}
+      <div className="grid grid-cols-2 gap-3 mt-3.5">
+        <div
+          className="rounded-card p-3.5"
+          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        >
+          <div
+            className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center"
+            style={{ background: 'rgba(196, 233, 56, 0.15)' }}
+          >
+            <IconArrowUp size={16} color="#C4E938" />
+          </div>
+          <div className="text-[12px] text-muted mt-3">Ingresos mes</div>
+          <div className="text-[18px] font-bold tracking-tight mt-0.5 text-white">
+            {formatCOPCorto(Number(resumen.total_ingresos) || 0)}
+          </div>
+        </div>
+        <div
+          className="rounded-card p-3.5"
+          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        >
+          <div
+            className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center"
+            style={{ background: '#242424' }}
+          >
+            <IconArrowDown size={16} color="#A1A1AA" />
+          </div>
+          <div className="text-[12px] text-muted mt-3">Gastos mes</div>
+          <div className="text-[18px] font-bold tracking-tight mt-0.5 text-white">
+            {formatCOPCorto(Number(resumen.total_gastos) || 0)}
+          </div>
+        </div>
+      </div>
+
+      {/* Filtros */}
+      <div className="flex gap-2 mt-6">
+        {[
+          { id: 'todos', label: 'Todos' },
+          { id: 'gastos', label: 'Gastos' },
+          { id: 'ingresos', label: 'Ingresos' },
+        ].map((f) => {
+          const active = filtro === f.id;
+          return (
             <button
-              key={p}
-              onClick={() => setPeriodo(p)}
+              key={f.id}
+              onClick={() => setFiltro(f.id)}
+              className="flex-1 py-2.5 rounded-full text-[13px] font-bold transition-all"
               style={{
-                padding: '0.5rem 1rem',
-                background: periodo === p ? '#667eea' : 'white',
-                color: periodo === p ? 'white' : '#666',
-                border: '1px solid ' + (periodo === p ? '#667eea' : '#ddd'),
-                borderRadius: '6px',
-                cursor: 'pointer',
-                textTransform: 'capitalize',
-                fontSize: '0.9rem'
+                background: active ? '#C4E938' : '#1A1A1A',
+                color: active ? '#0A0A0A' : '#A1A1AA',
+                border: active ? 'none' : '1px solid #2A2A2A',
               }}
             >
-              {p}
+              {f.label}
             </button>
+          );
+        })}
+      </div>
+
+      {/* Lista agrupada */}
+      {Object.keys(agrupados).length === 0 ? (
+        <div
+          className="rounded-card p-8 mt-5 text-center text-muted text-[13px]"
+          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        >
+          Sin movimientos para mostrar.
+        </div>
+      ) : (
+        <div className="mt-5">
+          {Object.entries(agrupados).map(([grupo, movs]) => (
+            <div key={grupo} className="mb-5">
+              <div className="text-[12px] text-muted uppercase tracking-wide font-medium mb-2 capitalize">
+                {grupo}
+              </div>
+              <div
+                className="rounded-card px-4"
+                style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+              >
+                {movs.map((m, i) => {
+                  const esIngreso = m.tipo === 'ingreso';
+                  return (
+                    <div
+                      key={m.id}
+                      className="flex items-center gap-3 py-3.5"
+                      style={{
+                        borderBottom: i < movs.length - 1 ? '1px solid #242424' : 'none',
+                      }}
+                    >
+                      <div
+                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                        style={{
+                          background: esIngreso ? 'rgba(196, 233, 56, 0.15)' : '#242424',
+                        }}
+                      >
+                        {esIngreso ? (
+                          <IconArrowUp size={16} color="#C4E938" />
+                        ) : (
+                          <IconArrowDown size={16} color="#A1A1AA" />
+                        )}
+                      </div>
+                      <div className="flex-1">
+                        <div className="text-[14px] font-bold text-white">
+                          {m.descripcion || (esIngreso ? 'Ingreso' : 'Gasto')}
+                        </div>
+                        <div className="text-[12px] text-soft mt-0.5">
+                          {m.lugar || m.fuente || (esIngreso ? 'Ingreso' : 'Efectivo')}
+                        </div>
+                      </div>
+                      <div className="text-right">
+                        <div
+                          className="text-[15px] font-bold"
+                          style={{ color: esIngreso ? '#C4E938' : '#fff' }}
+                        >
+                          {esIngreso ? '+' : '−'}
+                          {formatCOP(Number(m.monto))}
+                        </div>
+                        <div className="text-[11px] text-soft mt-0.5 capitalize">
+                          {m.metodo_pago || m.moneda}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
           ))}
         </div>
-      </div>
-
-      {/* Resumen */}
-      <div style={{
-        background: 'white',
-        padding: '1.5rem',
-        borderRadius: '12px',
-        marginBottom: '2rem',
-        boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-      }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-          <div>
-            <div style={{ color: '#666', fontSize: '0.85rem' }}>Total {periodo}</div>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ff6b6b' }}>
-              ${formatearMonto(total)}
-            </div>
-          </div>
-          <div>
-            <div style={{ color: '#666', fontSize: '0.85rem' }}>Movimientos</div>
-            <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#1a1a1a' }}>
-              {gastos.length}
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div style={{
-        display: 'grid',
-        gridTemplateColumns: '1fr 1fr',
-        gap: '1.5rem'
-      }}>
-        {/* Top categorías */}
-        <div style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)'
-        }}>
-          <h2 style={{ fontSize: '1.1rem', marginTop: 0, color: '#1a1a1a' }}>
-            🏆 Top 5 categorías
-          </h2>
-          {categoriasOrdenadas.length === 0 ? (
-            <p style={{ color: '#999' }}>Sin datos</p>
-          ) : (
-            categoriasOrdenadas.map(([cat, datos], i) => {
-              const pct = total > 0 ? (datos.total / total * 100).toFixed(1) : 0;
-              return (
-                <div key={i} style={{ marginBottom: '1rem' }}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.25rem' }}>
-                    <span style={{ fontSize: '0.9rem' }}>{cat}</span>
-                    <strong>${formatearMonto(datos.total)}</strong>
-                  </div>
-                  <div style={{ background: '#f0f0f0', borderRadius: '4px', height: '8px' }}>
-                    <div style={{
-                      background: '#667eea',
-                      width: `${pct}%`,
-                      height: '100%',
-                      borderRadius: '4px',
-                      transition: 'width 0.5s'
-                    }} />
-                  </div>
-                  <small style={{ color: '#999' }}>{pct}% • {datos.count} movimientos</small>
-                </div>
-              );
-            })
-          )}
-        </div>
-
-        {/* Lista de gastos */}
-        <div style={{
-          background: 'white',
-          padding: '1.5rem',
-          borderRadius: '12px',
-          boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-          maxHeight: '500px',
-          overflowY: 'auto'
-        }}>
-          <h2 style={{ fontSize: '1.1rem', marginTop: 0, color: '#1a1a1a' }}>
-            📋 Todos los movimientos
-          </h2>
-          {loading ? (
-            <p style={{ color: '#999' }}>Cargando...</p>
-          ) : gastos.length === 0 ? (
-            <p style={{ color: '#999' }}>No hay gastos en este periodo</p>
-          ) : (
-            gastos.map((g, i) => (
-              <div key={i} style={{
-                padding: '0.75rem 0',
-                borderBottom: '1px solid #f0f0f0',
-                display: 'flex',
-                justifyContent: 'space-between'
-              }}>
-                <div>
-                  <div style={{ fontWeight: '500' }}>{g.descripcion || 'Sin descripción'}</div>
-                  <small style={{ color: '#999' }}>{g.fecha} • {g.metodo_pago || 'efectivo'}</small>
-                </div>
-                <strong style={{ color: '#ff6b6b' }}>${formatearMonto(g.monto)}</strong>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      )}
     </div>
   );
 }

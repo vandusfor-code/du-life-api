@@ -81,9 +81,25 @@ async function handleResumen(usuarioId) {
 }
 
 async function handleGastos(usuarioId) {
-  const gastos = await obtenerGastos(usuarioId, { limite: 50 });
-  const resumen = await obtenerResumenMes(usuarioId);
-  return { status: 200, body: { gastos, resumen } };
+  const [gastos, ingresosData, resumen] = await Promise.all([
+    obtenerGastos(usuarioId, { limite: 50 }),
+    supabase
+      .from('ingresos')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .order('fecha', { ascending: false })
+      .limit(50),
+    obtenerResumenMes(usuarioId),
+  ]);
+  return {
+    status: 200,
+    body: {
+      gastos,
+      ingresos: ingresosData.data || [],
+      resumen,
+    },
+  };
 }
 
 async function handlePersonas(usuarioId) {
