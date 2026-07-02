@@ -8,9 +8,6 @@ export default function LoginPage() {
   const [pais, setPais] = useState('57');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [sliderProgress, setSliderProgress] = useState(0);
-  const [dragging, setDragging] = useState(false);
-  const sliderRef = useRef(null);
   const canvasRef = useRef(null);
   const router = useRouter();
 
@@ -37,8 +34,6 @@ export default function LoginPage() {
     let animationId;
     const draw = () => {
       ctx.clearRect(0, 0, w, h);
-
-      // Líneas entre partículas cercanas
       for (let i = 0; i < particles.length; i++) {
         for (let j = i + 1; j < particles.length; j++) {
           const dx = particles[i].x - particles[j].x;
@@ -54,8 +49,6 @@ export default function LoginPage() {
           }
         }
       }
-
-      // Puntos
       particles.forEach(p => {
         p.x += p.vx;
         p.y += p.vy;
@@ -66,51 +59,21 @@ export default function LoginPage() {
         ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
         ctx.fill();
       });
-
       animationId = requestAnimationFrame(draw);
     };
     draw();
     return () => cancelAnimationFrame(animationId);
   }, []);
 
-  // Handlers del slider
-  const handleSliderStart = (e) => {
-    if (loading || telefono.length < 7) return;
-    setDragging(true);
-    e.preventDefault();
-  };
-
-  const handleSliderMove = (clientX) => {
-    if (!dragging || !sliderRef.current) return;
-    const rect = sliderRef.current.getBoundingClientRect();
-    const relativeX = clientX - rect.left;
-    const maxX = rect.width - 56; // 56 = ancho del thumb
-    const progress = Math.max(0, Math.min(1, relativeX / maxX));
-    setSliderProgress(progress);
-  };
-
-  const handleSliderEnd = async () => {
-    if (!dragging) return;
-    setDragging(false);
-    if (sliderProgress >= 0.9) {
-      setSliderProgress(1);
-      await enviarCodigo();
-    } else {
-      setSliderProgress(0);
-    }
-  };
-
   const enviarCodigo = async () => {
     setError('');
     if (!telefono || telefono.length < 7) {
       setError('Ingresa un número válido');
-      setSliderProgress(0);
       return;
     }
     setLoading(true);
     try {
       const telefonoCompleto = pais + telefono.replace(/\s/g, '');
-      // Detectar zona horaria en background
       const zonaHoraria = Intl.DateTimeFormat().resolvedOptions().timeZone;
       const response = await fetch('/api/auth/send-code', {
         method: 'POST',
@@ -123,11 +86,9 @@ export default function LoginPage() {
         router.push('/verify');
       } else {
         setError(data.error || 'Hubo un error. Intenta de nuevo.');
-        setSliderProgress(0);
       }
     } catch (e) {
       setError('Error de conexión. Intenta de nuevo.');
-      setSliderProgress(0);
     } finally {
       setLoading(false);
     }
@@ -148,11 +109,14 @@ export default function LoginPage() {
 
       {/* Texto de bienvenida */}
       <div className="text-center mb-8">
-        <div className="text-[38px] font-bold text-white tracking-tight leading-tight">
+        <div className="text-[42px] font-bold text-white tracking-tight leading-none">
           Du Life
         </div>
-        <div className="text-[14px] text-white/60 mt-2">
-          Tu segundo cerebro por WhatsApp
+        <div
+          className="text-[15px] text-white/70 mt-3 italic"
+          style={{ fontFamily: 'Georgia, "Times New Roman", serif' }}
+        >
+          Libera tu mente, nosotros tomamos nota.
         </div>
       </div>
 
@@ -193,60 +157,31 @@ export default function LoginPage() {
         )}
       </div>
 
-      {/* Slider */}
-      <div
-        ref={sliderRef}
-        className="relative h-14 rounded-full overflow-hidden select-none"
-        style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)' }}
-        onMouseMove={(e) => handleSliderMove(e.clientX)}
-        onMouseUp={handleSliderEnd}
-        onMouseLeave={handleSliderEnd}
-        onTouchMove={(e) => handleSliderMove(e.touches[0].clientX)}
-        onTouchEnd={handleSliderEnd}
+      {/* Botón enviar */}
+      <button
+        onClick={enviarCodigo}
+        disabled={loading || telefono.length < 7}
+        className="w-full h-14 rounded-full flex items-center justify-center gap-2 font-bold text-[15px] transition-opacity"
+        style={{
+          background: '#C4E938',
+          color: '#0A0A0A',
+          opacity: loading || telefono.length < 7 ? 0.4 : 1,
+        }}
       >
-        {/* Fill lime */}
-        <div
-          className="absolute inset-y-0 left-0 pointer-events-none"
-          style={{
-            width: `${sliderProgress * 100}%`,
-            background: '#C4E938',
-            transition: dragging ? 'none' : 'width 0.3s ease',
-          }}
-        />
-
-        {/* Texto */}
-        <div
-          className="absolute inset-0 flex items-center justify-center pointer-events-none"
-          style={{
-            opacity: 1 - sliderProgress,
-            transition: dragging ? 'none' : 'opacity 0.3s ease',
-          }}
-        >
-          <div className="text-[14px] font-bold text-white/70 tracking-wide">
-            {loading ? 'Enviando...' : 'Desliza para enviar código →'}
-          </div>
-        </div>
-
-        {/* Thumb */}
-        <div
-          onMouseDown={handleSliderStart}
-          onTouchStart={handleSliderStart}
-          className="absolute top-1 left-1 h-12 w-12 rounded-full flex items-center justify-center cursor-grab active:cursor-grabbing"
-          style={{
-            background: '#FFFFFF',
-            transform: `translateX(${sliderProgress * (sliderRef.current?.offsetWidth ? sliderRef.current.offsetWidth - 56 : 0)}px)`,
-            transition: dragging ? 'none' : 'transform 0.3s ease',
-            touchAction: 'none',
-          }}
-        >
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
-            <path d="M5 12h14M13 6l6 6-6 6" stroke="#0A0A0A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-          </svg>
-        </div>
-      </div>
+        {loading ? (
+          'Enviando código...'
+        ) : (
+          <>
+            Enviar código
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+              <path d="M5 12h14M13 6l6 6-6 6" stroke="#0A0A0A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          </>
+        )}
+      </button>
 
       {/* Legal */}
-      <div className="text-center text-[11px] text-white/40 mt-6">
+      <div className="text-center text-[11px] text-white/40 mt-4">
         Al continuar aceptas nuestros términos y política de privacidad
       </div>
     </main>
