@@ -90,6 +90,7 @@ async function handleGastos(usuarioId) {
       .eq('usuario_id', usuarioId)
       .is('eliminado_en', null)
       .order('fecha', { ascending: false })
+      .order('hora', { ascending: false })
       .limit(50),
     obtenerResumenMes(usuarioId),
   ]);
