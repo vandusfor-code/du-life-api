@@ -7,21 +7,30 @@ export default {
   theme: {
     extend: {
       colors: {
-        page: '#F0F2F5',
-        ink: '#1A1D29',
-        muted: '#6B7280',
-        soft: '#9CA2B8',
-        hairline: '#F1F3F7',
+        // Fondos
+        page: '#0A0A0A',        // fondo principal (dark)
+        surface: '#1A1A1A',     // cards / superficies elevadas
+        elevated: '#242424',    // segundo nivel de elevación (badges, inputs)
+
+        // Textos
+        ink: '#FFFFFF',         // texto principal
+        muted: '#A1A1AA',       // texto secundario
+        soft: '#71717A',        // texto terciario / disabled
+
+        // Bordes
+        hairline: '#2A2A2A',    // bordes sutiles
+
+        // Acentos
         lime: '#C4E938',
-        'lime-soft': '#ECFCCB',
-        'lime-text': '#65A30D',
+        'lime-soft': 'rgba(196, 233, 56, 0.15)',   // fondo de badges lime en dark
+        'lime-text': '#C4E938',                     // texto lime
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],
       },
       boxShadow: {
-        card: '0 1px 2px rgba(0,0,0,0.04)',
-        nav: '0 6px 24px rgba(45, 49, 66, 0.10)',
+        card: 'none',                              // sin sombra en dark
+        nav: '0 -8px 24px rgba(0, 0, 0, 0.5)',
       },
       borderRadius: {
         card: '18px',

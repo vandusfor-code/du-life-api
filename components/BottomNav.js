@@ -15,7 +15,13 @@ export default function BottomNav() {
   const router = useRouter();
 
   return (
-    <nav className="fixed bottom-3.5 left-5 right-5 max-w-app mx-auto bg-white rounded-[26px] py-3 px-4 flex justify-between items-center shadow-nav">
+    <nav
+      className="fixed bottom-3.5 left-5 right-5 max-w-app mx-auto rounded-[26px] py-3 px-4 flex justify-between items-center shadow-nav"
+      style={{
+        background: '#1A1A1A',
+        border: '1px solid #2A2A2A',
+      }}
+    >
       {ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;
         return (
@@ -24,8 +30,9 @@ export default function BottomNav() {
             onClick={() => router.push(href)}
             className="flex flex-col items-center gap-1"
           >
-            <Icon size={22} color={active ? '#1A1D29' : '#9CA2B8'} />
-            <span className={`text-[11px] ${active ? 'text-ink font-bold' : 'text-soft'}`}>
+            <Icon size={22} color={active ? '#C4E938' : '#71717A'} />
+            <span className={`text-[11px] ${active ? 'font-bold' : ''}`}
+                  style={{ color: active ? '#C4E938' : '#71717A' }}>
               {label}
             </span>
           </button>
