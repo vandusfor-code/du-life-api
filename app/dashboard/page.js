@@ -82,11 +82,24 @@ export default function DashboardInicio() {
   }
 
   const gastos = data?.gastos || [];
+  const ingresos = data?.ingresos || [];
   const resumen = data?.resumen || { total_gastos: 0, total_ingresos: 0, balance: 0 };
   const balance = Number(resumen.balance) || 0;
   const totalIngresos = Number(resumen.total_ingresos) || 0;
   const totalGastos = Number(resumen.total_gastos) || 0;
-  const ultimos3 = gastos.slice(0, 3);
+
+  // Combinar gastos + ingresos, ordenar por fecha+hora, tomar los 3 más recientes
+  const ultimos3 = [
+    ...gastos.map((g) => ({ ...g, tipo: 'gasto' })),
+    ...ingresos.map((i) => ({ ...i, tipo: 'ingreso' })),
+  ]
+    .sort((a, b) => {
+      const dtA = new Date((a.fecha || '') + 'T' + (a.hora || '00:00:00'));
+      const dtB = new Date((b.fecha || '') + 'T' + (b.hora || '00:00:00'));
+      return dtB - dtA;
+    })
+    .slice(0, 3);
+
   const mesActual = new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
 
   return (
@@ -215,33 +228,49 @@ export default function DashboardInicio() {
         </div>
       ) : (
         <div className="rounded-card px-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-          {ultimos3.map((g, i) => (
-            <div
-              key={g.id}
-              className="flex items-center gap-3 py-3.5"
-              style={{ borderBottom: i < ultimos3.length - 1 ? '1px solid #242424' : 'none' }}
-            >
+          {ultimos3.map((m, i) => {
+            const esIngreso = m.tipo === 'ingreso';
+            return (
               <div
-                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: '#242424' }}
+                key={m.id}
+                className="flex items-center gap-3 py-3.5"
+                style={{ borderBottom: i < ultimos3.length - 1 ? '1px solid #242424' : 'none' }}
               >
-                <IconArrowDown size={16} color="#A1A1AA" />
-              </div>
-              <div className="flex-1">
-                <div className="text-[14px] font-bold text-white">
-                  {g.descripcion || 'Gasto'}
+                <div
+                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+                  style={{ background: esIngreso ? 'rgba(196,233,56,0.15)' : '#242424' }}
+                >
+                  {esIngreso ? (
+                    <IconArrowUp size={16} color="#C4E938" />
+                  ) : (
+                    <IconArrowDown size={16} color="#A1A1AA" />
+                  )}
                 </div>
-                <div className="text-[12px] text-soft mt-0.5">
-                  {timeAgo(g.fecha, g.hora)}
-                  {g.lugar ? ` · ${g.lugar}` : ''}
+                <div className="flex-1">
+                  <div className="text-[14px] font-bold text-white">
+                    {m.descripcion || (esIngreso ? 'Ingreso' : 'Gasto')}
+                  </div>
+                  <div className="text-[12px] text-soft mt-0.5">
+                    {timeAgo(m.fecha, m.hora)}
+                    {m.lugar ? ` · ${m.lugar}` : ''}
+                    {m.fuente ? ` · ${m.fuente}` : ''}
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div
+                    className="text-[15px] font-bold"
+                    style={{ color: esIngreso ? '#C4E938' : '#fff' }}
+                  >
+                    {esIngreso ? '+' : '−'}
+                    {formatCOP(Number(m.monto))}
+                  </div>
+                  <div className="text-[11px] text-soft mt-0.5 capitalize">
+                    {m.metodo_pago || m.moneda || ''}
+                  </div>
                 </div>
               </div>
-              <div className="text-right">
-                <div className="text-[15px] font-bold text-white">−{formatCOP(Number(g.monto))}</div>
-                <div className="text-[11px] text-soft mt-0.5 capitalize">{g.metodo_pago}</div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
