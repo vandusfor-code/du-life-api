@@ -30,10 +30,14 @@ const formatCOPCorto = (n) => {
 };
 
 function timeAgo(fecha, hora) {
-  const dt = new Date(fecha + 'T' + (hora || '00:00:00'));
+  const dt = new Date((fecha || '') + 'T' + (hora || '00:00:00'));
   const diff = Date.now() - dt.getTime();
   const horas = Math.floor(diff / 3600000);
-  if (horas < 1) return 'hace un momento';
+  if (horas < 1) {
+    const mins = Math.floor(diff / 60000);
+    if (mins < 1) return 'hace un momento';
+    return `hace ${mins} min`;
+  }
   if (horas < 24) return `hace ${horas} h`;
   const dias = Math.floor(horas / 24);
   if (dias === 1) return 'ayer';
@@ -126,7 +130,7 @@ export default function DashboardInicio() {
         </div>
       </div>
 
-      {/* Hero Balance (lime como antes, es el hero) */}
+      {/* Hero Balance */}
       <div className="rounded-hero p-5 relative overflow-hidden"
            style={{ background: '#C4E938' }}>
         <div className="flex justify-between items-start">
