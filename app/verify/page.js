@@ -1,36 +1,83 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 
 export default function VerifyPage() {
-  const [codigo, setCodigo] = useState('');
+  const [codigo, setCodigo] = useState(['', '', '', '', '', '']);
   const [telefono, setTelefono] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
-  const [tiempoRestante, setTiempoRestante] = useState(300); // 5 minutos
+  const [tiempoRestante, setTiempoRestante] = useState(300);
+  const inputsRef = useRef([]);
+  const canvasRef = useRef(null);
   const router = useRouter();
 
+  // Animación de partículas
   useEffect(() => {
-    // Recuperar teléfono del sessionStorage
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    canvas.width = canvas.offsetWidth * dpr;
+    canvas.height = canvas.offsetHeight * dpr;
+    ctx.scale(dpr, dpr);
+    const w = canvas.offsetWidth;
+    const h = canvas.offsetHeight;
+
+    const particles = Array.from({ length: 50 }, () => ({
+      x: Math.random() * w,
+      y: Math.random() * h,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      r: Math.random() * 1.5 + 0.5,
+    }));
+
+    let animationId;
+    const draw = () => {
+      ctx.clearRect(0, 0, w, h);
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dx = particles[i].x - particles[j].x;
+          const dy = particles[i].y - particles[j].y;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+          if (dist < 80) {
+            ctx.strokeStyle = `rgba(196, 233, 56, ${0.15 * (1 - dist / 80)})`;
+            ctx.lineWidth = 0.5;
+            ctx.beginPath();
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > w) p.vx *= -1;
+        if (p.y < 0 || p.y > h) p.vy *= -1;
+        ctx.fillStyle = 'rgba(196, 233, 56, 0.7)';
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      animationId = requestAnimationFrame(draw);
+    };
+    draw();
+    return () => cancelAnimationFrame(animationId);
+  }, []);
+
+  // Init teléfono + timer
+  useEffect(() => {
     const tel = sessionStorage.getItem('login_telefono');
     if (!tel) {
       router.push('/login');
       return;
     }
     setTelefono(tel);
-    
-    // Cronómetro
     const interval = setInterval(() => {
-      setTiempoRestante(prev => {
-        if (prev <= 0) {
-          clearInterval(interval);
-          return 0;
-        }
-        return prev - 1;
-      });
+      setTiempoRestante((prev) => (prev <= 0 ? 0 : prev - 1));
     }, 1000);
-    
     return () => clearInterval(interval);
   }, [router]);
 
@@ -45,31 +92,57 @@ export default function VerifyPage() {
     return '+' + tel.slice(0, 2) + ' ' + tel.slice(2, 5) + ' ' + tel.slice(5, 8) + ' ' + tel.slice(8);
   };
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError('');
-    
-    if (codigo.length !== 6) {
-      setError('El código debe tener 6 dígitos');
-      return;
+  const handleCodigoChange = (index, value) => {
+    const val = value.replace(/\D/g, '').slice(0, 1);
+    const nuevo = [...codigo];
+    nuevo[index] = val;
+    setCodigo(nuevo);
+    if (val && index < 5) {
+      inputsRef.current[index + 1]?.focus();
     }
-    
+    // Auto-submit cuando complete 6 dígitos
+    if (val && index === 5 && nuevo.every((d) => d !== '')) {
+      verificar(nuevo.join(''));
+    }
+  };
+
+  const handleKeyDown = (index, e) => {
+    if (e.key === 'Backspace' && !codigo[index] && index > 0) {
+      inputsRef.current[index - 1]?.focus();
+    }
+  };
+
+  const handlePaste = (e) => {
+    e.preventDefault();
+    const paste = e.clipboardData.getData('text').replace(/\D/g, '').slice(0, 6);
+    if (paste.length > 0) {
+      const nuevo = paste.split('').concat(Array(6 - paste.length).fill(''));
+      setCodigo(nuevo);
+      const lastIndex = Math.min(paste.length, 5);
+      inputsRef.current[lastIndex]?.focus();
+      if (paste.length === 6) {
+        verificar(paste);
+      }
+    }
+  };
+
+  const verificar = async (codigoStr) => {
+    setError('');
     setLoading(true);
-    
     try {
       const response = await fetch('/api/auth/verify-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefono, codigo })
+        body: JSON.stringify({ telefono, codigo: codigoStr }),
       });
-      
       const data = await response.json();
-      
       if (response.ok) {
         sessionStorage.removeItem('login_telefono');
         router.push('/dashboard');
       } else {
         setError(data.error || 'Código incorrecto');
+        setCodigo(['', '', '', '', '', '']);
+        inputsRef.current[0]?.focus();
       }
     } catch (e) {
       setError('Error de conexión. Intenta de nuevo.');
@@ -81,18 +154,16 @@ export default function VerifyPage() {
   const reenviarCodigo = async () => {
     setLoading(true);
     setError('');
-    
     try {
       const response = await fetch('/api/auth/send-code', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ telefono })
+        body: JSON.stringify({ telefono }),
       });
-      
       if (response.ok) {
         setTiempoRestante(300);
-        setError('');
-        alert('Código reenviado a tu WhatsApp');
+        setCodigo(['', '', '', '', '', '']);
+        inputsRef.current[0]?.focus();
       } else {
         setError('No pude reenviar el código');
       }
@@ -104,125 +175,91 @@ export default function VerifyPage() {
   };
 
   return (
-    <main style={{
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-      minHeight: '100vh',
-      fontFamily: 'sans-serif',
-      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-      padding: '2rem'
-    }}>
-      <div style={{
-        background: 'white',
-        padding: '2.5rem',
-        borderRadius: '16px',
-        boxShadow: '0 20px 60px rgba(0,0,0,0.3)',
-        width: '100%',
-        maxWidth: '420px'
-      }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <h1 style={{ fontSize: '2rem', margin: 0, color: '#1a1a1a' }}>
-            🔐 Verificación
-          </h1>
-          <p style={{ color: '#666', marginTop: '0.5rem' }}>
-            Ingresa el código que te enviamos a
-          </p>
-          <p style={{ color: '#1a1a1a', fontWeight: '500', marginTop: '0.25rem' }}>
-            {formatearTelefono(telefono)}
-          </p>
+    <main
+      className="min-h-screen flex flex-col p-6 max-w-app mx-auto"
+      style={{ background: '#0A0A0A' }}
+    >
+      {/* Back */}
+      <button
+        onClick={() => router.push('/login')}
+        className="w-10 h-10 rounded-full flex items-center justify-center mb-4"
+        style={{ background: 'rgba(255,255,255,0.06)' }}
+      >
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+          <path d="M19 12H5M11 18l-6-6 6-6" stroke="#fff" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </button>
+
+      {/* Animación */}
+      <div className="flex justify-center mb-6">
+        <canvas ref={canvasRef} className="w-full h-40 max-w-[240px]" />
+      </div>
+
+      {/* Título */}
+      <div className="text-center mb-8">
+        <div className="text-[26px] font-bold text-white tracking-tight leading-tight">
+          Ingresa el código
         </div>
-
-        <form onSubmit={handleSubmit}>
-          <label style={{ display: 'block', marginBottom: '0.5rem', color: '#333', fontWeight: '500' }}>
-            Código de 6 dígitos
-          </label>
-          
-          <input
-            type="text"
-            value={codigo}
-            onChange={(e) => setCodigo(e.target.value.replace(/\D/g, '').slice(0, 6))}
-            placeholder="123456"
-            maxLength={6}
-            inputMode="numeric"
-            autoFocus
-            style={{
-              width: '100%',
-              padding: '1rem',
-              fontSize: '2rem',
-              textAlign: 'center',
-              letterSpacing: '0.5rem',
-              border: '2px solid #e0e0e0',
-              borderRadius: '8px',
-              marginBottom: '1rem',
-              outline: 'none',
-              fontFamily: 'monospace',
-              boxSizing: 'border-box'
-            }}
-          />
-
-          {error && (
-            <div style={{
-              background: '#fee',
-              color: '#c00',
-              padding: '0.75rem',
-              borderRadius: '8px',
-              marginBottom: '1rem',
-              fontSize: '0.9rem'
-            }}>
-              {error}
-            </div>
-          )}
-
-          <button
-            type="submit"
-            disabled={loading || codigo.length !== 6}
-            style={{
-              width: '100%',
-              padding: '1rem',
-              background: loading || codigo.length !== 6 ? '#999' : 'linear-gradient(135deg, #667eea, #764ba2)',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              fontSize: '1.1rem',
-              fontWeight: 'bold',
-              cursor: loading || codigo.length !== 6 ? 'not-allowed' : 'pointer'
-            }}
-          >
-            {loading ? 'Verificando...' : 'Verificar y entrar'}
-          </button>
-        </form>
-
-        <div style={{ textAlign: 'center', marginTop: '1.5rem' }}>
-          {tiempoRestante > 0 ? (
-            <p style={{ color: '#888', fontSize: '0.9rem' }}>
-              El código vence en <strong>{formatearTiempo(tiempoRestante)}</strong>
-            </p>
-          ) : (
-            <button
-              onClick={reenviarCodigo}
-              disabled={loading}
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#667eea',
-                cursor: 'pointer',
-                fontSize: '0.9rem',
-                textDecoration: 'underline'
-              }}
-            >
-              Reenviar código
-            </button>
-          )}
+        <div className="text-[13px] text-white/60 mt-2">
+          Enviado a tu WhatsApp
         </div>
-
-        <div style={{ textAlign: 'center', marginTop: '1rem' }}>
-          <a href="/login" style={{ color: '#888', fontSize: '0.85rem', textDecoration: 'none' }}>
-            ← Cambiar número
-          </a>
+        <div className="text-[13px] text-white/80 font-medium mt-1">
+          {formatearTelefono(telefono)}
         </div>
       </div>
+
+      {/* Casillas */}
+      <div className="flex justify-between gap-2 mb-4" onPaste={handlePaste}>
+        {codigo.map((digit, i) => (
+          <input
+            key={i}
+            ref={(el) => (inputsRef.current[i] = el)}
+            type="tel"
+            inputMode="numeric"
+            value={digit}
+            onChange={(e) => handleCodigoChange(i, e.target.value)}
+            onKeyDown={(e) => handleKeyDown(i, e)}
+            className="w-12 h-14 text-center text-[22px] font-bold text-white rounded-2xl outline-none"
+            style={{
+              background: digit ? '#C4E938' : 'rgba(255,255,255,0.06)',
+              color: digit ? '#0A0A0A' : '#fff',
+              border: `1px solid ${digit ? '#C4E938' : 'rgba(255,255,255,0.1)'}`,
+              transition: 'all 0.2s ease',
+            }}
+            maxLength={1}
+          />
+        ))}
+      </div>
+
+      {error && (
+        <div className="text-center text-[13px] text-red-400 mb-4">
+          {error}
+        </div>
+      )}
+
+      {/* Reenviar */}
+      <div className="text-center mt-4">
+        {tiempoRestante > 0 ? (
+          <div className="text-[13px] text-white/50">
+            Puedes reenviar en <span className="text-white/80 font-medium">{formatearTiempo(tiempoRestante)}</span>
+          </div>
+        ) : (
+          <button
+            onClick={reenviarCodigo}
+            disabled={loading}
+            className="text-[14px] text-lime font-bold"
+          >
+            Reenviar código
+          </button>
+        )}
+      </div>
+
+      {/* Loader */}
+      {loading && (
+        <div className="text-center text-[13px] text-white/60 mt-6">
+          Verificando...
+        </div>
+      )}
     </main>
   );
 }
