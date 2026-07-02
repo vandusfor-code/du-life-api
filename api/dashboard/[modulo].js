@@ -10,6 +10,7 @@ import {
   obtenerEntidadesPorTipo,
 } from '../../lib/supabase.js';
 import crypto from 'crypto';
+import { guardarSuscripcion, eliminarSuscripcion } from '../../lib/push.js';
 
 // ===== AUTH HELPERS =====
 
@@ -155,6 +156,37 @@ async function handleIdeas(usuarioId) {
   return { status: 200, body: { ideas: data || [] } };
 }
 
+async function handlePushSubscribe(usuarioId, req) {
+  try {
+    const body = req.body || {};
+    const suscripcion = body.suscripcion || body;
+    const userAgent = req.headers['user-agent'] || null;
+
+    const resultado = await guardarSuscripcion(usuarioId, suscripcion, userAgent);
+    if (!resultado.ok) {
+      return { status: 400, body: { error: resultado.error || 'No se pudo guardar' } };
+    }
+    return { status: 200, body: { ok: true } };
+  } catch (e) {
+    console.error('Error push_subscribe:', e.message);
+    return { status: 500, body: { error: 'Error interno' } };
+  }
+}
+
+async function handlePushUnsubscribe(usuarioId, req) {
+  try {
+    const body = req.body || {};
+    const endpoint = body.endpoint;
+    if (!endpoint) {
+      return { status: 400, body: { error: 'endpoint requerido' } };
+    }
+    const resultado = await eliminarSuscripcion(endpoint);
+    return { status: 200, body: { ok: resultado.ok } };
+  } catch (e) {
+    return { status: 500, body: { error: 'Error interno' } };
+  }
+}
+
 async function handleUsuario(usuarioId) {
   const { data: usuario } = await supabase
     .from('usuarios')
@@ -176,6 +208,8 @@ const HANDLERS = {
   tareas: handleTareas,
   ideas: handleIdeas,
   usuario: handleUsuario,
+  push_subscribe: handlePushSubscribe,
+  push_unsubscribe: handlePushUnsubscribe,
 };
 
 export default async function handler(req, res) {
@@ -196,7 +230,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { status, body } = await handlerFn(sesion.usuario_id);
+    const { status, body } = await handlerFn(sesion.usuario_id, req);
     return res.status(status).json(body);
   } catch (e) {
     console.error(`Error en ${modulo}:`, e.message);
