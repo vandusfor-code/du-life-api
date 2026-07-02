@@ -8,6 +8,7 @@ import {
   IconChevronRight, IconTree, IconUsers, IconNote, IconBulb, IconBell,
 } from '@tabler/icons-react';
 import Avatar from '../../components/Avatar';
+import { useAutoRefresh } from '../../components/useAutoRefresh';
 
 const MODULOS = [
   { href: '/dashboard/arbol', label: 'Árbol de vida', gradient: ['#6EE7B7', '#34D399'], icon: IconTree },
@@ -46,7 +47,7 @@ export default function DashboardInicio() {
   const [loading, setLoading] = useState(true);
   const [usuario, setUsuario] = useState(null);
 
-  useEffect(() => {
+  const cargarDatos = () => {
     Promise.all([
       fetch('/api/dashboard/gastos').then(r => r.json()),
       fetch('/api/dashboard/resumen').then(r => r.json()),
@@ -60,7 +61,13 @@ export default function DashboardInicio() {
         console.error(e);
         setLoading(false);
       });
+  };
+
+  useEffect(() => {
+    cargarDatos();
   }, []);
+
+  useAutoRefresh(cargarDatos);
 
   const h = new Date().getHours();
   const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';

@@ -7,6 +7,7 @@ import {
   IconStar, IconChevronRight,
 } from '@tabler/icons-react';
 import Avatar from '../../../components/Avatar';
+import { useAutoRefresh } from '../../../components/useAutoRefresh';
 
 function diasDesde(fechaISO) {
   if (!fechaISO) return null;
@@ -37,7 +38,7 @@ export default function PersonasPage() {
   const [busqueda, setBusqueda] = useState('');
   const [showBuscador, setShowBuscador] = useState(false);
 
-  useEffect(() => {
+const cargarDatos = () => {
     fetch('/api/dashboard/personas')
       .then((r) => r.json())
       .then((data) => {
@@ -45,7 +46,13 @@ export default function PersonasPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    cargarDatos();
   }, []);
+
+  useAutoRefresh(cargarDatos);
 
   const { destacada, sinContactar, masMencionadas, todas } = useMemo(() => {
     if (!personas.length) {

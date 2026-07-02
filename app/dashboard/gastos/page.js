@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import {
   IconArrowLeft, IconArrowUp, IconArrowDown, IconTrendingUp,
 } from '@tabler/icons-react';
+import { useAutoRefresh } from '../../../components/useAutoRefresh';
 
 const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 const formatCOPCorto = (n) => {
@@ -88,7 +89,7 @@ export default function GastosPage() {
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos'); // 'todos' | 'gastos' | 'ingresos'
 
-  useEffect(() => {
+  const cargarDatos = () => {
     fetch('/api/dashboard/gastos')
       .then((r) => r.json())
       .then((d) => {
@@ -96,7 +97,13 @@ export default function GastosPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
+  };
+
+  useEffect(() => {
+    cargarDatos();
   }, []);
+
+  useAutoRefresh(cargarDatos);
 
   const { movimientos, agrupados, totalGastosSemana } = useMemo(() => {
     if (!data) return { movimientos: [], agrupados: {}, totalGastosSemana: 0 };

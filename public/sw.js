@@ -43,7 +43,17 @@ self.addEventListener('push', (event) => {
     renotify: true,
   };
 
-  event.waitUntil(self.registration.showNotification(titulo, opciones));
+  event.waitUntil(
+    Promise.all([
+      self.registration.showNotification(titulo, opciones),
+      // Avisar a todas las pestañas abiertas para que refresquen
+      self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
+        clients.forEach((client) => {
+          client.postMessage({ type: 'push-received', tipo: payload.tipo });
+        });
+      }),
+    ])
+  );
 });
 
 // Click en notificación
