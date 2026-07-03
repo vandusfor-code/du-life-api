@@ -1,12 +1,53 @@
 // ============================================================
-//  Du Life - Handler de Recordatorios (QStash)
+//  Du Life - Handler de Recordatorios (QStash sin SDK)
 //  api/cron/recordatorios.js
-//  Llamado por QStash en el momento exacto de cada tarea
 // ============================================================
 
+import crypto from 'crypto';
 import { supabase } from '../../lib/supabase.js';
 import { enviarNotificacionPush } from '../../lib/push.js';
-import { Receiver } from '@upstash/qstash';
+
+/**
+ * Verifica firma de QStash manualmente sin SDK
+ */
+function verificarFirmaQStash(signatureHeader, body) {
+  try {
+    if (!signatureHeader) return false;
+    
+    const currentKey = process.env.QSTASH_CURRENT_SIGNING_KEY;
+    const nextKey = process.env.QSTASH_NEXT_SIGNING_KEY;
+    
+    if (!currentKey && !nextKey) return false;
+
+    // La firma es JWT: header.payload.signature
+    const parts = signatureHeader.split('.');
+    if (parts.length !== 3) return false;
+
+    const [headerB64, payloadB64, signatureB64] = parts;
+    const dataToSign = `${headerB64}.${payloadB64}`;
+
+    // Intentar con current key primero
+    for (const key of [currentKey, nextKey].filter(Boolean)) {
+      const expected = crypto
+        .createHmac('sha256', key)
+        .update(dataToSign)
+        .digest('base64url');
+      
+      if (expected === signatureB64) {
+        // Verificar que el body hash coincida
+        const payload = JSON.parse(Buffer.from(payloadB64, 'base64url').toString());
+        const bodyHash = crypto.createHash('sha256').update(body).digest('base64url');
+        if (payload.body === bodyHash) {
+          return true;
+        }
+      }
+    }
+    return false;
+  } catch (e) {
+    console.error('[QStash] Error verificando firma:', e.message);
+    return false;
+  }
+}
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -14,42 +55,23 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Convertir body a string para verificar firma
     const rawBody = typeof req.body === 'string' 
       ? req.body 
-      : JSON.stringify(req.body);
-
-    // Verificar firma de QStash
-    const receiver = new Receiver({
-      currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY,
-      nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY,
-    });
+      : JSON.stringify(req.body || {});
 
     const signature = req.headers['upstash-signature'];
-    if (!signature) {
-      return res.status(401).json({ error: 'Sin firma' });
-    }
-
-    const valid = await receiver.verify({
-      signature,
-      body: rawBody,
-    });
-
-    if (!valid) {
+    if (!verificarFirmaQStash(signature, rawBody)) {
+      console.log('[QStash] Firma inválida');
       return res.status(401).json({ error: 'Firma inválida' });
     }
 
-    // Parsear body
-    const payload = typeof req.body === 'string' 
-      ? JSON.parse(req.body) 
-      : req.body;
-
+    const payload = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
     const { tarea_id } = payload;
+    
     if (!tarea_id) {
       return res.status(400).json({ error: 'tarea_id requerido' });
     }
 
-    // Buscar la tarea
     const { data: tarea, error } = await supabase
       .from('tareas')
       .select('id, usuario_id, titulo, notificar_antes_minutos, completada_en, eliminado_en, recordatorio_enviado_en')
@@ -57,29 +79,17 @@ export default async function handler(req, res) {
       .single();
 
     if (error || !tarea) {
-      console.log(`[QStash] Tarea ${tarea_id} no encontrada`);
       return res.status(200).json({ ok: true, skipped: 'no_encontrada' });
     }
 
-    // Si ya está completada, cancelada o notificada, no hacer nada
-    if (tarea.completada_en) {
-      return res.status(200).json({ ok: true, skipped: 'completada' });
-    }
-    if (tarea.eliminado_en) {
-      return res.status(200).json({ ok: true, skipped: 'eliminada' });
-    }
-    if (tarea.recordatorio_enviado_en) {
-      return res.status(200).json({ ok: true, skipped: 'ya_notificada' });
-    }
+    if (tarea.completada_en) return res.status(200).json({ ok: true, skipped: 'completada' });
+    if (tarea.eliminado_en) return res.status(200).json({ ok: true, skipped: 'eliminada' });
+    if (tarea.recordatorio_enviado_en) return res.status(200).json({ ok: true, skipped: 'ya_notificada' });
 
-    // Preparar mensaje
     const minutosAntes = tarea.notificar_antes_minutos || 0;
     let mensaje = tarea.titulo;
-    if (minutosAntes > 0) {
-      mensaje = `En ${minutosAntes} min: ${tarea.titulo}`;
-    }
+    if (minutosAntes > 0) mensaje = `En ${minutosAntes} min: ${tarea.titulo}`;
 
-    // Enviar push
     await enviarNotificacionPush(tarea.usuario_id, {
       titulo: '⏰ Recordatorio',
       mensaje: mensaje,
@@ -87,7 +97,6 @@ export default async function handler(req, res) {
       tipo: 'recordatorio',
     });
 
-    // Marcar como notificada
     await supabase
       .from('tareas')
       .update({ recordatorio_enviado_en: new Date().toISOString() })
