@@ -8,28 +8,16 @@ import { supabase } from '../../lib/supabase.js';
 import { enviarNotificacionPush } from '../../lib/push.js';
 import { Receiver } from '@upstash/qstash';
 
-export const config = {
-  api: {
-    bodyParser: false, // QStash necesita el body raw para verificar firma
-  },
-};
-
-async function readRawBody(req) {
-  return new Promise((resolve) => {
-    let data = '';
-    req.on('data', (chunk) => (data += chunk));
-    req.on('end', () => resolve(data));
-  });
-}
-
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
-    // Leer body raw
-    const rawBody = await readRawBody(req);
+    // Convertir body a string para verificar firma
+    const rawBody = typeof req.body === 'string' 
+      ? req.body 
+      : JSON.stringify(req.body);
 
     // Verificar firma de QStash
     const receiver = new Receiver({
@@ -52,12 +40,9 @@ export default async function handler(req, res) {
     }
 
     // Parsear body
-    let payload = {};
-    try {
-      payload = JSON.parse(rawBody);
-    } catch (e) {
-      return res.status(400).json({ error: 'Body inválido' });
-    }
+    const payload = typeof req.body === 'string' 
+      ? JSON.parse(req.body) 
+      : req.body;
 
     const { tarea_id } = payload;
     if (!tarea_id) {
