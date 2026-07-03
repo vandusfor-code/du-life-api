@@ -20,10 +20,6 @@
     {
       "path": "/cron-daily",
       "schedule": "0 11 * * *"
-    },
-    {
-      "path": "/api/cron/recordatorios",
-      "schedule": "*/5 * * * *"
     }
   ]
 }

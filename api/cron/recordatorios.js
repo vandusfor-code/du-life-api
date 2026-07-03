@@ -1,104 +1,117 @@
 // ============================================================
-//  Du Life - Cron de Recordatorios
+//  Du Life - Handler de Recordatorios (QStash)
 //  api/cron/recordatorios.js
-//  Se ejecuta cada 5 min. Envía push de tareas por vencer.
+//  Llamado por QStash en el momento exacto de cada tarea
 // ============================================================
 
 import { supabase } from '../../lib/supabase.js';
 import { enviarNotificacionPush } from '../../lib/push.js';
+import { Receiver } from '@upstash/qstash';
+
+export const config = {
+  api: {
+    bodyParser: false, // QStash necesita el body raw para verificar firma
+  },
+};
+
+async function readRawBody(req) {
+  return new Promise((resolve) => {
+    let data = '';
+    req.on('data', (chunk) => (data += chunk));
+    req.on('end', () => resolve(data));
+  });
+}
 
 export default async function handler(req, res) {
-  // Seguridad: solo Vercel Cron puede llamar
-  const authHeader = req.headers.authorization;
-  const cronSecret = process.env.CRON_SECRET;
-  if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
-    return res.status(401).json({ error: 'No autorizado' });
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Método no permitido' });
   }
 
   try {
-    const ahora = new Date();
-    // Ventana de tiempo: desde ahora hasta 10 minutos adelante
-    // (para captar tareas que vencen en los próximos ~5 min con margen)
-    const en10min = new Date(ahora.getTime() + 10 * 60 * 1000);
+    // Leer body raw
+    const rawBody = await readRawBody(req);
 
-    // Buscar tareas pendientes con fecha_vencimiento + hora_vencimiento
-    // que caigan en la ventana [ahora, ahora+10min]
-    const hoyStr = ahora.toISOString().split('T')[0];
-    const enFecha10min = en10min.toISOString().split('T')[0];
+    // Verificar firma de QStash
+    const receiver = new Receiver({
+      currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY,
+      nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY,
+    });
 
-    const { data: tareas, error } = await supabase
+    const signature = req.headers['upstash-signature'];
+    if (!signature) {
+      return res.status(401).json({ error: 'Sin firma' });
+    }
+
+    const valid = await receiver.verify({
+      signature,
+      body: rawBody,
+    });
+
+    if (!valid) {
+      return res.status(401).json({ error: 'Firma inválida' });
+    }
+
+    // Parsear body
+    let payload = {};
+    try {
+      payload = JSON.parse(rawBody);
+    } catch (e) {
+      return res.status(400).json({ error: 'Body inválido' });
+    }
+
+    const { tarea_id } = payload;
+    if (!tarea_id) {
+      return res.status(400).json({ error: 'tarea_id requerido' });
+    }
+
+    // Buscar la tarea
+    const { data: tarea, error } = await supabase
       .from('tareas')
-      .select('id, usuario_id, titulo, fecha_vencimiento, hora_vencimiento, notificar_antes_minutos')
-      .is('completada_en', null)
-      .is('eliminado_en', null)
-      .is('recordatorio_enviado_en', null)
-      .not('fecha_vencimiento', 'is', null)
-      .not('hora_vencimiento', 'is', null)
-      .in('fecha_vencimiento', [hoyStr, enFecha10min])
-      .limit(100);
+      .select('id, usuario_id, titulo, notificar_antes_minutos, completada_en, eliminado_en, recordatorio_enviado_en')
+      .eq('id', tarea_id)
+      .single();
 
-    if (error) {
-      console.error('[Cron] Error consultando tareas:', error.message);
-      return res.status(500).json({ error: error.message });
+    if (error || !tarea) {
+      console.log(`[QStash] Tarea ${tarea_id} no encontrada`);
+      return res.status(200).json({ ok: true, skipped: 'no_encontrada' });
     }
 
-    if (!tareas || tareas.length === 0) {
-      console.log('[Cron] Sin tareas por notificar');
-      return res.status(200).json({ ok: true, notificadas: 0 });
+    // Si ya está completada, cancelada o notificada, no hacer nada
+    if (tarea.completada_en) {
+      return res.status(200).json({ ok: true, skipped: 'completada' });
+    }
+    if (tarea.eliminado_en) {
+      return res.status(200).json({ ok: true, skipped: 'eliminada' });
+    }
+    if (tarea.recordatorio_enviado_en) {
+      return res.status(200).json({ ok: true, skipped: 'ya_notificada' });
     }
 
-    let notificadas = 0;
-
-    for (const tarea of tareas) {
-      // Calcular timestamp exacto de la tarea
-      const fechaHoraStr = `${tarea.fecha_vencimiento}T${tarea.hora_vencimiento}`;
-      const fechaTarea = new Date(fechaHoraStr);
-
-      // Ajustar por minutos de anticipación (default 0)
-      const minutosAntes = tarea.notificar_antes_minutos || 0;
-      const fechaNotificar = new Date(fechaTarea.getTime() - minutosAntes * 60 * 1000);
-
-      // Solo notificar si estamos dentro de la ventana [ahora - 5min, ahora + 5min]
-      // Esto es porque el cron corre cada 5 min y debemos captar tareas que se pasaron un poco
-      const diffMs = fechaNotificar.getTime() - ahora.getTime();
-      const diffMin = diffMs / (1000 * 60);
-
-      // Ventana: entre -5 min (recién pasó) y +5 min (viene pronto)
-      if (diffMin < -5 || diffMin > 5) {
-        continue;
-      }
-
-      // Preparar mensaje
-      let mensaje = tarea.titulo;
-      if (minutosAntes > 0) {
-        mensaje = `En ${minutosAntes} min: ${tarea.titulo}`;
-      } else if (diffMin > 0.5) {
-        mensaje = `En unos minutos: ${tarea.titulo}`;
-      } else if (diffMin < -0.5) {
-        mensaje = `Debiste hacer: ${tarea.titulo}`;
-      }
-
-      // Enviar push (fire-and-forget)
-      await enviarNotificacionPush(tarea.usuario_id, {
-        titulo: '⏰ Recordatorio',
-        mensaje: mensaje,
-        url: '/dashboard/tareas',
-        tipo: 'recordatorio',
-      });
-
-      // Marcar como enviado para no duplicar
-      await supabase
-        .from('tareas')
-        .update({ recordatorio_enviado_en: new Date().toISOString() })
-        .eq('id', tarea.id);
-
-      notificadas++;
+    // Preparar mensaje
+    const minutosAntes = tarea.notificar_antes_minutos || 0;
+    let mensaje = tarea.titulo;
+    if (minutosAntes > 0) {
+      mensaje = `En ${minutosAntes} min: ${tarea.titulo}`;
     }
 
-    console.log(`[Cron] Notificadas ${notificadas} tareas`);
-    return res.status(200).json({ ok: true, notificadas });
+    // Enviar push
+    await enviarNotificacionPush(tarea.usuario_id, {
+      titulo: '⏰ Recordatorio',
+      mensaje: mensaje,
+      url: '/dashboard/tareas',
+      tipo: 'recordatorio',
+    });
+
+    // Marcar como notificada
+    await supabase
+      .from('tareas')
+      .update({ recordatorio_enviado_en: new Date().toISOString() })
+      .eq('id', tarea_id);
+
+    console.log(`[QStash] Recordatorio enviado para tarea ${tarea_id}`);
+    return res.status(200).json({ ok: true, notificada: true });
   } catch (e) {
-    console.error('[Cron] Error inesperado:', e.message);
+    console.error('[QStash] Error:', e.message);
     return res.status(500).json({ error: 'Error interno' });
   }
 }
