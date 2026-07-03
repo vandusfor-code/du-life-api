@@ -1,125 +1,209 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  IconArrowLeft, IconStar, IconBulb, IconChevronRight,
+} from '@tabler/icons-react';
+import { useAutoRefresh } from '../../../components/useAutoRefresh';
+
+function timeAgo(fechaISO) {
+  if (!fechaISO) return '';
+  const diffMs = Date.now() - new Date(fechaISO).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return 'hace un momento';
+  if (mins < 60) return `hace ${mins} min`;
+  const horas = Math.floor(mins / 60);
+  if (horas < 24) return `hace ${horas} h`;
+  const dias = Math.floor(horas / 24);
+  if (dias === 1) return 'ayer';
+  if (dias < 7) return `hace ${dias} días`;
+  if (dias < 30) return `hace ${Math.floor(dias / 7)} sem`;
+  return `hace ${Math.floor(dias / 30)} mes${Math.floor(dias / 30) > 1 ? 'es' : ''}`;
+}
+
+function esEstaSemana(fechaISO) {
+  if (!fechaISO) return false;
+  const dias = (Date.now() - new Date(fechaISO).getTime()) / (1000 * 60 * 60 * 24);
+  return dias <= 7;
+}
+
+function truncate(str, max) {
+  if (!str) return '';
+  if (str.length <= max) return str;
+  return str.slice(0, max).trim() + '…';
+}
 
 export default function IdeasPage() {
+  const router = useRouter();
   const [ideas, setIdeas] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    cargar();
-  }, []);
-
-  const cargar = async () => {
-    try {
-      const r = await fetch('/api/dashboard/ideas');
-      if (r.ok) {
-        const data = await r.json();
-        setIdeas(data.ideas || []);
-      }
-    } catch (e) {
-      console.error(e);
-    } finally {
-      setLoading(false);
-    }
+  const cargarDatos = () => {
+    fetch('/api/dashboard/ideas')
+      .then((r) => r.json())
+      .then((d) => {
+        setIdeas(d.ideas || []);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
   };
 
-  // Agrupar por categoría
-  const grupos = {};
-  ideas.forEach(idea => {
-    const cat = idea.categoria || 'general';
-    if (!grupos[cat]) grupos[cat] = [];
-    grupos[cat].push(idea);
-  });
+  useEffect(() => {
+    cargarDatos();
+  }, []);
 
-  const colores = ['#667eea', '#51cf66', '#ff6b6b', '#ffd43b', '#a78bfa', '#fb7185'];
+  useAutoRefresh(cargarDatos);
+
+  const { hero, favoritas, estaSemana, anteriores } = useMemo(() => {
+    if (!ideas.length) return { hero: null, favoritas: [], estaSemana: [], anteriores: [] };
+
+    const heroIdea = ideas.find((i) => i.favorita) || ideas[0];
+    const resto = ideas.filter((i) => i.id !== heroIdea.id);
+    const favoritasRestantes = resto.filter((i) => i.favorita);
+    const noFavoritas = resto.filter((i) => !i.favorita);
+    const semana = noFavoritas.filter((i) => esEstaSemana(i.creado_en));
+    const antes = noFavoritas.filter((i) => !esEstaSemana(i.creado_en));
+
+    return { hero: heroIdea, favoritas: favoritasRestantes, estaSemana: semana, anteriores: antes };
+  }, [ideas]);
+
+  if (loading) {
+    return (
+      <div className="px-5 pt-4 flex items-center justify-center min-h-screen">
+        <div className="text-muted">Cargando...</div>
+      </div>
+    );
+  }
 
   return (
-    <div style={{ padding: '2rem' }}>
-      <div style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '2rem', margin: 0, color: '#1a1a1a' }}>💡 Ideas</h1>
-        <p style={{ color: '#666', marginTop: '0.25rem' }}>
-          {ideas.length} ideas guardadas
-        </p>
+    <div className="px-5 pt-4 pb-32">
+
+      {/* Header */}
+      <div className="flex items-center gap-3 mb-5">
+        <button
+          onClick={() => router.push('/dashboard')}
+          className="w-10 h-10 rounded-full flex items-center justify-center"
+          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        >
+          <IconArrowLeft size={18} color="#fff" />
+        </button>
+        <div>
+          <div className="text-[13px] text-muted">
+            {ideas.length} {ideas.length === 1 ? 'idea' : 'ideas'}
+          </div>
+          <div className="text-[19px] font-bold tracking-tight text-white">Ideas</div>
+        </div>
       </div>
 
-      {loading ? (
-        <p style={{ color: '#999' }}>Cargando...</p>
-      ) : ideas.length === 0 ? (
-        <div style={{
-          background: 'white',
-          padding: '3rem',
-          borderRadius: '12px',
-          textAlign: 'center',
-          color: '#999'
-        }}>
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>💡</div>
-          <p>No hay ideas guardadas.</p>
-          <p style={{ fontSize: '0.9rem' }}>
-            Cuéntale a Du Life "tengo una idea..." y aparecerán aquí.
-          </p>
+      {ideas.length === 0 ? (
+        <div
+          className="rounded-card p-8 mt-6 text-center"
+          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        >
+          <div className="text-[36px] mb-2">💡</div>
+          <div className="text-[14px] font-bold text-white mb-2">Sin ideas aún</div>
+          <div className="text-[13px] text-muted leading-relaxed">
+            Cuéntale a Du Life por WhatsApp "tengo una idea..." y aparecerá aquí.
+          </div>
         </div>
       ) : (
         <>
-          {Object.entries(grupos).map(([categoria, lista], idx) => (
-            <div key={categoria} style={{ marginBottom: '2rem' }}>
-              <h2 style={{ 
-                fontSize: '1.1rem', 
-                color: '#1a1a1a',
-                marginBottom: '1rem',
-                textTransform: 'capitalize'
-              }}>
-                {categoria} ({lista.length})
-              </h2>
-              
-              <div style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-                gap: '1rem'
-              }}>
-                {lista.map((idea, i) => {
-                  const color = colores[(idx + i) % colores.length];
-                  return (
-                    <div key={i} style={{
-                      background: 'white',
-                      padding: '1.25rem',
-                      borderRadius: '12px',
-                      boxShadow: '0 1px 3px rgba(0,0,0,0.08)',
-                      borderTop: `4px solid ${color}`
-                    }}>
-                      {idea.titulo && (
-                        <h3 style={{ 
-                          margin: 0, 
-                          fontSize: '1rem', 
-                          color: '#1a1a1a', 
-                          marginBottom: '0.5rem' 
-                        }}>
-                          {idea.titulo}
-                        </h3>
-                      )}
-                      <p style={{ 
-                        color: '#555', 
-                        fontSize: '0.9rem',
-                        margin: 0,
-                        whiteSpace: 'pre-wrap'
-                      }}>
-                        {idea.descripcion}
-                      </p>
-                      <div style={{ 
-                        marginTop: '0.75rem', 
-                        fontSize: '0.75rem', 
-                        color: '#999'
-                      }}>
-                        {new Date(idea.creado_en).toLocaleDateString('es-CO')}
-                      </div>
-                    </div>
-                  );
-                })}
+          {/* Hero */}
+          <div className="rounded-hero p-5" style={{ background: '#C4E938' }}>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-1.5">
+                {hero.favorita ? (
+                  <IconStar size={15} color="#000" />
+                ) : (
+                  <IconBulb size={15} color="#000" />
+                )}
+                <div className="text-[13px] text-black font-bold">
+                  {hero.favorita ? 'Idea favorita' : 'Idea reciente'}
+                </div>
+              </div>
+              <div className="text-[11px] font-medium" style={{ color: 'rgba(0,0,0,0.55)' }}>
+                {timeAgo(hero.creado_en)}
               </div>
             </div>
-          ))}
+            <div className="text-[22px] font-bold text-black tracking-tight mt-4 leading-tight">
+              {hero.titulo || 'Sin título'}
+            </div>
+            {hero.descripcion && (
+              <div className="text-[13px] mt-2 leading-relaxed" style={{ color: 'rgba(0,0,0,0.65)' }}>
+                {truncate(hero.descripcion, 180)}
+              </div>
+            )}
+            {hero.categoria && (
+              <div
+                className="inline-flex items-center px-2.5 py-1 rounded-[8px] mt-3"
+                style={{ background: 'rgba(0,0,0,0.15)' }}
+              >
+                <span className="text-[11px] font-bold text-black capitalize">{hero.categoria}</span>
+              </div>
+            )}
+          </div>
+
+          <SeccionIdeas
+            titulo="Favoritas"
+            icon={<IconStar size={16} color="#C4E938" />}
+            ideas={favoritas}
+          />
+          <SeccionIdeas titulo="Esta semana" ideas={estaSemana} />
+          <SeccionIdeas titulo="Anteriores" ideas={anteriores} />
         </>
       )}
     </div>
+  );
+}
+
+function SeccionIdeas({ titulo, icon, ideas }) {
+  if (!ideas || ideas.length === 0) return null;
+
+  return (
+    <>
+      <div className="flex items-center gap-2 mt-6 mb-2.5">
+        {icon}
+        <div className="text-[17px] font-bold tracking-tight text-white">{titulo}</div>
+        <div className="text-[13px] text-muted font-medium ml-auto">{ideas.length}</div>
+      </div>
+      <div className="rounded-card px-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+        {ideas.map((idea, i) => (
+          <div
+            key={idea.id}
+            className="flex items-center gap-3 py-3.5"
+            style={{ borderBottom: i < ideas.length - 1 ? '1px solid #242424' : 'none' }}
+          >
+            <div className="flex-1 min-w-0">
+              <div className="text-[14px] font-bold text-white truncate">
+                {idea.titulo || 'Sin título'}
+              </div>
+              {idea.descripcion && (
+                <div
+                  className="text-[12px] text-soft mt-0.5"
+                  style={{
+                    display: '-webkit-box',
+                    WebkitLineClamp: 2,
+                    WebkitBoxOrient: 'vertical',
+                    overflow: 'hidden',
+                  }}
+                >
+                  {idea.descripcion}
+                </div>
+              )}
+              <div className="flex items-center gap-2 mt-1">
+                <div className="text-[11px] text-soft">{timeAgo(idea.creado_en)}</div>
+                {idea.categoria && (
+                  <span className="text-[11px] font-bold capitalize" style={{ color: '#C4E938' }}>
+                    · {idea.categoria}
+                  </span>
+                )}
+              </div>
+            </div>
+            <IconChevronRight size={16} color="#71717A" className="flex-shrink-0" />
+          </div>
+        ))}
+      </div>
+    </>
   );
 }
