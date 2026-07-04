@@ -4,7 +4,6 @@ export const metadata = {
   title: 'Du Life — Tu segundo cerebro',
   description: 'Tu asistente personal por WhatsApp',
   manifest: '/manifest.json',
-  themeColor: '#0A0A0A',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'black-translucent',

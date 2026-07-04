@@ -1,6 +1,7 @@
 'use client';
 
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
+import Link from 'next/link';
 import { IconHome, IconWallet, IconSquareCheck, IconMenu2 } from '@tabler/icons-react';
 
 const ITEMS = [
@@ -12,7 +13,6 @@ const ITEMS = [
 
 export default function BottomNav() {
   const pathname = usePathname();
-  const router = useRouter();
 
   return (
     <nav
@@ -25,9 +25,10 @@ export default function BottomNav() {
       {ITEMS.map(({ href, label, icon: Icon }) => {
         const active = pathname === href;
         return (
-          <button
+          <Link
             key={href}
-            onClick={() => router.push(href)}
+            href={href}
+            prefetch
             className="flex flex-col items-center gap-1"
           >
             <Icon size={22} color={active ? '#C4E938' : '#71717A'} />
@@ -35,7 +36,7 @@ export default function BottomNav() {
                   style={{ color: active ? '#C4E938' : '#71717A' }}>
               {label}
             </span>
-          </button>
+          </Link>
         );
       })}
     </nav>

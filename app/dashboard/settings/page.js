@@ -1,7 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { IconArrowLeft, IconLogout, IconUser, IconPhone, IconInfoCircle } from '@tabler/icons-react';
 import Avatar from '../../../components/Avatar';
 
@@ -21,7 +22,7 @@ export default function SettingsPage() {
       .catch(() => setLoading(false));
   }, []);
 
-  const cerrarSesion = async () => {
+  const cerrarSesion = useCallback(async () => {
     if (loggingOut) return;
     const confirmar = confirm('¿Cerrar sesión?');
     if (!confirmar) return;
@@ -36,12 +37,21 @@ export default function SettingsPage() {
       alert('Error cerrando sesión. Intenta de nuevo.');
       setLoggingOut(false);
     }
-  };
+  }, [loggingOut, router]);
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 flex items-center justify-center min-h-screen">
-        <div className="text-muted">Cargando...</div>
+      <div className="px-5 pt-4 pb-32">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div>
+            <div className="h-3 w-24 rounded animate-pulse mb-1.5" style={{ background: '#1A1A1A' }} />
+            <div className="h-5 w-14 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+          </div>
+        </div>
+        <div className="rounded-hero h-[110px] mb-6 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[140px] mb-6 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[70px] animate-pulse" style={{ background: '#1A1A1A' }} />
       </div>
     );
   }
@@ -54,13 +64,13 @@ export default function SettingsPage() {
     <div className="px-5 pt-4 pb-32">
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
-        <button
-          onClick={() => router.push('/dashboard')}
+        <Link
+          href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
           style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
         >
           <IconArrowLeft size={18} color="#fff" />
-        </button>
+        </Link>
         <div>
           <div className="text-[13px] text-muted">Configuración</div>
           <div className="text-[19px] font-bold tracking-tight text-white">Más</div>

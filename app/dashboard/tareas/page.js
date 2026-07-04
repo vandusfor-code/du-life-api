@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import {
   IconArrowLeft, IconFlame, IconCheck, IconClock, IconCalendar,
   IconAlertTriangle, IconChevronRight,
@@ -51,11 +51,10 @@ function colorPrioridad(p) {
 }
 
 export default function TareasPage() {
-  const router = useRouter();
   const [tareas, setTareas] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  const cargarDatos = () => {
+  const cargarDatos = useCallback(() => {
     fetch('/api/dashboard/tareas')
       .then((r) => r.json())
       .then((d) => {
@@ -63,11 +62,11 @@ export default function TareasPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [cargarDatos]);
 
   useAutoRefresh(cargarDatos);
 
@@ -96,7 +95,7 @@ export default function TareasPage() {
 
   const urgentesHoy = grupos.hoy.filter((t) => t.prioridad === 'urgente').length;
 
-  const marcarCompletada = async (id) => {
+  const marcarCompletada = useCallback(async (id) => {
     // Optimistic update
     setTareas((prev) => prev.filter((t) => t.id !== id));
 
@@ -110,12 +109,21 @@ export default function TareasPage() {
       // Si falla, recargar
       cargarDatos();
     }
-  };
+  }, [cargarDatos]);
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 flex items-center justify-center min-h-screen">
-        <div className="text-muted">Cargando...</div>
+      <div className="px-5 pt-4 pb-32">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div>
+            <div className="h-3 w-16 rounded animate-pulse mb-1.5" style={{ background: '#1A1A1A' }} />
+            <div className="h-5 w-16 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+          </div>
+        </div>
+        <div className="rounded-hero h-[130px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[160px] mt-6 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[120px] mt-4 animate-pulse" style={{ background: '#1A1A1A' }} />
       </div>
     );
   }
@@ -125,13 +133,13 @@ export default function TareasPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={() => router.push('/dashboard')}
+        <Link
+          href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
           style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
         >
           <IconArrowLeft size={18} color="#fff" />
-        </button>
+        </Link>
         <div>
           <div className="text-[13px] text-muted">Pendientes</div>
           <div className="text-[19px] font-bold tracking-tight text-white">Tareas</div>

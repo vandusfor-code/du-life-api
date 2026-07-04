@@ -1,11 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useCallback } from 'react';
+import Link from 'next/link';
 import {
   IconSparkles, IconArrowRight,
   IconArrowUp, IconArrowDown, IconTrendingUp,
-  IconChevronRight, IconTree, IconUsers, IconNote, IconBulb, IconBell,
+  IconTree, IconUsers, IconNote, IconBulb, IconBell,
+  IconChevronDown, IconChevronRight, IconCheck,
 } from '@tabler/icons-react';
 import Avatar from '../../components/Avatar';
 import { useAutoRefresh } from '../../components/useAutoRefresh';
@@ -20,6 +21,20 @@ const MODULOS = [
 const INSIGHT_MOCK = {
   titulo: 'Llevas 4 días sin registrar tiempo con familia.',
   cta: { label: 'Ver Personas', href: '/dashboard/personas' },
+};
+
+const NOTIFICACIONES_MOCK = 3;
+
+const PERIODOS = [
+  { id: 'total', label: 'Total' },
+  { id: 'mes', label: 'Este mes' },
+  { id: 'anio', label: 'Este año' },
+];
+
+const LABEL_BALANCE = {
+  total: 'Balance total',
+  mes: 'Balance del mes',
+  anio: 'Balance del año',
 };
 
 const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
@@ -45,13 +60,35 @@ function timeAgo(fecha, hora) {
   return dt.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 }
 
+function DashboardSkeleton() {
+  return (
+    <div className="px-5 pt-4">
+      <div className="flex justify-between items-center mb-5">
+        <div className="h-6 w-24 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+        </div>
+      </div>
+      <div className="rounded-hero h-[168px] animate-pulse" style={{ background: '#1A1A1A' }} />
+      <div className="rounded-card h-[74px] mt-3.5 animate-pulse" style={{ background: '#1A1A1A' }} />
+      <div className="grid grid-cols-2 gap-3 mt-3.5">
+        <div className="rounded-card h-[120px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[120px] animate-pulse" style={{ background: '#1A1A1A' }} />
+      </div>
+      <div className="rounded-card h-[180px] mt-6 animate-pulse" style={{ background: '#1A1A1A' }} />
+    </div>
+  );
+}
+
 export default function DashboardInicio() {
-  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [usuario, setUsuario] = useState(null);
+  const [periodo, setPeriodo] = useState('total');
+  const [showPeriodoMenu, setShowPeriodoMenu] = useState(false);
 
-  const cargarDatos = () => {
+  const cargarDatos = useCallback(() => {
     Promise.all([
       fetch('/api/dashboard/gastos').then(r => r.json()),
       fetch('/api/dashboard/resumen').then(r => r.json()),
@@ -65,24 +102,18 @@ export default function DashboardInicio() {
         console.error(e);
         setLoading(false);
       });
-  };
+  }, []);
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [cargarDatos]);
 
   useAutoRefresh(cargarDatos);
 
-  const h = new Date().getHours();
-  const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
   const nombre = usuario?.como_llamar || usuario?.nombre || 'Duvan';
 
   if (loading) {
-    return (
-      <div className="px-5 pt-4 flex items-center justify-center min-h-screen">
-        <div className="text-muted">Cargando...</div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const gastos = data?.gastos || [];
@@ -104,24 +135,33 @@ export default function DashboardInicio() {
     })
     .slice(0, 3);
 
-  const mesActual = new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
+  const fechaCorta = new Date().toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 
   return (
     <div className="px-5 pt-4">
 
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
-        <div>
-          <div className="text-[13px] text-muted">{saludo},</div>
-          <div className="text-[19px] font-bold tracking-tight text-white">{nombre}</div>
+        <div className="text-xl font-bold tracking-tight text-white">
+          D<span style={{ color: '#C4E938' }}>u</span> Life
         </div>
         <div className="flex items-center gap-2">
-          <div
-            className="w-10 h-10 rounded-full flex items-center justify-center"
+          <button
+            className="relative w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
           >
-            <IconBell size={18} color="#C4E938" />
-          </div>
+            <IconBell size={18} color="#fff" />
+            {NOTIFICACIONES_MOCK > 0 && (
+              <div
+                className="absolute w-2.5 h-2.5 rounded-full flex items-center justify-center"
+                style={{ background: '#EF4444', top: '-2px', right: '-2px' }}
+              >
+                <span className="text-white font-bold" style={{ fontSize: '9px' }}>
+                  {NOTIFICACIONES_MOCK}
+                </span>
+              </div>
+            )}
+          </button>
           <div className="relative">
             <Avatar name={nombre} size="md" />
             <div className="absolute top-0 right-0 w-2.5 h-2.5 rounded-full border-2"
@@ -131,16 +171,57 @@ export default function DashboardInicio() {
       </div>
 
       {/* Hero Balance */}
-      <div className="rounded-hero p-5 relative overflow-hidden"
+      <div className="rounded-hero p-5 relative overflow-visible"
            style={{ background: '#C4E938' }}>
-        <div className="flex justify-between items-start">
-          <div className="text-[13px] text-black font-bold">Tu balance</div>
-          <div className="text-[12px] font-medium capitalize" style={{ color: 'rgba(0,0,0,0.7)' }}>
-            {mesActual}
+        <div className="flex justify-between items-center relative">
+          <button
+            onClick={() => setShowPeriodoMenu((v) => !v)}
+            className="flex items-center gap-1"
+          >
+            <span className="text-[13px] text-black font-bold">Balance</span>
+            <IconChevronDown
+              size={14}
+              color="#000"
+              style={{ transform: showPeriodoMenu ? 'rotate(180deg)' : 'none', transition: 'transform 0.15s ease' }}
+            />
+          </button>
+          <div className="flex items-center gap-0.5">
+            <span className="text-[12px] font-medium" style={{ color: 'rgba(0,0,0,0.7)' }}>
+              {fechaCorta}
+            </span>
+            <IconChevronRight size={14} color="rgba(0,0,0,0.7)" />
           </div>
+
+          {showPeriodoMenu && (
+            <>
+              <div
+                className="fixed inset-0 z-10"
+                onClick={() => setShowPeriodoMenu(false)}
+              />
+              <div
+                className="absolute left-0 top-7 rounded-[14px] overflow-hidden z-20"
+                style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', minWidth: '170px' }}
+              >
+                {PERIODOS.map((p, i) => (
+                  <button
+                    key={p.id}
+                    onClick={() => { setPeriodo(p.id); setShowPeriodoMenu(false); }}
+                    className="w-full text-left px-4 py-3 text-[13px] font-medium flex items-center justify-between gap-3"
+                    style={{
+                      color: periodo === p.id ? '#C4E938' : '#fff',
+                      borderBottom: i < PERIODOS.length - 1 ? '1px solid #242424' : 'none',
+                    }}
+                  >
+                    {p.label}
+                    {periodo === p.id && <IconCheck size={14} color="#C4E938" />}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
         <div className="text-[13px] mt-4 font-medium" style={{ color: 'rgba(0,0,0,0.7)' }}>
-          Balance del mes
+          {LABEL_BALANCE[periodo]}
         </div>
         <div className="flex items-baseline justify-between mt-1">
           <div className="text-[36px] font-bold text-black tracking-tight">
@@ -174,13 +255,14 @@ export default function DashboardInicio() {
           <div className="text-[14px] font-bold tracking-tight mt-0.5 text-white leading-tight">
             {INSIGHT_MOCK.titulo}
           </div>
-          <button
-            onClick={() => router.push(INSIGHT_MOCK.cta.href)}
-            className="mt-2 flex items-center gap-1 text-[12px] font-bold"
+          <Link
+            href={INSIGHT_MOCK.cta.href}
+            prefetch
+            className="mt-2 flex items-center gap-1 text-[12px] font-bold w-fit"
             style={{ color: '#C4E938' }}
           >
             {INSIGHT_MOCK.cta.label} <IconArrowRight size={12} />
-          </button>
+          </Link>
         </div>
       </div>
 
@@ -215,12 +297,9 @@ export default function DashboardInicio() {
       {/* Actividad */}
       <div className="flex justify-between items-baseline mt-6 mb-2.5">
         <div className="text-[17px] font-bold tracking-tight text-white">Actividad</div>
-        <button
-          onClick={() => router.push('/dashboard/gastos')}
-          className="text-[13px] text-muted font-medium"
-        >
+        <Link href="/dashboard/gastos" prefetch className="text-[13px] text-muted font-medium">
           Ver todo ›
-        </button>
+        </Link>
       </div>
 
       {ultimos3.length === 0 ? (
@@ -285,10 +364,11 @@ export default function DashboardInicio() {
 
       <div className="grid grid-cols-2 gap-2.5">
         {MODULOS.map(({ href, label, gradient, icon: Icon }) => (
-          <button
+          <Link
             key={href}
-            onClick={() => router.push(href)}
-            className="rounded-card p-3.5 text-left"
+            href={href}
+            prefetch
+            className="rounded-card p-3.5 text-left block"
             style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
           >
             <div
@@ -298,7 +378,7 @@ export default function DashboardInicio() {
               <Icon size={19} color="#fff" />
             </div>
             <div className="text-[14px] font-bold mt-3 text-white">{label}</div>
-          </button>
+          </Link>
         ))}
       </div>
 

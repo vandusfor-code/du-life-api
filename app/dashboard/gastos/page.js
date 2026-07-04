@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback, memo } from 'react';
+import Link from 'next/link';
 import {
   IconArrowLeft, IconArrowUp, IconArrowDown, IconTrendingUp,
 } from '@tabler/icons-react';
@@ -29,7 +29,7 @@ function formatFechaGrupo(fecha) {
   return dt.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 }
 
-function BarChart({ gastos }) {
+const BarChart = memo(function BarChart({ gastos }) {
   const dataPorDia = useMemo(() => {
     const hoy = new Date();
     hoy.setHours(0, 0, 0, 0);
@@ -81,15 +81,14 @@ function BarChart({ gastos }) {
       })}
     </div>
   );
-}
+});
 
 export default function GastosPage() {
-  const router = useRouter();
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos'); // 'todos' | 'gastos' | 'ingresos'
 
-  const cargarDatos = () => {
+  const cargarDatos = useCallback(() => {
     fetch('/api/dashboard/gastos')
       .then((r) => r.json())
       .then((d) => {
@@ -97,11 +96,11 @@ export default function GastosPage() {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [cargarDatos]);
 
   useAutoRefresh(cargarDatos);
 
@@ -140,8 +139,20 @@ export default function GastosPage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 flex items-center justify-center min-h-screen">
-        <div className="text-muted">Cargando...</div>
+      <div className="px-5 pt-4 pb-32">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div>
+            <div className="h-3 w-20 rounded animate-pulse mb-1.5" style={{ background: '#1A1A1A' }} />
+            <div className="h-5 w-16 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+          </div>
+        </div>
+        <div className="rounded-hero h-[220px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="grid grid-cols-2 gap-3 mt-3.5">
+          <div className="rounded-card h-[100px] animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="rounded-card h-[100px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        </div>
+        <div className="rounded-card h-[200px] mt-5 animate-pulse" style={{ background: '#1A1A1A' }} />
       </div>
     );
   }
@@ -153,13 +164,13 @@ export default function GastosPage() {
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
-        <button
-          onClick={() => router.push('/dashboard')}
+        <Link
+          href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
           style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
         >
           <IconArrowLeft size={18} color="#fff" />
-        </button>
+        </Link>
         <div>
           <div className="text-[13px] text-muted">Movimientos</div>
           <div className="text-[19px] font-bold tracking-tight text-white">Gastos</div>

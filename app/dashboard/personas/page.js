@@ -1,7 +1,7 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, useMemo, useCallback } from 'react';
+import Link from 'next/link';
 import {
   IconArrowLeft, IconSearch, IconPlus,
   IconStar, IconChevronRight,
@@ -32,13 +32,12 @@ function colorBadgeDias(dias) {
 }
 
 export default function PersonasPage() {
-  const router = useRouter();
   const [personas, setPersonas] = useState([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState('');
   const [showBuscador, setShowBuscador] = useState(false);
 
-const cargarDatos = () => {
+  const cargarDatos = useCallback(() => {
     fetch('/api/dashboard/personas')
       .then((r) => r.json())
       .then((data) => {
@@ -46,11 +45,11 @@ const cargarDatos = () => {
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  };
+  }, []);
 
   useEffect(() => {
     cargarDatos();
-  }, []);
+  }, [cargarDatos]);
 
   useAutoRefresh(cargarDatos);
 
@@ -92,8 +91,16 @@ const cargarDatos = () => {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 flex items-center justify-center min-h-screen">
-        <div className="text-muted">Cargando...</div>
+      <div className="px-5 pt-4 pb-32">
+        <div className="flex items-center gap-3 mb-5">
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div>
+            <div className="h-3 w-20 rounded animate-pulse mb-1.5" style={{ background: '#1A1A1A' }} />
+            <div className="h-5 w-24 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+          </div>
+        </div>
+        <div className="rounded-hero h-[180px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[160px] mt-6 animate-pulse" style={{ background: '#1A1A1A' }} />
       </div>
     );
   }
@@ -104,13 +111,13 @@ const cargarDatos = () => {
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
         <div className="flex items-center gap-3">
-          <button
-            onClick={() => router.push('/dashboard')}
+          <Link
+            href="/dashboard"
             className="w-10 h-10 rounded-full flex items-center justify-center"
             style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
           >
             <IconArrowLeft size={18} color="#fff" />
-          </button>
+          </Link>
           <div>
             <div className="text-[13px] text-muted">{personas.length} contactos</div>
             <div className="text-[19px] font-bold tracking-tight text-white">Personas</div>
