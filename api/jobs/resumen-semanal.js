@@ -28,7 +28,7 @@ export default async function handler(req, res) {
     supabase.from('gastos').select('monto, categoria').eq('usuario_id', usuario_id).is('eliminado_en', null).gte('fecha', hace7DiasStr),
     supabase.from('tareas').select('titulo, completada_en').eq('usuario_id', usuario_id).is('eliminado_en', null).gte('creado_en', hace7DiasISO),
     supabase.from('notas').select('contenido').eq('usuario_id', usuario_id).is('eliminado_en', null).gte('creado_en', hace7DiasISO),
-    supabase.from('registro_animo').select('puntaje').eq('usuario_id', usuario_id).gte('creado_en', hace7DiasISO),
+    supabase.from('registro_animo').select('puntaje').eq('usuario_id', usuario_id).gte('created_at', hace7DiasISO),
   ]);
 
   const totalGastos = gastos.data?.reduce((s, g) => s + (Number(g.monto) || 0), 0) || 0;
