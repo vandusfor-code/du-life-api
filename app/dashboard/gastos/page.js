@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useMemo, useCallback, memo } from 'react';
+import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
 import {
   IconArrowLeft, IconArrowUp, IconArrowDown, IconChevronRight,
@@ -19,7 +19,7 @@ const formatEje = (n) => {
   return String(Math.round(n));
 };
 
-const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 function calcularEscala(maxValor) {
   if (!maxValor || maxValor <= 0) return { step: 100, niceMax: 300 };
@@ -35,45 +35,47 @@ function calcularEscala(maxValor) {
   return { step, niceMax: step * 3 };
 }
 
-function formatFechaGrupo(fecha) {
+function construirSemana() {
   const hoy = new Date();
   hoy.setHours(0, 0, 0, 0);
-  const dt = new Date(fecha + 'T12:00:00');
-  const ayer = new Date(hoy);
-  ayer.setDate(ayer.getDate() - 1);
-  if (dt.toDateString() === hoy.toDateString()) return 'Hoy';
-  if (dt.toDateString() === ayer.toDateString()) return 'Ayer';
-  const diff = Math.floor((hoy - dt) / (1000 * 60 * 60 * 24));
-  if (diff < 7) return dt.toLocaleDateString('es-CO', { weekday: 'long' });
-  return dt.toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
+  const diaSemana = hoy.getDay(); // 0=domingo .. 6=sábado
+  const offsetLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() + offsetLunes);
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(lunes);
+    d.setDate(lunes.getDate() + i);
+    return {
+      fechaStr: d.toISOString().split('T')[0],
+      dia: DIAS_SEMANA[i],
+      numero: d.getDate(),
+      esHoy: d.toDateString() === hoy.toDateString(),
+    };
+  });
 }
 
-const BarChart = memo(function BarChart({ gastos }) {
+function formatFechaLarga(fechaStr) {
+  const d = new Date(fechaStr + 'T12:00:00');
+  const s = d.toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' });
+  return s.charAt(0).toUpperCase() + s.slice(1);
+}
+
+const BarChart = memo(function BarChart({ gastos, semana, fechaSeleccionada, onSelectDia }) {
   const dataPorDia = useMemo(() => {
-    const hoy = new Date();
-    hoy.setHours(0, 0, 0, 0);
-    const dias = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(hoy);
-      d.setDate(d.getDate() - i);
-      const fechaStr = d.toISOString().split('T')[0];
-      const totalDia = gastos
-        .filter((g) => g.fecha === fechaStr)
-        .reduce((sum, g) => sum + Number(g.monto), 0);
-      dias.push({
-        fecha: fechaStr,
-        dia: DIAS_SEMANA[d.getDay()],
-        total: totalDia,
-        esHoy: i === 0,
-      });
-    }
+    const dias = semana.map((s) => ({
+      fechaStr: s.fechaStr,
+      dia: s.dia,
+      total: gastos.filter((g) => g.fecha === s.fechaStr).reduce((sum, g) => sum + Number(g.monto), 0),
+      esSeleccionado: s.fechaStr === fechaSeleccionada,
+    }));
     return dias.map((d, idx) => {
       if (idx === 0) return { ...d, variacion: null };
       const anterior = dias[idx - 1].total;
       if (!anterior) return { ...d, variacion: null };
       return { ...d, variacion: ((d.total - anterior) / anterior) * 100 };
     });
-  }, [gastos]);
+  }, [gastos, semana, fechaSeleccionada]);
 
   const maxValor = Math.max(...dataPorDia.map((d) => d.total), 0);
   const { niceMax } = calcularEscala(maxValor);
@@ -158,14 +160,16 @@ const BarChart = memo(function BarChart({ gastos }) {
           );
         })}
 
-        {/* Barras */}
+        {/* Barras (tocables: seleccionan el día) */}
         {puntos.map((p, i) => (
-          <g key={p.fecha}>
+          <g key={p.fechaStr} onClick={() => onSelectDia(p.fechaStr)} style={{ cursor: 'pointer' }}>
             <defs>
               <clipPath id={`barclip-${i}`}>
                 <rect x={p.x - barW / 2} y={topPad} width={barW} height={plotH} />
               </clipPath>
             </defs>
+            {/* Área táctil ampliada, invisible */}
+            <rect x={p.x - slotW / 2} y={0} width={slotW} height={H} fill="transparent" />
             <rect
               className="bar-rect"
               x={p.x - barW / 2}
@@ -175,10 +179,10 @@ const BarChart = memo(function BarChart({ gastos }) {
               rx="4"
               ry="4"
               clipPath={`url(#barclip-${i})`}
-              fill={p.esHoy ? '#C4E938' : '#242424'}
+              fill={p.esSeleccionado ? '#C4E938' : '#242424'}
               style={{
                 animationDelay: `${i * 0.05}s`,
-                filter: p.esHoy ? 'drop-shadow(0 0 6px rgba(196,233,56,0.6))' : 'none',
+                filter: p.esSeleccionado ? 'drop-shadow(0 0 6px rgba(196,233,56,0.6))' : 'none',
               }}
             />
             {/* % variación */}
@@ -198,8 +202,8 @@ const BarChart = memo(function BarChart({ gastos }) {
               y={topPad + plotH + 18}
               textAnchor="middle"
               fontSize="11"
-              fontWeight={p.esHoy ? 'bold' : '500'}
-              fill={p.esHoy ? '#C4E938' : '#A1A1AA'}
+              fontWeight={p.esSeleccionado ? 'bold' : '500'}
+              fill={p.esSeleccionado ? '#C4E938' : '#A1A1AA'}
             >
               {p.dia}
             </text>
@@ -220,7 +224,7 @@ const BarChart = memo(function BarChart({ gastos }) {
         {/* Puntos de intersección */}
         {puntos.map((p, i) => (
           <circle
-            key={`dot-${p.fecha}`}
+            key={`dot-${p.fechaStr}`}
             className="trend-dot"
             cx={p.x}
             cy={p.y}
@@ -241,6 +245,7 @@ export default function GastosPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos'); // 'todos' | 'gastos' | 'ingresos'
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
 
   const cargarDatos = useCallback(() => {
     fetch('/api/dashboard/gastos')
@@ -258,8 +263,11 @@ export default function GastosPage() {
 
   useAutoRefresh(cargarDatos);
 
-  const { movimientos, agrupados, totalGastosSemana } = useMemo(() => {
-    if (!data) return { movimientos: [], agrupados: {}, totalGastosSemana: 0 };
+  const semana = useMemo(() => construirSemana(), []);
+  const diaActivo = fechaSeleccionada ?? semana.find((d) => d.esHoy)?.fechaStr;
+
+  const { movimientosDia, totalGastosSemana } = useMemo(() => {
+    if (!data) return { movimientosDia: [], totalGastosSemana: 0 };
 
     const gastos = (data.gastos || []).map((g) => ({ ...g, tipo: 'gasto' }));
     const ingresos = (data.ingresos || []).map((i) => ({ ...i, tipo: 'ingreso' }));
@@ -269,44 +277,34 @@ export default function GastosPage() {
     if (filtro === 'gastos') movs = gastos;
     if (filtro === 'ingresos') movs = ingresos;
 
-    movs.sort((a, b) => {
-      const dtA = new Date(a.fecha + 'T' + (a.hora || '00:00:00'));
-      const dtB = new Date(b.fecha + 'T' + (b.hora || '00:00:00'));
-      return dtB - dtA;
-    });
+    movs = movs.filter((m) => m.fecha === diaActivo);
+    movs.sort((a, b) => (b.hora || '').localeCompare(a.hora || ''));
 
-    const grupos = {};
-    movs.forEach((m) => {
-      const grupo = formatFechaGrupo(m.fecha);
-      if (!grupos[grupo]) grupos[grupo] = [];
-      grupos[grupo].push(m);
-    });
-
-    const hace7dias = new Date();
-    hace7dias.setDate(hace7dias.getDate() - 7);
+    const inicioSemana = new Date(semana[0].fechaStr + 'T00:00:00');
     const totalSemana = gastos
-      .filter((g) => new Date(g.fecha) >= hace7dias)
+      .filter((g) => new Date(g.fecha + 'T00:00:00') >= inicioSemana)
       .reduce((sum, g) => sum + Number(g.monto), 0);
 
-    return { movimientos: movs, agrupados: grupos, totalGastosSemana: totalSemana };
-  }, [data, filtro]);
+    return { movimientosDia: movs, totalGastosSemana: totalSemana };
+  }, [data, filtro, diaActivo, semana]);
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32">
+      <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
           <div>
-            <div className="h-3 w-20 rounded animate-pulse mb-1.5" style={{ background: '#1A1A1A' }} />
-            <div className="h-5 w-16 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+            <div className="h-3 w-20 rounded animate-pulse mb-1.5 bg-neutral-900" />
+            <div className="h-5 w-16 rounded animate-pulse bg-neutral-900" />
           </div>
         </div>
-        <div className="rounded-hero h-[220px] animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="grid grid-cols-2 gap-3 mt-3.5">
-          <div className="rounded-card h-[100px] animate-pulse" style={{ background: '#1A1A1A' }} />
-          <div className="rounded-card h-[100px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="h-16 rounded-2xl animate-pulse mb-5 bg-neutral-900" />
+        <div className="rounded-2xl h-[260px] animate-pulse bg-neutral-900" />
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          <div className="h-16 rounded animate-pulse bg-neutral-900" />
+          <div className="h-16 rounded animate-pulse bg-neutral-900" />
         </div>
-        <div className="rounded-card h-[200px] mt-5 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-2xl h-[200px] mt-5 animate-pulse bg-neutral-900" />
       </div>
     );
   }
@@ -314,81 +312,91 @@ export default function GastosPage() {
   const resumen = data?.resumen || { total_gastos: 0, total_ingresos: 0, balance: 0 };
 
   return (
-    <div className="px-5 pt-4 pb-32">
+    <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <Link
           href="/dashboard"
-          className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-neutral-900 border border-neutral-800"
         >
           <IconArrowLeft size={18} color="#fff" />
         </Link>
         <div>
-          <div className="text-[13px] text-muted">Movimientos</div>
+          <div className="text-[13px] text-neutral-400">Movimientos</div>
           <div className="text-[19px] font-bold tracking-tight text-white">Gastos</div>
         </div>
       </div>
 
+      {/* Calendario horizontal (mismo componente que Home) */}
+      <div className="flex justify-between gap-1 mb-5">
+        {semana.map((d) => {
+          const activo = d.fechaStr === diaActivo;
+          return (
+            <button
+              key={d.fechaStr}
+              onClick={() => setFechaSeleccionada(d.fechaStr)}
+              className="flex flex-col items-center gap-1.5 flex-1 py-1"
+            >
+              <span className="text-[11px] text-neutral-400">{d.dia}</span>
+              <span
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold"
+                style={{
+                  background: activo ? '#C4E938' : 'transparent',
+                  color: activo ? '#000' : '#A3A3A3',
+                }}
+              >
+                {d.numero}
+              </span>
+            </button>
+          );
+        })}
+      </div>
+
       {/* Bar chart card */}
-      <div
-        className="rounded-hero p-5"
-        style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-      >
+      <div className="rounded-2xl p-5 bg-neutral-900 border border-neutral-800">
         <div className="flex justify-between items-start">
           <div>
-            <div className="text-[12px] text-muted uppercase tracking-wide font-medium">
-              Últimos 7 días
+            <div className="text-[12px] text-neutral-400 uppercase tracking-wide font-medium">
+              Esta semana
             </div>
             <div className="text-[28px] font-bold tracking-tight mt-1 text-white">
               {formatCOP(totalGastosSemana)}
             </div>
           </div>
-          <button className="flex items-center gap-0.5 text-[13px] font-medium text-muted">
+          <Link href="/dashboard/timeline" prefetch className="flex items-center gap-0.5 text-[13px] font-medium text-neutral-400">
             Ver todo
             <IconChevronRight size={14} color="#A1A1AA" />
-          </button>
+          </Link>
         </div>
 
-        <BarChart gastos={data?.gastos || []} />
+        <BarChart
+          gastos={data?.gastos || []}
+          semana={semana}
+          fechaSeleccionada={diaActivo}
+          onSelectDia={setFechaSeleccionada}
+        />
       </div>
 
-      {/* Stats mini */}
-      <div className="grid grid-cols-2 gap-3 mt-3.5">
-        <div
-          className="rounded-card p-3.5"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-        >
-          <div
-            className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center"
-            style={{ background: 'rgba(196, 233, 56, 0.15)' }}
-          >
-            <IconArrowUp size={16} color="#C4E938" />
-          </div>
-          <div className="text-[12px] text-muted mt-3">Ingresos mes</div>
-          <div className="text-[18px] font-bold tracking-tight mt-0.5 text-white">
+      {/* Stats — flotando, sin cards */}
+      <div className="grid grid-cols-2 gap-3 mt-5">
+        <div>
+          <IconArrowUp size={18} color="#C4E938" />
+          <div className="text-[12px] text-neutral-400 mt-2">Ingresos mes</div>
+          <div className="text-[20px] font-bold tracking-tight mt-0.5 text-white">
             {formatCOPCorto(Number(resumen.total_ingresos) || 0)}
           </div>
         </div>
-        <div
-          className="rounded-card p-3.5"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-        >
-          <div
-            className="w-[32px] h-[32px] rounded-[10px] flex items-center justify-center"
-            style={{ background: '#242424' }}
-          >
-            <IconArrowDown size={16} color="#A1A1AA" />
-          </div>
-          <div className="text-[12px] text-muted mt-3">Gastos mes</div>
-          <div className="text-[18px] font-bold tracking-tight mt-0.5 text-white">
+        <div>
+          <IconArrowDown size={18} color="#A1A1AA" />
+          <div className="text-[12px] text-neutral-400 mt-2">Gastos mes</div>
+          <div className="text-[20px] font-bold tracking-tight mt-0.5 text-white">
             {formatCOPCorto(Number(resumen.total_gastos) || 0)}
           </div>
         </div>
       </div>
 
-      {/* Filtros */}
+      {/* Filtros por tipo */}
       <div className="flex gap-2 mt-6">
         {[
           { id: 'todos', label: 'Todos' },
@@ -402,7 +410,7 @@ export default function GastosPage() {
               onClick={() => setFiltro(f.id)}
               className="flex-1 py-2.5 rounded-full text-[13px] font-bold transition-all"
               style={{
-                background: active ? '#C4E938' : '#1A1A1A',
+                background: active ? '#C4E938' : 'transparent',
                 color: active ? '#0A0A0A' : '#A1A1AA',
                 border: active ? 'none' : '1px solid #2A2A2A',
               }}
@@ -413,75 +421,48 @@ export default function GastosPage() {
         })}
       </div>
 
-      {/* Lista agrupada */}
-      {Object.keys(agrupados).length === 0 ? (
-        <div
-          className="rounded-card p-8 mt-5 text-center text-muted text-[13px]"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-        >
-          Sin movimientos para mostrar.
+      {/* Feed de movimientos del día seleccionado — plano, sin cajas */}
+      <div className="mt-6">
+        <div className="text-[17px] font-bold tracking-tight text-white">Movimientos</div>
+        <div className="text-[12px] text-neutral-400 mt-0.5 mb-2 capitalize">
+          {formatFechaLarga(diaActivo)}
         </div>
-      ) : (
-        <div className="mt-5">
-          {Object.entries(agrupados).map(([grupo, movs]) => (
-            <div key={grupo} className="mb-5">
-              <div className="text-[12px] text-muted uppercase tracking-wide font-medium mb-2 capitalize">
-                {grupo}
-              </div>
-              <div
-                className="rounded-card px-4"
-                style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-              >
-                {movs.map((m, i) => {
-                  const esIngreso = m.tipo === 'ingreso';
-                  return (
-                    <div
-                      key={m.id}
-                      className="flex items-center gap-3 py-3.5"
-                      style={{
-                        borderBottom: i < movs.length - 1 ? '1px solid #242424' : 'none',
-                      }}
-                    >
-                      <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                        style={{
-                          background: esIngreso ? 'rgba(196, 233, 56, 0.15)' : '#242424',
-                        }}
-                      >
-                        {esIngreso ? (
-                          <IconArrowUp size={16} color="#C4E938" />
-                        ) : (
-                          <IconArrowDown size={16} color="#A1A1AA" />
-                        )}
-                      </div>
-                      <div className="flex-1">
-                        <div className="text-[14px] font-bold text-white">
-                          {m.descripcion || (esIngreso ? 'Ingreso' : 'Gasto')}
-                        </div>
-                        <div className="text-[12px] text-soft mt-0.5">
-                          {m.lugar || m.fuente || (esIngreso ? 'Ingreso' : 'Efectivo')}
-                        </div>
-                      </div>
-                      <div className="text-right">
-                        <div
-                          className="text-[15px] font-bold"
-                          style={{ color: esIngreso ? '#C4E938' : '#fff' }}
-                        >
-                          {esIngreso ? '+' : '−'}
-                          {formatCOP(Number(m.monto))}
-                        </div>
-                        <div className="text-[11px] text-soft mt-0.5 capitalize">
-                          {m.metodo_pago || m.moneda}
-                        </div>
-                      </div>
+
+        {movimientosDia.length === 0 ? (
+          <div className="text-center text-neutral-400 text-[13px] py-8">
+            Sin movimientos este día.
+          </div>
+        ) : (
+          <div>
+            {movimientosDia.map((m, i) => {
+              const esIngreso = m.tipo === 'ingreso';
+              return (
+                <div
+                  key={m.id}
+                  className="flex items-center justify-between py-4"
+                  style={{ borderBottom: i < movimientosDia.length - 1 ? '1px solid #1F1F1F' : 'none' }}
+                >
+                  <div className="min-w-0">
+                    <div className="text-[15px] font-bold text-white truncate">
+                      {m.descripcion || (esIngreso ? 'Ingreso' : 'Gasto')}
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+                    <div className="text-[12px] text-neutral-400 mt-0.5">
+                      {m.lugar || m.fuente || (esIngreso ? 'Ingreso' : 'Efectivo')}
+                    </div>
+                  </div>
+                  <div
+                    className="text-[15px] font-bold flex-shrink-0 ml-3"
+                    style={{ color: esIngreso ? '#C4E938' : '#fff' }}
+                  >
+                    {esIngreso ? '+' : '−'}
+                    {formatCOP(Number(m.monto))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </div>
     </div>
   );
 }
