@@ -377,20 +377,18 @@ export default function DashboardInicio() {
       </div>
 
       {/* Tu timeline */}
-      <div className="flex justify-between items-center mt-6 mb-3">
+      <Link href="/dashboard/timeline" prefetch className="flex justify-between items-center mt-6 mb-3">
         <div>
           <div className="text-[17px] font-bold tracking-tight text-white">Tu timeline</div>
           <div className="text-[12px] text-muted mt-0.5">Todo lo que has registrado últimamente</div>
         </div>
-        <Link
-          href="/dashboard/timeline"
-          prefetch
+        <span
           className="flex items-center gap-0.5 px-3 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0"
           style={{ border: '1px solid #C4E938', color: '#C4E938' }}
         >
           Ver todo <IconChevronRight size={13} />
-        </Link>
-      </div>
+        </span>
+      </Link>
 
       {timelineCorto.length === 0 ? (
         <div

@@ -161,6 +161,102 @@ async function handleTimeline(usuarioId) {
   };
 }
 
+async function handleBalance(usuarioId) {
+  const [gastosRes, ingresosRes, usuarioRes] = await Promise.all([
+    supabase
+      .from('gastos')
+      .select('id, monto, fecha, hora, descripcion, categoria, lugar, metodo_pago')
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .order('fecha', { ascending: false })
+      .limit(2000),
+    supabase
+      .from('ingresos')
+      .select('id, monto, fecha, hora, descripcion, fuente, metodo_pago')
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .order('fecha', { ascending: false })
+      .limit(2000),
+    supabase.from('usuarios').select('como_llamar, nombre, foto_url').eq('id', usuarioId).single(),
+  ]);
+
+  const gastos = gastosRes.data || [];
+  const ingresos = ingresosRes.data || [];
+
+  const sumar = (lista) => lista.reduce((s, x) => s + Number(x.monto), 0);
+  const totalGastos = sumar(gastos);
+  const totalIngresos = sumar(ingresos);
+  const balance = totalIngresos - totalGastos;
+
+  const ahora = new Date();
+  const inicioMesActual = new Date(ahora.getFullYear(), ahora.getMonth(), 1);
+  const inicioMesAnterior = new Date(ahora.getFullYear(), ahora.getMonth() - 1, 1);
+
+  const enRango = (fechaStr, desde, hasta) => {
+    const f = new Date(fechaStr + 'T00:00:00');
+    return f >= desde && (!hasta || f < hasta);
+  };
+
+  const gastosMes = sumar(gastos.filter((g) => enRango(g.fecha, inicioMesActual)));
+  const gastosMesAnterior = sumar(gastos.filter((g) => enRango(g.fecha, inicioMesAnterior, inicioMesActual)));
+  const ingresosMes = sumar(ingresos.filter((i) => enRango(i.fecha, inicioMesActual)));
+  const ingresosMesAnterior = sumar(ingresos.filter((i) => enRango(i.fecha, inicioMesAnterior, inicioMesActual)));
+
+  const variacion = (actual, anterior) => {
+    if (!anterior) return actual > 0 ? 100 : 0;
+    return Math.round(((actual - anterior) / anterior) * 100);
+  };
+
+  // Balance acumulado al final de cada uno de los últimos 6 meses
+  const movimientos = [
+    ...gastos.map((g) => ({ fecha: g.fecha, monto: -Number(g.monto) })),
+    ...ingresos.map((i) => ({ fecha: i.fecha, monto: Number(i.monto) })),
+  ];
+
+  const serieMensual = [];
+  for (let i = 5; i >= 0; i--) {
+    const finMes = new Date(ahora.getFullYear(), ahora.getMonth() - i + 1, 1);
+    const acumulado = movimientos
+      .filter((m) => new Date(m.fecha + 'T00:00:00') < finMes)
+      .reduce((s, m) => s + m.monto, 0);
+    const mesRef = new Date(ahora.getFullYear(), ahora.getMonth() - i, 1);
+    serieMensual.push({
+      mes: mesRef.toLocaleDateString('es-CO', { month: 'short' }).replace('.', ''),
+      total: acumulado,
+    });
+  }
+
+  const actividadReciente = [
+    ...gastos.slice(0, 10).map((g) => ({ ...g, tipo: 'gasto' })),
+    ...ingresos.slice(0, 10).map((i) => ({ ...i, tipo: 'ingreso' })),
+  ]
+    .sort((a, b) => {
+      const dtA = new Date(a.fecha + 'T' + (a.hora || '00:00:00'));
+      const dtB = new Date(b.fecha + 'T' + (b.hora || '00:00:00'));
+      return dtB - dtA;
+    })
+    .slice(0, 5);
+
+  return {
+    status: 200,
+    body: {
+      usuario: usuarioRes.data || null,
+      balance,
+      totalIngresos,
+      totalGastos,
+      ingresosMes,
+      gastosMes,
+      variacionIngresos: variacion(ingresosMes, ingresosMesAnterior),
+      variacionGastos: variacion(gastosMes, gastosMesAnterior),
+      variacionBalance: variacion(balance, balance - (ingresosMes - gastosMes)),
+      serieMensual,
+      actividadReciente,
+      gastosRecientes: gastos.slice(0, 14),
+      ingresosRecientes: ingresos.slice(0, 14),
+    },
+  };
+}
+
 async function handleGastos(usuarioId) {
   const [gastos, ingresosData, resumen] = await Promise.all([
     obtenerGastos(usuarioId, { limite: 50 }),
@@ -190,13 +286,72 @@ async function handlePersonas(usuarioId) {
 }
 
 async function handleArbol(usuarioId) {
-  const { data } = await supabase
-    .from('arbol_vida')
-    .select('*')
-    .eq('usuario_id', usuarioId)
-    .eq('activo', true)
-    .order('orden', { ascending: true });
-  return { status: 200, body: { areas: data || [] } };
+  const [
+    areasRes,
+    metasRes,
+    personasRes,
+    ideasRes,
+    notasRes,
+    gastosCountRes,
+    ingresosCountRes,
+    usuarioRes,
+  ] = await Promise.all([
+    supabase
+      .from('arbol_vida')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .eq('activo', true)
+      .order('orden', { ascending: true }),
+    supabase
+      .from('entidades')
+      .select('id', { count: 'exact', head: true })
+      .eq('usuario_id', usuarioId)
+      .eq('tipo_entidad', 'objetivo')
+      .eq('activo', true),
+    supabase
+      .from('entidades')
+      .select('id', { count: 'exact', head: true })
+      .eq('usuario_id', usuarioId)
+      .eq('tipo_entidad', 'persona')
+      .eq('activo', true),
+    supabase.from('ideas').select('id', { count: 'exact', head: true }).eq('usuario_id', usuarioId).is('eliminado_en', null),
+    supabase.from('notas').select('id', { count: 'exact', head: true }).eq('usuario_id', usuarioId).is('eliminado_en', null),
+    supabase.from('gastos').select('id', { count: 'exact', head: true }).eq('usuario_id', usuarioId).is('eliminado_en', null),
+    supabase.from('ingresos').select('id', { count: 'exact', head: true }).eq('usuario_id', usuarioId).is('eliminado_en', null),
+    supabase.from('usuarios').select('creado_en, como_llamar, nombre').eq('id', usuarioId).single(),
+  ]);
+
+  const areas = areasRes.data || [];
+
+  // Ramas dinámicas asignadas por el asistente: usamos coincidencia de nombre
+  // para las categorías del árbol que no tienen tabla dedicada propia.
+  const contarRama = (nombres) =>
+    areas.filter((a) => nombres.includes((a.rama || '').toLowerCase().trim())).length;
+
+  const usuario = usuarioRes.data;
+  const diasHistoria = usuario?.creado_en
+    ? Math.max(0, Math.floor((Date.now() - new Date(usuario.creado_en).getTime()) / 86400000))
+    : 0;
+
+  return {
+    status: 200,
+    body: {
+      areas,
+      categorias: {
+        metas: metasRes.count || 0,
+        personas: personasRes.count || 0,
+        ideas: ideasRes.count || 0,
+        notas: notasRes.count || 0,
+        finanzas: (gastosCountRes.count || 0) + (ingresosCountRes.count || 0),
+        logros: contarRama(['logro', 'logros']),
+        experiencias: contarRama(['experiencia', 'experiencias']),
+        aprendizajes: contarRama(['aprendizaje', 'aprendizajes']),
+        retos: contarRama(['reto', 'retos', 'desafio', 'desafios']),
+      },
+      momentos: areas.length,
+      dias_historia: diasHistoria,
+    },
+  };
 }
 
 async function handleNotas(usuarioId) {
@@ -283,6 +438,7 @@ async function handleUsuario(usuarioId) {
 const HANDLERS = {
   resumen: handleResumen,
   timeline: handleTimeline,
+  balance: handleBalance,
   gastos: handleGastos,
   personas: handlePersonas,
   arbol: handleArbol,
