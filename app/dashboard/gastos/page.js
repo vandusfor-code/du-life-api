@@ -3,7 +3,7 @@
 import { useEffect, useState, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
 import {
-  IconArrowLeft, IconArrowUp, IconArrowDown, IconTrendingUp,
+  IconArrowLeft, IconArrowUp, IconArrowDown, IconChevronRight,
 } from '@tabler/icons-react';
 import { useAutoRefresh } from '../../../components/useAutoRefresh';
 
@@ -13,8 +13,27 @@ const formatCOPCorto = (n) => {
   if (n >= 1_000) return '$' + Math.round(n / 1_000) + 'k';
   return '$' + Math.round(n);
 };
+const formatEje = (n) => {
+  if (n >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (n >= 1_000) return Math.round(n / 1_000) + 'k';
+  return String(Math.round(n));
+};
 
-const DIAS_SEMANA = ['D', 'L', 'M', 'M', 'J', 'V', 'S'];
+const DIAS_SEMANA = ['Dom', 'Lun', 'Mar', 'Mie', 'Jue', 'Vie', 'Sab'];
+
+function calcularEscala(maxValor) {
+  if (!maxValor || maxValor <= 0) return { step: 100, niceMax: 300 };
+  const rawStep = maxValor / 3;
+  const magnitude = Math.pow(10, Math.floor(Math.log10(rawStep)));
+  const norm = rawStep / magnitude;
+  let niceNorm;
+  if (norm <= 1) niceNorm = 1;
+  else if (norm <= 2) niceNorm = 2;
+  else if (norm <= 5) niceNorm = 5;
+  else niceNorm = 10;
+  const step = niceNorm * magnitude;
+  return { step, niceMax: step * 3 };
+}
 
 function formatFechaGrupo(fecha) {
   const hoy = new Date();
@@ -48,37 +67,172 @@ const BarChart = memo(function BarChart({ gastos }) {
         esHoy: i === 0,
       });
     }
-    return dias;
+    return dias.map((d, idx) => {
+      if (idx === 0) return { ...d, variacion: null };
+      const anterior = dias[idx - 1].total;
+      if (!anterior) return { ...d, variacion: null };
+      return { ...d, variacion: ((d.total - anterior) / anterior) * 100 };
+    });
   }, [gastos]);
 
-  const maxValor = Math.max(...dataPorDia.map((d) => d.total), 1);
+  const maxValor = Math.max(...dataPorDia.map((d) => d.total), 0);
+  const { niceMax } = calcularEscala(maxValor);
+  const gridSteps = [0, niceMax / 3, (niceMax / 3) * 2, niceMax];
+
+  const W = 340;
+  const H = 200;
+  const leftPad = 30;
+  const rightPad = 4;
+  const topPad = 24;
+  const bottomPad = 24;
+  const plotW = W - leftPad - rightPad;
+  const plotH = H - topPad - bottomPad;
+  const slotW = plotW / dataPorDia.length;
+  const barW = slotW * 0.4;
+
+  const puntos = dataPorDia.map((d, i) => {
+    const x = leftPad + i * slotW + slotW / 2;
+    const alturaPx = niceMax > 0 ? (d.total / niceMax) * plotH : 0;
+    const y = topPad + plotH - alturaPx;
+    return { ...d, x, y, alturaPx };
+  });
+
+  const trendPathD = puntos
+    .map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.y}`)
+    .join(' ');
 
   return (
-    <div className="flex items-end justify-between gap-2 h-32 mt-4">
-      {dataPorDia.map((d, i) => {
-        const altura = Math.max((d.total / maxValor) * 100, 6);
-        return (
-          <div key={i} className="flex-1 flex flex-col items-center gap-2">
-            <div className="w-full flex-1 flex items-end">
-              <div
-                className="w-full rounded-t-lg"
-                style={{
-                  height: `${altura}%`,
-                  background: d.esHoy ? '#C4E938' : '#242424',
-                  minHeight: '6px',
-                  transition: 'all 0.3s ease',
-                }}
+    <div className="mt-4" style={{ height: '200px' }}>
+      <style>{`
+        @keyframes bar-grow {
+          from { transform: scaleY(0); opacity: 0; }
+          to { transform: scaleY(1); opacity: 1; }
+        }
+        @keyframes trend-draw {
+          from { stroke-dashoffset: 100; }
+          to { stroke-dashoffset: 0; }
+        }
+        @keyframes dot-pop {
+          from { transform: scale(0); opacity: 0; }
+          to { transform: scale(1); opacity: 1; }
+        }
+        .bar-rect {
+          transform-box: fill-box;
+          transform-origin: bottom;
+          animation: bar-grow 0.6s ease-out forwards;
+        }
+        .trend-line {
+          animation: trend-draw 1s ease-out forwards;
+        }
+        .trend-dot {
+          transform-box: fill-box;
+          transform-origin: center;
+          animation: dot-pop 0.4s ease-out forwards;
+          opacity: 0;
+        }
+      `}</style>
+      <svg
+        width="100%"
+        height={H}
+        viewBox={`0 0 ${W} ${H}`}
+        style={{ display: 'block', maxWidth: '100%' }}
+      >
+        {/* Grid horizontal + escala Y */}
+        {gridSteps.map((v, i) => {
+          const y = topPad + plotH - (niceMax > 0 ? (v / niceMax) * plotH : 0);
+          return (
+            <g key={i}>
+              <line
+                x1={leftPad}
+                y1={y}
+                x2={W - rightPad}
+                y2={y}
+                stroke="#242424"
+                strokeOpacity="0.3"
+                strokeWidth="1"
               />
-            </div>
-            <div
-              className={`text-[11px] font-medium`}
-              style={{ color: d.esHoy ? '#C4E938' : '#71717A' }}
+              <text x={leftPad - 6} y={y + 3} textAnchor="end" fontSize="9" fill="#71717A">
+                {formatEje(v)}
+              </text>
+            </g>
+          );
+        })}
+
+        {/* Barras */}
+        {puntos.map((p, i) => (
+          <g key={p.fecha}>
+            <defs>
+              <clipPath id={`barclip-${i}`}>
+                <rect x={p.x - barW / 2} y={topPad} width={barW} height={plotH} />
+              </clipPath>
+            </defs>
+            <rect
+              className="bar-rect"
+              x={p.x - barW / 2}
+              y={p.y}
+              width={barW}
+              height={p.alturaPx + 6}
+              rx="4"
+              ry="4"
+              clipPath={`url(#barclip-${i})`}
+              fill={p.esHoy ? '#C4E938' : '#242424'}
+              style={{
+                animationDelay: `${i * 0.05}s`,
+                filter: p.esHoy ? 'drop-shadow(0 0 6px rgba(196,233,56,0.6))' : 'none',
+              }}
+            />
+            {/* % variación */}
+            <text
+              x={p.x}
+              y={Math.max(12, p.y - 8)}
+              textAnchor="middle"
+              fontSize="10"
+              fontWeight="bold"
+              fill={p.variacion === null ? '#71717A' : p.variacion >= 0 ? '#C4E938' : '#F87171'}
             >
-              {d.dia}
-            </div>
-          </div>
-        );
-      })}
+              {p.variacion === null ? '—' : `${p.variacion >= 0 ? '+' : ''}${p.variacion.toFixed(1)}%`}
+            </text>
+            {/* Label día */}
+            <text
+              x={p.x}
+              y={topPad + plotH + 18}
+              textAnchor="middle"
+              fontSize="11"
+              fontWeight={p.esHoy ? 'bold' : '500'}
+              fill={p.esHoy ? '#C4E938' : '#A1A1AA'}
+            >
+              {p.dia}
+            </text>
+          </g>
+        ))}
+
+        {/* Línea de tendencia */}
+        <path
+          className="trend-line"
+          d={trendPathD}
+          fill="none"
+          stroke="#C4E938"
+          strokeWidth="1.5"
+          strokeDasharray="4 3"
+          pathLength="100"
+        />
+
+        {/* Puntos de intersección */}
+        {puntos.map((p, i) => (
+          <circle
+            key={`dot-${p.fecha}`}
+            className="trend-dot"
+            cx={p.x}
+            cy={p.y}
+            r="3"
+            fill="#C4E938"
+            style={{
+              animationDelay: `${0.3 + i * 0.08}s`,
+              filter: 'drop-shadow(0 0 4px rgba(196,233,56,0.8))',
+            }}
+          />
+        ))}
+      </svg>
     </div>
   );
 });
@@ -191,15 +345,10 @@ export default function GastosPage() {
               {formatCOP(totalGastosSemana)}
             </div>
           </div>
-          <div
-            className="flex items-center gap-1 px-2.5 py-1 rounded-[10px]"
-            style={{ background: 'rgba(196, 233, 56, 0.15)' }}
-          >
-            <IconTrendingUp size={12} color="#C4E938" />
-            <span className="text-[11px] font-bold" style={{ color: '#C4E938' }}>
-              esta semana
-            </span>
-          </div>
+          <button className="flex items-center gap-0.5 text-[13px] font-medium text-muted">
+            Ver todo
+            <IconChevronRight size={14} color="#A1A1AA" />
+          </button>
         </div>
 
         <BarChart gastos={data?.gastos || []} />
