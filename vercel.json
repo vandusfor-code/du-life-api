@@ -10,6 +10,10 @@
     },
     "api/auth/send-code.js": {
       "includeFiles": "lib/**"
+    },
+    "api/jobs/*.js": {
+      "includeFiles": "lib/**",
+      "maxDuration": 30
     }
   },
   "crons": [
