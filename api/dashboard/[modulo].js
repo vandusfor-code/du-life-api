@@ -52,18 +52,46 @@ async function handleResumen(usuarioId) {
 
   if (!usuario) return { status: 404, body: { error: 'Usuario no encontrado' } };
 
-  const [resumenMes, ultimosGastos, personas] = await Promise.all([
+  const hoy = new Date().toISOString().split('T')[0];
+
+  const [
+    resumenMes,
+    ultimosGastos,
+    personas,
+    tareasPendientesRes,
+    recordatoriosHoyRes,
+    metasActivasRes,
+    totalPersonasRes,
+  ] = await Promise.all([
     obtenerResumenMes(usuarioId),
     obtenerGastos(usuarioId, { limite: 5 }),
     obtenerEntidadesPorTipo(usuarioId, 'persona', 5),
+    supabase
+      .from('tareas')
+      .select('id', { count: 'exact', head: true })
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .is('completada_en', null),
+    supabase
+      .from('tareas')
+      .select('id', { count: 'exact', head: true })
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .is('completada_en', null)
+      .eq('fecha_vencimiento', hoy),
+    supabase
+      .from('entidades')
+      .select('id', { count: 'exact', head: true })
+      .eq('usuario_id', usuarioId)
+      .eq('tipo_entidad', 'objetivo')
+      .eq('activo', true),
+    supabase
+      .from('entidades')
+      .select('id', { count: 'exact', head: true })
+      .eq('usuario_id', usuarioId)
+      .eq('tipo_entidad', 'persona')
+      .eq('activo', true),
   ]);
-
-  const { count: totalPersonas } = await supabase
-    .from('entidades')
-    .select('id', { count: 'exact', head: true })
-    .eq('usuario_id', usuarioId)
-    .eq('tipo_entidad', 'persona')
-    .eq('activo', true);
 
   return {
     status: 200,
@@ -73,10 +101,62 @@ async function handleResumen(usuarioId) {
         total_gastos: resumenMes.total_gastos,
         total_ingresos: resumenMes.total_ingresos,
         balance: resumenMes.balance,
-        total_personas: totalPersonas || 0,
+        total_personas: totalPersonasRes.count || 0,
         ultimos_gastos: ultimosGastos || [],
         personas: personas || [],
+        tareas_pendientes: tareasPendientesRes.count || 0,
+        recordatorios_hoy: recordatoriosHoyRes.count || 0,
+        metas_activas: metasActivasRes.count || 0,
       },
+    },
+  };
+}
+
+async function handleTimeline(usuarioId) {
+  const [gastos, ingresosRes, notasRes, ideasRes, tareasRes, personas] = await Promise.all([
+    obtenerGastos(usuarioId, { limite: 40 }),
+    supabase
+      .from('ingresos')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .order('fecha', { ascending: false })
+      .order('hora', { ascending: false })
+      .limit(40),
+    supabase
+      .from('notas')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .neq('archivada', true)
+      .order('creado_en', { ascending: false })
+      .limit(40),
+    supabase
+      .from('ideas')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .order('creado_en', { ascending: false })
+      .limit(40),
+    supabase
+      .from('tareas')
+      .select('*')
+      .eq('usuario_id', usuarioId)
+      .is('eliminado_en', null)
+      .order('creado_en', { ascending: false })
+      .limit(40),
+    obtenerEntidadesPorTipo(usuarioId, 'persona', 40),
+  ]);
+
+  return {
+    status: 200,
+    body: {
+      gastos: gastos || [],
+      ingresos: ingresosRes.data || [],
+      notas: notasRes.data || [],
+      ideas: ideasRes.data || [],
+      tareas: tareasRes.data || [],
+      personas: personas || [],
     },
   };
 }
@@ -202,6 +282,7 @@ async function handleUsuario(usuarioId) {
 
 const HANDLERS = {
   resumen: handleResumen,
+  timeline: handleTimeline,
   gastos: handleGastos,
   personas: handlePersonas,
   arbol: handleArbol,
