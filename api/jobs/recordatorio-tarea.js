@@ -23,7 +23,10 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
-    const resultado = await enviarPlantilla(telefono, 'recordatorio_du', { nombre, tarea }, 'Recordatorio');
+    // El header "Recordatorio" de esta plantilla es texto fijo (sin {{1}}),
+    // así que NO se envía componente header: Meta lo pinta solo. Enviarlo
+    // causa "(#100) Invalid parameter / Parameter name is missing or empty".
+    const resultado = await enviarPlantilla(telefono, 'recordatorio_du', { nombre, tarea });
     console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
 
     return res.status(200).json({ ok: true });
