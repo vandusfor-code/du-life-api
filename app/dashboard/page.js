@@ -8,6 +8,7 @@ import {
   IconSquareCheck, IconBrandWhatsapp,
 } from '@tabler/icons-react';
 import Avatar from '../../components/Avatar';
+import ProfileSheet from '../../components/ProfileSheet';
 import { useAutoRefresh } from '../../components/useAutoRefresh';
 
 const WHATSAPP_LINK = 'https://wa.me/573239117508';
@@ -138,6 +139,7 @@ export default function DashboardInicio() {
   const [usuario, setUsuario] = useState(null);
   const [resumen, setResumen] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [showProfile, setShowProfile] = useState(false);
 
   const cargarDatos = useCallback(() => {
     Promise.all([
@@ -286,8 +288,9 @@ export default function DashboardInicio() {
       <div className="flex justify-between items-center mb-5">
         <div className="relative flex items-center">
           <span className="text-xl font-bold tracking-tight" style={{ color: '#C4E938' }}>
-            Du Life
+            Du
           </span>
+          <span className="text-xl font-bold tracking-tight text-white">&nbsp;Life</span>
           <IconSparkles size={14} color="#C4E938" style={{ marginLeft: '2px', marginTop: '-14px' }} />
         </div>
         <div className="flex items-center gap-2">
@@ -307,7 +310,9 @@ export default function DashboardInicio() {
               </div>
             )}
           </button>
-          <Avatar name={nombre} size="md" />
+          <button type="button" onClick={() => setShowProfile(true)}>
+            <Avatar name={nombre} size="md" />
+          </button>
         </div>
       </div>
 
@@ -455,20 +460,23 @@ export default function DashboardInicio() {
       </div>
 
       {/* Botón flotante WhatsApp */}
-      <div className="fixed left-5 right-5 max-w-app mx-auto pointer-events-none" style={{ bottom: '96px' }}>
-        <div className="flex justify-end">
-          <a
-            href={WHATSAPP_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="pointer-events-auto flex items-center gap-2 px-5 py-3 rounded-full font-bold text-[14px]"
-            style={{ background: '#C4E938', color: '#0A0A0A', boxShadow: '0 8px 20px rgba(196,233,56,0.35)' }}
-          >
-            <IconBrandWhatsapp size={18} />
-            Hablar con Du
-          </a>
-        </div>
-      </div>
+      <a
+        href={WHATSAPP_LINK}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="fixed bottom-24 left-4 z-50 flex h-12 w-12 items-center justify-center rounded-full bg-lime active:scale-90 transition-transform duration-150"
+        style={{ boxShadow: '0 0 16px rgba(196,233,56,0.4)' }}
+      >
+        <IconBrandWhatsapp size={24} color="#000000" />
+      </a>
+
+      <ProfileSheet
+        open={showProfile}
+        onClose={() => setShowProfile(false)}
+        nombre={nombre}
+        telefono={usuario?.telefono}
+        plan={usuario?.plan}
+      />
 
     </div>
   );

@@ -205,7 +205,7 @@ export default function LoginPage() {
       {/* Logo + tagline */}
       <div className="px-6 text-center -mt-4">
         <div className="flex justify-center items-baseline select-none">
-          <span className="text-white font-extrabold" style={{ fontSize: '60px', letterSpacing: '-0.02em' }}>
+          <span className="font-extrabold" style={{ fontSize: '60px', color: '#C4E938', letterSpacing: '-0.02em' }}>
             D
           </span>
           <span className="relative inline-block" style={{ lineHeight: 1 }}>

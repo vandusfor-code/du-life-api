@@ -165,19 +165,19 @@ async function handleBalance(usuarioId) {
   const [gastosRes, ingresosRes, usuarioRes] = await Promise.all([
     supabase
       .from('gastos')
-      .select('id, monto, fecha, hora, descripcion, categoria, lugar, metodo_pago')
+      .select('*')
       .eq('usuario_id', usuarioId)
       .is('eliminado_en', null)
       .order('fecha', { ascending: false })
       .limit(2000),
     supabase
       .from('ingresos')
-      .select('id, monto, fecha, hora, descripcion, fuente, metodo_pago')
+      .select('*')
       .eq('usuario_id', usuarioId)
       .is('eliminado_en', null)
       .order('fecha', { ascending: false })
       .limit(2000),
-    supabase.from('usuarios').select('como_llamar, nombre, foto_url').eq('id', usuarioId).single(),
+    supabase.from('usuarios').select('*').eq('id', usuarioId).single(),
   ]);
 
   const gastos = gastosRes.data || [];
@@ -318,7 +318,7 @@ async function handleArbol(usuarioId) {
     supabase.from('notas').select('id', { count: 'exact', head: true }).eq('usuario_id', usuarioId).is('eliminado_en', null),
     supabase.from('gastos').select('id', { count: 'exact', head: true }).eq('usuario_id', usuarioId).is('eliminado_en', null),
     supabase.from('ingresos').select('id', { count: 'exact', head: true }).eq('usuario_id', usuarioId).is('eliminado_en', null),
-    supabase.from('usuarios').select('creado_en, como_llamar, nombre').eq('id', usuarioId).single(),
+    supabase.from('usuarios').select('*').eq('id', usuarioId).single(),
   ]);
 
   const areas = areasRes.data || [];

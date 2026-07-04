@@ -30,75 +30,103 @@ const CATEGORIAS_CONFIG = [
 
 const POSICIONES = [
   { top: '0px', left: '50%', transform: 'translateX(-50%)' },
-  { top: '58px', left: '0px' },
-  { top: '58px', right: '0px' },
-  { top: '150px', left: '-10px' },
-  { top: '150px', right: '-10px' },
-  { top: '242px', left: '-16px' },
-  { top: '242px', right: '-16px' },
-  { top: '332px', left: '2px' },
-  { top: '332px', right: '0px' },
+  { top: '38px', left: '0px' },
+  { top: '38px', right: '0px' },
+  { top: '94px', left: '-8px' },
+  { top: '94px', right: '-8px' },
+  { top: '150px', left: '-14px' },
+  { top: '150px', right: '-14px' },
+  { top: '206px', left: '2px' },
+  { top: '206px', right: '0px' },
 ];
 
-const LEAF_POSITIONS = [
-  { x: 150, y: 55, r: 13, o: 0.32 }, { x: 128, y: 72, r: 10, o: 0.28 }, { x: 172, y: 68, r: 11, o: 0.3 },
-  { x: 88, y: 108, r: 15, o: 0.28 }, { x: 66, y: 92, r: 10, o: 0.26 }, { x: 212, y: 98, r: 14, o: 0.28 },
-  { x: 232, y: 88, r: 9, o: 0.26 }, { x: 58, y: 138, r: 11, o: 0.22 }, { x: 242, y: 132, r: 12, o: 0.24 },
-  { x: 108, y: 62, r: 8, o: 0.28 }, { x: 190, y: 58, r: 8, o: 0.28 }, { x: 150, y: 38, r: 10, o: 0.3 },
-  { x: 42, y: 112, r: 8, o: 0.22 }, { x: 258, y: 112, r: 8, o: 0.22 }, { x: 118, y: 96, r: 7, o: 0.26 },
-  { x: 182, y: 96, r: 7, o: 0.26 },
+const RAMAS_CONFIG = [
+  { angulo: 42, longitud: 78 },
+  { angulo: 68, longitud: 74 },
+  { angulo: 96, longitud: 68 },
+  { angulo: 122, longitud: 62 },
 ];
+
+const RAICES_CONFIG = [
+  { angulo: -70, longitud: 58 },
+  { angulo: -35, longitud: 48 },
+  { angulo: 0, longitud: 38 },
+  { angulo: 35, longitud: 48 },
+  { angulo: 70, longitud: 58 },
+];
+
+const LEAF_DELAYS = [0, 0.5, 1.2, 0.8, 0.3, 1.5, 0.6, 1.0];
 
 const ArbolSVG = memo(function ArbolSVG({ inicial }) {
-  const W = 300;
-  const H = 380;
+  const W = 360;
+  const H = 420;
   const cx = W / 2;
-  const trunkBaseY = H - 30;
-  const trunkTopY = H * 0.42;
-  const centerY = H * 0.5;
+  const trunkBaseY = 388;
+  const trunkTopY = 172;
+  const centerY = (trunkBaseY + trunkTopY) / 2;
 
-  const ramas = [-95, -60, -25, 25, 60, 95].map((angle, i) => {
-    const rad = (angle * Math.PI) / 180;
-    const len = 85 + (i % 2) * 22;
-    const x2 = cx + Math.sin(rad) * len * 0.9;
-    const y2 = trunkTopY - Math.cos(rad) * len * 0.9;
-    const midX = cx + Math.sin(rad) * len * 0.5;
-    const midY = trunkTopY - Math.cos(rad) * len * 0.5 - 8;
-    return { x2, y2, midX, midY };
+  const ramas = [];
+  RAMAS_CONFIG.forEach(({ angulo, longitud }) => {
+    const rad = (angulo * Math.PI) / 180;
+    [-1, 1].forEach((lado) => {
+      const dirX = Math.sin(rad) * lado;
+      const dirY = -Math.cos(rad);
+      const x2 = cx + dirX * longitud;
+      const y2 = trunkTopY + dirY * longitud;
+      const midX = cx + dirX * longitud * 0.55;
+      const midY = trunkTopY + dirY * longitud * 0.45 - 8;
+      ramas.push({ x2, y2, midX, midY });
+    });
+  });
+
+  const raices = RAICES_CONFIG.map(({ angulo, longitud }) => {
+    const rad = (angulo * Math.PI) / 180;
+    const endX = cx + Math.sin(rad) * longitud;
+    const endY = trunkBaseY + Math.cos(rad) * longitud * 0.3 + 8;
+    const ctrlX = cx + Math.sin(rad) * longitud * 0.5;
+    const ctrlY = trunkBaseY + 8;
+    const midX = 0.25 * cx + 0.5 * ctrlX + 0.25 * endX;
+    const midY = 0.25 * trunkBaseY + 0.5 * ctrlY + 0.25 * endY;
+    return { endX, endY, ctrlX, ctrlY, midX, midY };
   });
 
   return (
     <svg viewBox={`0 0 ${W} ${H}`} style={{ width: '100%', height: '100%', display: 'block' }}>
       <defs>
-        <filter id="glowBlur" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="6" />
+        <filter id="subtleGlow" x="-50%" y="-50%" width="200%" height="200%">
+          <feGaussianBlur stdDeviation="2" result="blur" />
+          <feMerge>
+            <feMergeNode in="blur" />
+            <feMergeNode in="SourceGraphic" />
+          </feMerge>
         </filter>
-        <filter id="glowBlurSoft" x="-60%" y="-60%" width="220%" height="220%">
-          <feGaussianBlur stdDeviation="3" />
-        </filter>
-        <linearGradient id="trunkGradArbol" x1="0" y1="1" x2="0" y2="0">
-          <stop offset="0%" stopColor="#C4E938" stopOpacity="0.15" />
-          <stop offset="100%" stopColor="#C4E938" stopOpacity="1" />
-        </linearGradient>
       </defs>
+      <style>{`
+        @keyframes nodePulse { 0%,100%{ opacity:.9 } 50%{ opacity:1 } }
+        @keyframes leafBreath { 0%,100%{ transform: scale(1); } 50%{ transform: scale(1.3); } }
+        .arbol-node-center { animation: nodePulse 4s ease-in-out infinite; }
+        .arbol-hoja { animation: leafBreath 3.6s ease-in-out infinite; transform-box: fill-box; transform-origin: center; }
+      `}</style>
 
-      {/* Raíces */}
-      <g stroke="#C4E938" strokeWidth="2" fill="none" opacity="0.45" filter="url(#glowBlurSoft)">
-        <path d={`M ${cx - 4} ${trunkBaseY} Q ${cx - 40} ${trunkBaseY + 18} ${cx - 72} ${trunkBaseY + 42}`} />
-        <path d={`M ${cx - 2} ${trunkBaseY} Q ${cx - 14} ${trunkBaseY + 24} ${cx - 24} ${trunkBaseY + 52}`} />
-        <path d={`M ${cx + 2} ${trunkBaseY} Q ${cx + 14} ${trunkBaseY + 24} ${cx + 24} ${trunkBaseY + 52}`} />
-        <path d={`M ${cx + 4} ${trunkBaseY} Q ${cx + 40} ${trunkBaseY + 18} ${cx + 72} ${trunkBaseY + 42}`} />
+      {/* Raíces cónicas (2 segmentos: grueso cerca del tronco, fino en la punta) */}
+      <g stroke="#C4E938" fill="none" strokeLinecap="round" opacity="0.5">
+        {raices.map((r, i) => (
+          <g key={i}>
+            <path d={`M ${cx} ${trunkBaseY} Q ${r.ctrlX} ${r.ctrlY} ${r.midX} ${r.midY}`} strokeWidth="5" />
+            <path
+              d={`M ${r.midX} ${r.midY} Q ${(r.midX + r.endX) / 2} ${(r.midY + r.endY) / 2 + 3} ${r.endX} ${r.endY}`}
+              strokeWidth="1.5"
+            />
+          </g>
+        ))}
       </g>
 
-      {/* Tronco con glow */}
+      {/* Tronco */}
       <path
-        d={`M ${cx - 9} ${trunkBaseY} Q ${cx - 7} ${(trunkBaseY + trunkTopY) / 2} ${cx - 5} ${trunkTopY} L ${cx + 5} ${trunkTopY} Q ${cx + 7} ${(trunkBaseY + trunkTopY) / 2} ${cx + 9} ${trunkBaseY} Z`}
-        fill="url(#trunkGradArbol)"
-        filter="url(#glowBlur)"
-      />
-      <path
-        d={`M ${cx - 9} ${trunkBaseY} Q ${cx - 7} ${(trunkBaseY + trunkTopY) / 2} ${cx - 5} ${trunkTopY} L ${cx + 5} ${trunkTopY} Q ${cx + 7} ${(trunkBaseY + trunkTopY) / 2} ${cx + 9} ${trunkBaseY} Z`}
-        fill="url(#trunkGradArbol)"
+        d={`M ${cx - 10} ${trunkBaseY} Q ${cx - 8} ${(trunkBaseY + trunkTopY) / 2} ${cx - 4} ${trunkTopY} L ${cx + 4} ${trunkTopY} Q ${cx + 8} ${(trunkBaseY + trunkTopY) / 2} ${cx + 10} ${trunkBaseY} Z`}
+        fill="#C4E938"
+        opacity="0.9"
+        filter="url(#subtleGlow)"
       />
 
       {/* Ramas */}
@@ -107,25 +135,33 @@ const ArbolSVG = memo(function ArbolSVG({ inicial }) {
           key={i}
           d={`M ${cx} ${trunkTopY} Q ${r.midX} ${r.midY} ${r.x2} ${r.y2}`}
           stroke="#C4E938"
-          strokeWidth="2.5"
+          strokeWidth={6 - (i % 4) * 0.4}
           fill="none"
           strokeLinecap="round"
           opacity="0.85"
-          filter="url(#glowBlurSoft)"
+          filter="url(#subtleGlow)"
         />
       ))}
 
-      {/* Hojas difusas */}
-      <g filter="url(#glowBlur)">
-        {LEAF_POSITIONS.map((p, i) => (
-          <circle key={i} cx={p.x} cy={p.y} r={p.r} fill="#C4E938" opacity={p.o} />
-        ))}
-      </g>
+      {/* Hojas en las puntas */}
+      {ramas.map((r, i) => (
+        <g key={`h-${i}`}>
+          <circle
+            className="arbol-hoja"
+            cx={r.x2} cy={r.y2} r="3.5" fill="#C4E938"
+            style={{ animationDelay: `${LEAF_DELAYS[i % LEAF_DELAYS.length]}s` }}
+          />
+          <circle
+            className="arbol-hoja"
+            cx={(r.x2 + r.midX) / 2 + 4} cy={(r.y2 + r.midY) / 2 - 4} r="3" fill="#C4E938"
+            style={{ animationDelay: `${LEAF_DELAYS[(i + 3) % LEAF_DELAYS.length]}s` }}
+          />
+        </g>
+      ))}
 
-      {/* Centro con inicial */}
-      <circle cx={cx} cy={centerY} r="30" fill="#0A0A0A" stroke="#C4E938" strokeWidth="2" filter="url(#glowBlurSoft)" />
-      <circle cx={cx} cy={centerY} r="30" fill="#0A0A0A" stroke="#C4E938" strokeWidth="2" />
-      <text x={cx} y={centerY + 8} textAnchor="middle" fontSize="26" fontWeight="800" fill="#C4E938">
+      {/* Nodo central */}
+      <circle className="arbol-node-center" cx={cx} cy={centerY} r="28" fill="#000" stroke="#C4E938" strokeWidth="3" />
+      <text x={cx} y={centerY + 7} textAnchor="middle" fontSize="24" fontWeight="800" fill="#C4E938">
         {inicial}
       </text>
     </svg>
@@ -135,12 +171,12 @@ const ArbolSVG = memo(function ArbolSVG({ inicial }) {
 function NodoPill({ icon: Icon, label, count, color, style }) {
   return (
     <div
-      className="absolute flex items-center gap-1.5 px-3 py-2 rounded-full"
-      style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', whiteSpace: 'nowrap', ...style }}
+      className="absolute flex items-center gap-1.5 rounded-[20px]"
+      style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', padding: '6px 12px', whiteSpace: 'nowrap', ...style }}
     >
-      <Icon size={14} color={color} />
-      <span className="text-[12px] font-bold text-white">{label}</span>
-      <span className="text-[12px] font-bold" style={{ color }}>{count}</span>
+      <Icon size={13} color={color} />
+      <span className="text-[11px] font-bold text-white">{label}</span>
+      <span className="text-[11px] font-bold" style={{ color }}>{count}</span>
     </div>
   );
 }
@@ -178,16 +214,16 @@ export default function ArbolPage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32">
-        <div className="flex items-center justify-between mb-5">
+      <div className="px-5 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+16px)]">
+        <div className="flex items-center justify-between mb-4">
           <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
           <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
         </div>
-        <div className="h-8 w-48 rounded animate-pulse mb-2" style={{ background: '#1A1A1A' }} />
-        <div className="h-4 w-56 rounded animate-pulse mb-5" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[46px] animate-pulse mb-5" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-hero h-[480px] animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[110px] mt-5 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="h-7 w-44 rounded animate-pulse mb-2" style={{ background: '#1A1A1A' }} />
+        <div className="h-4 w-52 rounded animate-pulse mb-4" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[36px] animate-pulse mb-4" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-hero h-[320px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[90px] mt-4 animate-pulse" style={{ background: '#1A1A1A' }} />
       </div>
     );
   }
@@ -207,10 +243,10 @@ export default function ArbolPage() {
   ];
 
   return (
-    <div className="px-5 pt-4 pb-32">
+    <div className="px-5 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+16px)]">
 
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-4">
         <Link
           href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -228,27 +264,31 @@ export default function ArbolPage() {
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="text-[26px] font-bold tracking-tight text-white">Árbol de vida</div>
-        <IconTree size={22} color="#C4E938" />
+        <div className="text-[22px] font-bold tracking-tight text-white">Árbol de vida</div>
+        <IconTree size={19} color="#C4E938" />
       </div>
-      <div className="text-[13px] text-muted mt-1 mb-4">Tu historia, visualizada y conectada.</div>
+      <div className="text-[12px] text-muted mt-0.5 mb-3">Tu historia, visualizada y conectada.</div>
 
       {/* Tabs */}
-      <div className="flex rounded-full p-1 mb-5" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+      <div className="flex rounded-full p-1 mb-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', height: '36px' }}>
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className="flex-1 flex items-center justify-center gap-1.5 py-2 rounded-full text-[12px] font-bold"
+              className="flex-1 flex items-center justify-center gap-1 rounded-full overflow-hidden"
               style={{
                 background: active ? '#242424' : 'transparent',
                 color: active ? '#C4E938' : '#71717A',
+                fontSize: '11px',
+                fontWeight: 500,
+                padding: '0 6px',
+                whiteSpace: 'nowrap',
                 borderBottom: active ? '2px solid #C4E938' : '2px solid transparent',
               }}
             >
-              <t.icon size={14} />
+              <t.icon size={13} className="flex-shrink-0" />
               {t.label}
             </button>
           );
@@ -272,9 +312,9 @@ export default function ArbolPage() {
           {/* Árbol + nodos flotantes */}
           <div
             className="rounded-hero relative overflow-visible"
-            style={{ background: '#0A0A0A', border: '1px solid #2A2A2A', height: '480px', padding: '0 24px' }}
+            style={{ background: '#0A0A0A', border: '1px solid #2A2A2A', height: '290px' }}
           >
-            <div className="relative" style={{ height: '380px', marginTop: '54px' }}>
+            <div className="relative" style={{ height: '232px', marginTop: '28px' }}>
               {CATEGORIAS_CONFIG.map((c, i) => (
                 <NodoPill
                   key={c.key}
@@ -285,26 +325,31 @@ export default function ArbolPage() {
                   style={POSICIONES[i]}
                 />
               ))}
-              <div style={{ position: 'absolute', inset: 0, zIndex: 0 }}>
+              <div
+                style={{
+                  position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)',
+                  width: '78%', aspectRatio: '360 / 420', zIndex: 0,
+                }}
+              >
                 <ArbolSVG inicial={inicial} />
               </div>
             </div>
 
             <div
-              className="absolute flex items-center gap-1.5 px-4 py-2 rounded-full"
+              className="absolute flex items-center gap-1.5 rounded-[20px]"
               style={{
-                background: '#1A1A1A', border: '1px solid #2A2A2A',
-                bottom: '10px', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap',
+                background: '#1A1A1A', border: '1px solid #2A2A2A', padding: '6px 14px',
+                bottom: '6px', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap',
               }}
             >
-              <span className="text-[13px] font-bold text-white">{momentos} momentos</span>
-              <IconSparkles size={14} color="#C4E938" />
+              <span className="text-[12px] font-bold text-white">{momentos} momentos</span>
+              <IconSparkles size={13} color="#C4E938" />
             </div>
           </div>
 
           {/* Resumen de tu historia */}
-          <div className="rounded-card p-4 mt-5" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-            <div className="text-[15px] font-bold text-white mb-4">Resumen de tu historia</div>
+          <div className="rounded-card mt-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', padding: '12px' }}>
+            <div className="text-[13px] font-bold text-white mb-3">Resumen de tu historia</div>
             <div className="grid grid-cols-4 gap-1">
               {STATS.map((s, i) => (
                 <div
@@ -312,37 +357,39 @@ export default function ArbolPage() {
                   className="text-center px-1"
                   style={{ borderLeft: i > 0 ? '1px solid #242424' : 'none' }}
                 >
-                  <div className="flex justify-center mb-1.5">
-                    <s.icon size={18} color={s.color} />
+                  <div className="flex justify-center mb-1">
+                    <s.icon size={16} color={s.color} />
                   </div>
-                  <div className="text-[18px] font-bold text-white leading-tight">{s.valor}</div>
-                  <div className="text-[10px] text-soft mt-1 leading-tight">{s.label}</div>
+                  <div className="font-bold text-white leading-tight" style={{ fontSize: '20px' }}>
+                    {s.valor}
+                  </div>
+                  <div className="text-[11px] text-soft mt-0.5 leading-tight">{s.label}</div>
                 </div>
               ))}
             </div>
           </div>
 
           {/* Insight */}
-          <div className="rounded-card p-3.5 mt-4 flex items-center gap-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+          <div className="rounded-card p-3 mt-3 flex items-center gap-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
             <div
-              className="w-[38px] h-[38px] rounded-[11px] flex items-center justify-center flex-shrink-0"
+              className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center flex-shrink-0"
               style={{ background: '#C4E938' }}
             >
-              <IconSparkles size={19} color="#0A0A0A" />
+              <IconSparkles size={17} color="#0A0A0A" />
             </div>
             <div className="flex-1 min-w-0">
-              <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: '#C4E938' }}>
+              <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: '#C4E938' }}>
                 Insight de tu árbol
               </div>
-              <div className="text-[13px] font-bold text-white mt-0.5 leading-snug">
+              <div className="text-[12px] font-bold text-white mt-0.5 leading-snug">
                 Este mes has crecido especialmente en aprendizajes y finanzas.
               </div>
             </div>
             <div
-              className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
+              className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0"
               style={{ background: '#C4E938' }}
             >
-              <IconChevronRight size={18} color="#0A0A0A" />
+              <IconChevronRight size={16} color="#0A0A0A" />
             </div>
           </div>
         </>
