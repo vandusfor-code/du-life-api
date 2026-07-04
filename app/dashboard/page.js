@@ -476,6 +476,7 @@ export default function DashboardInicio() {
         nombre={nombre}
         telefono={usuario?.telefono}
         plan={usuario?.plan}
+        onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
       />
 
     </div>

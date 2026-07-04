@@ -353,6 +353,7 @@ export default function BalancePage() {
         nombre={nombre}
         telefono={usuario?.telefono}
         plan={usuario?.plan}
+        onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
       />
 
     </div>

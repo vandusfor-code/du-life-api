@@ -433,6 +433,34 @@ async function handleUsuario(usuarioId) {
   return { status: 200, body: { usuario } };
 }
 
+async function handleActualizarPerfil(usuarioId, req) {
+  try {
+    const body = req.body || {};
+    const comoLlamar = (body.como_llamar || '').toString().trim();
+
+    if (!comoLlamar || comoLlamar.length < 1 || comoLlamar.length > 50) {
+      return { status: 400, body: { error: 'Nombre inválido' } };
+    }
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ como_llamar: comoLlamar })
+      .eq('id', usuarioId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error actualizando perfil:', error.message);
+      return { status: 500, body: { error: 'No se pudo actualizar' } };
+    }
+
+    return { status: 200, body: { usuario: data } };
+  } catch (e) {
+    console.error('Error actualizar_perfil:', e.message);
+    return { status: 500, body: { error: 'Error interno' } };
+  }
+}
+
 // ===== ROUTER =====
 
 const HANDLERS = {
@@ -446,6 +474,7 @@ const HANDLERS = {
   tareas: handleTareas,
   ideas: handleIdeas,
   usuario: handleUsuario,
+  actualizar_perfil: handleActualizarPerfil,
   push_subscribe: handlePushSubscribe,
   push_unsubscribe: handlePushUnsubscribe,
 };
