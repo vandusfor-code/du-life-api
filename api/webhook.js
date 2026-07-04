@@ -67,7 +67,7 @@ export default async function handler(req, res) {
 
           const textoRespuesta = "⚠️ *Aviso Importante:* Este canal es únicamente informativo y automático para el envío de auditorías y notificaciones de Du Academy. No se reciben mensajes de texto ni consultas por este medio. ¡Muchas gracias! 😊";
           
-          const urlMeta = `https://facebook.com{phoneNumberId}/messages`;
+          const urlMeta = `https://graph.facebook.com/${process.env.WA_API_VERSION || 'v20.0'}/${phoneNumberId}/messages`;
           
           const payloadData = {
             messaging_product: "whatsapp",
