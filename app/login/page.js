@@ -21,10 +21,13 @@ function mulberry32(seed) {
 function dentroDelCerebro(x, y) {
   const enElipse = (cx, cy, rx, ry) => ((x - cx) / rx) ** 2 + ((y - cy) / ry) ** 2 <= 1;
   return (
-    enElipse(150, 80, 108, 52) ||
-    enElipse(198, 160, 30, 58) ||
-    enElipse(88, 125, 55, 42) ||
-    enElipse(150, 118, 70, 34)
+    enElipse(120, 78, 78, 58) ||
+    enElipse(205, 73, 75, 55) ||
+    enElipse(160, 92, 100, 40) ||
+    enElipse(100, 158, 55, 48) ||
+    enElipse(212, 163, 58, 50) ||
+    enElipse(160, 168, 95, 45) ||
+    enElipse(216, 228, 28, 55)
   );
 }
 
@@ -32,10 +35,10 @@ function generarNodosCerebro() {
   const rand = mulberry32(42);
   const puntos = [];
   let intentos = 0;
-  while (puntos.length < 62 && intentos < 5000) {
+  while (puntos.length < 105 && intentos < 8000) {
     intentos++;
-    const x = rand() * 270 + 15;
-    const y = rand() * 220 + 15;
+    const x = rand() * 300 + 10;
+    const y = rand() * 280 + 10;
     if (dentroDelCerebro(x, y)) {
       puntos.push({ x, y });
     }
@@ -43,7 +46,7 @@ function generarNodosCerebro() {
   return puntos;
 }
 
-function generarEdgesCerebro(puntos, maxDist = 32) {
+function generarEdgesCerebro(puntos, maxDist = 30) {
   const edges = [];
   for (let i = 0; i < puntos.length; i++) {
     for (let j = i + 1; j < puntos.length; j++) {
@@ -63,23 +66,33 @@ const EDGES_CEREBRO = generarEdgesCerebro(NODOS_CEREBRO);
 
 function BrainSVG() {
   return (
-    <svg viewBox="0 0 300 260" style={{ width: '100%', height: '100%', display: 'block' }}>
+    <svg viewBox="0 0 320 300" style={{ width: '100%', height: '100%', display: 'block' }}>
       <style>{`
         @keyframes node-pulse {
-          0%, 100% { opacity: 0.6; }
-          50% { opacity: 1; }
+          0%, 100% { opacity: 0.5; filter: drop-shadow(0 0 2px rgba(196,233,56,0.7)); }
+          50% { opacity: 1; filter: drop-shadow(0 0 7px rgba(196,233,56,1)); }
+        }
+        @keyframes hub-pulse {
+          0%, 100% { opacity: 0.55; transform: scale(0.9); filter: drop-shadow(0 0 4px rgba(196,233,56,0.8)); }
+          50% { opacity: 1; transform: scale(1.4); filter: drop-shadow(0 0 12px rgba(196,233,56,1)); }
         }
         @keyframes signal-travel {
-          from { stroke-dashoffset: 24; }
+          from { stroke-dashoffset: 30; }
           to { stroke-dashoffset: 0; }
         }
         .brain-node {
-          animation: node-pulse 2.6s ease-in-out infinite;
+          animation: node-pulse 2.1s ease-in-out infinite;
           transform-box: fill-box;
+          transform-origin: center;
+        }
+        .brain-node-hub {
+          animation: hub-pulse 2.3s ease-in-out infinite;
+          transform-box: fill-box;
+          transform-origin: center;
         }
         .brain-edge {
           stroke-dasharray: 3 5;
-          animation: signal-travel 1.8s linear infinite;
+          animation: signal-travel 1.2s linear infinite;
         }
       `}</style>
       <g>
@@ -92,27 +105,27 @@ function BrainSVG() {
             x2={e.x2}
             y2={e.y2}
             stroke="#C4E938"
-            strokeWidth="0.6"
-            strokeOpacity={Math.max(0.08, 0.35 * (1 - e.dist / 32))}
-            style={{ animationDelay: `${(i % 14) * 0.13}s` }}
+            strokeWidth="0.7"
+            strokeOpacity={Math.max(0.1, 0.4 * (1 - e.dist / 30))}
+            style={{ animationDelay: `${(i % 16) * 0.11}s` }}
           />
         ))}
       </g>
       <g>
-        {NODOS_CEREBRO.map((p, i) => (
-          <circle
-            key={i}
-            className="brain-node"
-            cx={p.x}
-            cy={p.y}
-            r={i % 6 === 0 ? 2.4 : 1.3}
-            fill="#C4E938"
-            style={{
-              animationDelay: `${(i % 10) * 0.22}s`,
-              filter: 'drop-shadow(0 0 3px rgba(196,233,56,0.9))',
-            }}
-          />
-        ))}
+        {NODOS_CEREBRO.map((p, i) => {
+          const esHub = i % 6 === 0;
+          return (
+            <circle
+              key={i}
+              className={esHub ? 'brain-node-hub' : 'brain-node'}
+              cx={p.x}
+              cy={p.y}
+              r={esHub ? 2.8 : 1.4}
+              fill="#C4E938"
+              style={{ animationDelay: `${(i % 10) * 0.2}s` }}
+            />
+          );
+        })}
       </g>
     </svg>
   );
@@ -162,27 +175,27 @@ export default function LoginPage() {
       {/* Hero: cerebro constelación */}
       <div
         className="relative w-full flex items-center justify-center overflow-hidden flex-shrink-0"
-        style={{ height: '320px' }}
+        style={{ height: '380px' }}
       >
         <div
           className="absolute pointer-events-none"
           style={{
-            width: '300px',
-            height: '300px',
-            background: 'radial-gradient(circle, rgba(196,233,56,0.12) 0%, rgba(196,233,56,0) 65%)',
+            width: '360px',
+            height: '360px',
+            background: 'radial-gradient(circle, rgba(196,233,56,0.14) 0%, rgba(196,233,56,0) 65%)',
             filter: 'blur(10px)',
           }}
         />
-        <div style={{ width: '260px', height: '230px', position: 'relative', zIndex: 1 }}>
+        <div style={{ width: '310px', height: '290px', position: 'relative', zIndex: 1 }}>
           <BrainSVG />
         </div>
         <div
           className="absolute pointer-events-none"
           style={{
             bottom: '0px',
-            width: '260px',
-            height: '90px',
-            background: 'radial-gradient(ellipse at center, rgba(196,233,56,0.4) 0%, rgba(196,233,56,0) 70%)',
+            width: '300px',
+            height: '100px',
+            background: 'radial-gradient(ellipse at center, rgba(196,233,56,0.45) 0%, rgba(196,233,56,0) 70%)',
             filter: 'blur(8px)',
             zIndex: 2,
           }}
@@ -190,37 +203,37 @@ export default function LoginPage() {
       </div>
 
       {/* Logo + tagline */}
-      <div className="px-6 text-center -mt-2">
+      <div className="px-6 text-center -mt-4">
         <div className="flex justify-center items-baseline select-none">
-          <span className="text-white font-extrabold" style={{ fontSize: '46px', letterSpacing: '-0.02em' }}>
+          <span className="text-white font-extrabold" style={{ fontSize: '60px', letterSpacing: '-0.02em' }}>
             D
           </span>
           <span className="relative inline-block" style={{ lineHeight: 1 }}>
-            <span className="font-extrabold" style={{ fontSize: '46px', color: '#C4E938', letterSpacing: '-0.02em' }}>
+            <span className="font-extrabold" style={{ fontSize: '60px', color: '#C4E938', letterSpacing: '-0.02em' }}>
               u
             </span>
             <span
               className="absolute rounded-full"
               style={{
-                width: '8px',
-                height: '8px',
+                width: '10px',
+                height: '10px',
                 background: '#C4E938',
-                top: '-2px',
+                top: '-3px',
                 left: '50%',
                 transform: 'translateX(-50%)',
               }}
             />
           </span>
-          <span className="text-white font-extrabold" style={{ fontSize: '46px', letterSpacing: '-0.02em' }}>
+          <span className="text-white font-extrabold" style={{ fontSize: '60px', letterSpacing: '-0.02em' }}>
             &nbsp;Life
           </span>
         </div>
 
-        <div className="mt-4">
-          <div className="text-[18px] text-white">
+        <div className="mt-3">
+          <div className="text-[15px] text-white">
             Tu <span className="font-bold" style={{ color: '#C4E938' }}>segunda memoria</span>
           </div>
-          <div className="text-[18px] text-white">comienza aquí.</div>
+          <div className="text-[15px] text-white">comienza aquí.</div>
         </div>
 
         <div
