@@ -1,11 +1,10 @@
 'use client';
 
-import { useEffect, useState, useCallback, memo } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import Link from 'next/link';
 import {
   IconBell, IconSparkles, IconChevronRight,
-  IconCircleCheck, IconWallet, IconTarget, IconNote, IconBulb, IconUsers,
-  IconSquareCheck, IconBrandWhatsapp,
+  IconWallet, IconNote, IconBulb, IconUsers, IconSquareCheck, IconBrandWhatsapp,
 } from '@tabler/icons-react';
 import Avatar from '../../components/Avatar';
 import ProfileSheet from '../../components/ProfileSheet';
@@ -13,6 +12,8 @@ import { useAutoRefresh } from '../../components/useAutoRefresh';
 
 const WHATSAPP_LINK = 'https://wa.me/573239117508';
 const NOTIFICACIONES_MOCK = 3;
+
+const DIAS_SEMANA = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
 
 const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 const formatCOPCorto = (n) => {
@@ -26,13 +27,6 @@ function capitalizar(str) {
   return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
-function calcularAnimo(tareasPendientes, recordatoriosHoy) {
-  const total = tareasPendientes + recordatoriosHoy;
-  if (total === 0) return { palabra: 'tranquilo', emoji: '🌿' };
-  if (total <= 3) return { palabra: 'productivo', emoji: '🌿' };
-  return { palabra: 'intenso', emoji: '🔥' };
-}
-
 function construirResumenTexto(tareasPendientes, recordatoriosHoy) {
   const partes = [];
   if (tareasPendientes > 0) {
@@ -41,7 +35,7 @@ function construirResumenTexto(tareasPendientes, recordatoriosHoy) {
   if (recordatoriosHoy > 0) {
     partes.push(`${recordatoriosHoy} recordatorio${recordatoriosHoy === 1 ? '' : 's'} para hoy`);
   }
-  if (partes.length === 0) return 'No tienes pendientes por ahora. Aprovecha para descansar.';
+  if (partes.length === 0) return null;
   if (partes.length === 1) return `Tienes ${partes[0]}.`;
   return `Tienes ${partes[0]} y ${partes[1]}.`;
 }
@@ -60,6 +54,26 @@ function timeAgo(fechaISO) {
   return new Date(fechaISO).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 }
 
+function construirSemana() {
+  const hoy = new Date();
+  hoy.setHours(0, 0, 0, 0);
+  const diaSemana = hoy.getDay(); // 0=domingo .. 6=sábado
+  const offsetLunes = diaSemana === 0 ? -6 : 1 - diaSemana;
+  const lunes = new Date(hoy);
+  lunes.setDate(hoy.getDate() + offsetLunes);
+
+  return Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(lunes);
+    d.setDate(lunes.getDate() + i);
+    return {
+      fecha: d,
+      dia: DIAS_SEMANA[i],
+      numero: d.getDate(),
+      esHoy: d.toDateString() === hoy.toDateString(),
+    };
+  });
+}
+
 const TIPO_CONFIG = {
   gasto: { label: 'Gasto', color: '#4ADE80', icon: IconWallet },
   idea: { label: 'Idea', color: '#FB923C', icon: IconBulb },
@@ -67,68 +81,6 @@ const TIPO_CONFIG = {
   nota: { label: 'Nota', color: '#C4E938', icon: IconNote },
   tarea: { label: 'Tarea', color: '#2DD4BF', icon: IconSquareCheck },
 };
-
-// ────────────────────────────────────────────
-// Ilustración de paisaje (SVG estático, sin dependencias)
-// ────────────────────────────────────────────
-
-const PaisajeSVG = memo(function PaisajeSVG() {
-  return (
-    <svg
-      viewBox="0 0 400 220"
-      preserveAspectRatio="xMidYMax slice"
-      style={{ width: '100%', height: '100%', display: 'block' }}
-    >
-      <defs>
-        <radialGradient id="solCore" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#FFE066" />
-          <stop offset="100%" stopColor="#F59E0B" />
-        </radialGradient>
-        <radialGradient id="solGlow" cx="50%" cy="50%" r="50%">
-          <stop offset="0%" stopColor="#F59E0B" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
-        </radialGradient>
-        <linearGradient id="overlayIzq" x1="0" y1="0" x2="1" y2="0">
-          <stop offset="0%" stopColor="#0F1508" stopOpacity="0.95" />
-          <stop offset="55%" stopColor="#0F1508" stopOpacity="0.55" />
-          <stop offset="100%" stopColor="#0F1508" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-
-      {/* Nubes */}
-      <g fill="#9CA3AF" opacity="0.4">
-        <ellipse cx="120" cy="45" rx="22" ry="10" />
-        <ellipse cx="138" cy="40" rx="16" ry="9" />
-        <ellipse cx="345" cy="38" rx="20" ry="9" />
-        <ellipse cx="362" cy="34" rx="14" ry="7" />
-      </g>
-
-      {/* Sol */}
-      <circle cx="300" cy="85" r="46" fill="url(#solGlow)" />
-      <circle cx="300" cy="85" r="24" fill="url(#solCore)" />
-
-      {/* Colina trasera */}
-      <path d="M0,150 Q100,110 210,140 T400,125 L400,220 L0,220 Z" fill="#1F3D1A" opacity="0.85" />
-      {/* Colina delantera */}
-      <path d="M0,180 Q130,135 230,165 T400,155 L400,220 L0,220 Z" fill="#2D5A24" />
-
-      {/* Árboles */}
-      <g fill="#153016">
-        <rect x="58" y="163" width="4" height="14" />
-        <circle cx="60" cy="158" r="10" />
-        <rect x="108" y="156" width="4" height="14" />
-        <circle cx="110" cy="151" r="9" />
-        <rect x="248" y="150" width="4" height="14" />
-        <circle cx="250" cy="145" r="10" />
-        <rect x="288" y="155" width="4" height="14" />
-        <circle cx="290" cy="150" r="9" />
-      </g>
-
-      {/* Overlay oscuro a la izquierda para legibilidad del texto */}
-      <rect x="0" y="0" width="400" height="220" fill="url(#overlayIzq)" />
-    </svg>
-  );
-});
 
 export default function DashboardInicio() {
   const [data, setData] = useState(null);
@@ -140,6 +92,7 @@ export default function DashboardInicio() {
   const [resumen, setResumen] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
+  const [diaSeleccionado, setDiaSeleccionado] = useState(null);
 
   const cargarDatos = useCallback(() => {
     Promise.all([
@@ -176,24 +129,25 @@ export default function DashboardInicio() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32">
+      <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
         <div className="flex justify-between items-center mb-5">
-          <div className="h-7 w-28 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="h-7 w-28 rounded animate-pulse bg-neutral-900" />
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
-            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+            <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
+            <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
           </div>
         </div>
-        <div className="h-8 w-56 rounded animate-pulse mb-2" style={{ background: '#1A1A1A' }} />
-        <div className="h-4 w-40 rounded animate-pulse mb-5" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-hero h-[220px] animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="grid grid-cols-2 gap-3 mt-3.5">
-          <div className="rounded-card h-[100px] animate-pulse" style={{ background: '#1A1A1A' }} />
-          <div className="rounded-card h-[100px] animate-pulse" style={{ background: '#1A1A1A' }} />
-          <div className="rounded-card h-[100px] animate-pulse" style={{ background: '#1A1A1A' }} />
-          <div className="rounded-card h-[100px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="h-8 w-56 rounded animate-pulse mb-2 bg-neutral-900" />
+        <div className="h-4 w-40 rounded animate-pulse mb-5 bg-neutral-900" />
+        <div className="h-16 rounded-2xl animate-pulse mb-4 bg-neutral-900" />
+        <div className="h-24 rounded-2xl animate-pulse bg-neutral-900" />
+        <div className="grid grid-cols-2 gap-3 mt-5">
+          <div className="h-16 rounded animate-pulse bg-neutral-900" />
+          <div className="h-16 rounded animate-pulse bg-neutral-900" />
+          <div className="h-16 rounded animate-pulse bg-neutral-900" />
+          <div className="h-16 rounded animate-pulse bg-neutral-900" />
         </div>
-        <div className="rounded-card h-[220px] mt-6 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-2xl h-[220px] mt-6 animate-pulse bg-neutral-900" />
       </div>
     );
   }
@@ -210,9 +164,6 @@ export default function DashboardInicio() {
     .filter((g) => new Date(g.fecha) >= hace7dias)
     .reduce((sum, g) => sum + Number(g.monto), 0);
 
-  const animo = calcularAnimo(resumenSeguro.tareas_pendientes, resumenSeguro.recordatorios_hoy);
-  const resumenTexto = construirResumenTexto(resumenSeguro.tareas_pendientes, resumenSeguro.recordatorios_hoy);
-
   const fechaHoy = capitalizar(
     new Date().toLocaleDateString('es-CO', { weekday: 'long', day: 'numeric', month: 'long' })
   );
@@ -220,23 +171,17 @@ export default function DashboardInicio() {
   const h = new Date().getHours();
   const saludo = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
 
+  const semana = construirSemana();
+  const diaActivo = diaSeleccionado ?? semana.find((d) => d.esHoy)?.numero;
+
+  const resumenTexto = construirResumenTexto(resumenSeguro.tareas_pendientes, resumenSeguro.recordatorios_hoy);
+  const mensajeIA = resumenTexto || 'Aún no has registrado nada hoy. Cuéntale a Du Life por WhatsApp.';
+
   const METRICAS = [
-    {
-      valor: resumenSeguro.tareas_pendientes, label: 'Tareas pendientes',
-      icon: IconCircleCheck, color: '#A78BFA', bg: 'rgba(167,139,250,0.15)',
-    },
-    {
-      valor: resumenSeguro.recordatorios_hoy, label: 'Recordatorios hoy',
-      icon: IconBell, color: '#FB923C', bg: 'rgba(251,146,60,0.15)',
-    },
-    {
-      valor: formatCOPCorto(gastosSemana), label: 'Gastos esta semana',
-      icon: IconWallet, color: '#4ADE80', bg: 'rgba(74,222,128,0.15)',
-    },
-    {
-      valor: resumenSeguro.metas_activas, label: 'Metas activas',
-      icon: IconTarget, color: '#60A5FA', bg: 'rgba(96,165,250,0.15)',
-    },
+    { valor: resumenSeguro.tareas_pendientes, label: 'Tareas pendientes' },
+    { valor: resumenSeguro.recordatorios_hoy, label: 'Recordatorios hoy' },
+    { valor: formatCOPCorto(gastosSemana), label: 'Gastos esta semana' },
+    { valor: resumenSeguro.metas_activas, label: 'Metas activas' },
   ];
 
   // Timeline corto: mezclar gastos + ideas + personas + notas + tareas, ordenar desc, top 5
@@ -282,7 +227,7 @@ export default function DashboardInicio() {
     .slice(0, 5);
 
   return (
-    <div className="px-5 pt-4 pb-32">
+    <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
 
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
@@ -294,10 +239,7 @@ export default function DashboardInicio() {
           <IconSparkles size={14} color="#C4E938" style={{ marginLeft: '2px', marginTop: '-14px' }} />
         </div>
         <div className="flex items-center gap-2">
-          <button
-            className="relative w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-          >
+          <button className="relative w-10 h-10 rounded-full flex items-center justify-center bg-neutral-900 border border-neutral-800">
             <IconBell size={18} color="#fff" />
             {NOTIFICACIONES_MOCK > 0 && (
               <div
@@ -320,72 +262,59 @@ export default function DashboardInicio() {
       <div className="text-[22px] font-bold tracking-tight text-white">
         {saludo}, <span style={{ color: '#C4E938' }}>{nombre}</span>
       </div>
-      <div className="text-[13px] text-muted mt-0.5 mb-5">{fechaHoy}</div>
+      <div className="text-[13px] text-neutral-400 mt-0.5 mb-5">{fechaHoy}</div>
 
-      {/* Hero: Resumen de hoy */}
-      <div className="rounded-hero relative overflow-hidden" style={{ height: '220px' }}>
-        <div className="absolute inset-0">
-          <PaisajeSVG />
-        </div>
-        <div className="relative z-10 h-full flex flex-col justify-between p-5">
-          <div
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full w-fit"
-            style={{ background: 'rgba(255,255,255,0.12)' }}
-          >
-            <IconSparkles size={13} color="#fff" />
-            <span className="text-[12px] font-bold text-white">Resumen de hoy</span>
-          </div>
-
-          <div>
-            <div className="text-[20px] font-bold tracking-tight text-white leading-snug">
-              Hoy será un día{' '}
-              <span style={{ color: '#C4E938' }}>
-                {animo.palabra} {animo.emoji}
-              </span>
-            </div>
-            <div className="text-[13px] mt-1.5" style={{ color: 'rgba(255,255,255,0.65)' }}>
-              {resumenTexto}
-            </div>
+      {/* Calendario horizontal */}
+      <div className="flex justify-between gap-1 mb-4">
+        {semana.map((d) => {
+          const activo = d.numero === diaActivo;
+          return (
             <button
-              className="mt-3 flex items-center gap-1 px-4 py-2 rounded-full text-[13px] font-bold text-white"
-              style={{ border: '1px solid rgba(255,255,255,0.4)' }}
+              key={d.fecha.toISOString()}
+              onClick={() => setDiaSeleccionado(d.numero)}
+              className="flex flex-col items-center gap-1.5 flex-1 py-1"
             >
-              Ver detalles <IconChevronRight size={14} />
+              <span className="text-[11px] text-neutral-400">{d.dia}</span>
+              <span
+                className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold"
+                style={{
+                  background: activo ? '#C4E938' : 'transparent',
+                  color: activo ? '#000' : '#A3A3A3',
+                }}
+              >
+                {d.numero}
+              </span>
             </button>
-          </div>
+          );
+        })}
+      </div>
+
+      {/* Banner de la IA */}
+      <div className="rounded-2xl p-4 mb-5 bg-neutral-900 border border-neutral-800">
+        <div className="flex items-center gap-1.5 mb-1.5">
+          <IconSparkles size={13} color="#C4E938" />
+          <span className="text-[11px] font-bold uppercase tracking-wide" style={{ color: '#C4E938' }}>
+            Du Life
+          </span>
         </div>
+        <div className="text-[14px] text-white leading-snug">{mensajeIA}</div>
       </div>
 
       {/* Grid de métricas */}
-      <div className="grid grid-cols-2 gap-3 mt-3.5">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-5 mb-6">
         {METRICAS.map((m) => (
-          <div
-            key={m.label}
-            className="rounded-card p-3.5"
-            style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-          >
-            <div className="flex items-center gap-2.5">
-              <div
-                className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ background: m.bg }}
-              >
-                <m.icon size={17} color={m.color} />
-              </div>
-              <div className="text-[19px] font-bold tracking-tight text-white">{m.valor}</div>
-            </div>
-            <div className="text-[12px] text-muted mt-2.5">{m.label}</div>
-            <div className="h-[3px] rounded-full mt-2" style={{ background: '#242424' }}>
-              <div className="h-full rounded-full" style={{ width: '55%', background: m.color }} />
-            </div>
+          <div key={m.label}>
+            <div className="text-[24px] font-bold tracking-tight text-white">{m.valor}</div>
+            <div className="text-[12px] text-neutral-400 mt-1">{m.label}</div>
           </div>
         ))}
       </div>
 
       {/* Tu timeline */}
-      <Link href="/dashboard/timeline" prefetch className="flex justify-between items-center mt-6 mb-3">
+      <Link href="/dashboard/timeline" prefetch className="flex justify-between items-center mb-3">
         <div>
           <div className="text-[17px] font-bold tracking-tight text-white">Tu timeline</div>
-          <div className="text-[12px] text-muted mt-0.5">Todo lo que has registrado últimamente</div>
+          <div className="text-[12px] text-neutral-400 mt-0.5">Todo lo que has registrado últimamente</div>
         </div>
         <span
           className="flex items-center gap-0.5 px-3 py-1.5 rounded-full text-[12px] font-bold flex-shrink-0"
@@ -396,10 +325,7 @@ export default function DashboardInicio() {
       </Link>
 
       {timelineCorto.length === 0 ? (
-        <div
-          className="rounded-card p-6 text-center text-muted text-[13px]"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
-        >
+        <div className="rounded-2xl p-6 text-center text-neutral-400 text-[13px] bg-neutral-900 border border-neutral-800">
           Aún no has registrado nada. Cuéntale a Du Life por WhatsApp.
         </div>
       ) : (
@@ -407,13 +333,13 @@ export default function DashboardInicio() {
           <div className="flex flex-col items-center pt-1" style={{ width: '68px' }}>
             {timelineCorto.map((item, i) => (
               <div key={item.id} className="flex flex-col items-center" style={{ minHeight: '92px' }}>
-                <div className="text-[10px] text-soft text-center leading-tight">{timeAgo(item.fechaHora)}</div>
+                <div className="text-[10px] text-neutral-500 text-center leading-tight">{timeAgo(item.fechaHora)}</div>
                 <div
                   className="w-1.5 h-1.5 rounded-full mt-1.5"
                   style={{ background: TIPO_CONFIG[item.tipo]?.color || '#71717A' }}
                 />
                 {i < timelineCorto.length - 1 && (
-                  <div className="flex-1 w-px mt-1" style={{ background: '#242424' }} />
+                  <div className="flex-1 w-px mt-1 bg-neutral-800" />
                 )}
               </div>
             ))}
@@ -425,8 +351,8 @@ export default function DashboardInicio() {
               return (
                 <div
                   key={item.id}
-                  className="rounded-card p-3.5 flex items-center gap-3"
-                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', minHeight: '76px' }}
+                  className="rounded-2xl p-3.5 flex items-center gap-3 bg-neutral-900 border border-neutral-800"
+                  style={{ minHeight: '76px' }}
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -440,11 +366,11 @@ export default function DashboardInicio() {
                     </div>
                     <div className="text-[14px] font-bold text-white truncate">{item.titulo}</div>
                     {item.subtitulo && (
-                      <div className="text-[12px] text-soft truncate mt-0.5">{item.subtitulo}</div>
+                      <div className="text-[12px] text-neutral-400 truncate mt-0.5">{item.subtitulo}</div>
                     )}
                   </div>
                   {item.tipo === 'gasto' && (
-                    <div className="text-[14px] font-bold flex-shrink-0" style={{ color: '#fff' }}>
+                    <div className="text-[14px] font-bold flex-shrink-0 text-white">
                       -{formatCOP(item.monto)}
                     </div>
                   )}
@@ -455,7 +381,7 @@ export default function DashboardInicio() {
         </div>
       )}
 
-      <div className="text-center text-[13px] text-muted mt-6">
+      <div className="text-center text-[13px] text-neutral-400 mt-6">
         Así es tu vida, día a día 🖤
       </div>
 
