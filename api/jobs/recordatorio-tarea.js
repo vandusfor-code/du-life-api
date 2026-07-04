@@ -8,21 +8,27 @@ import { enviarPlantilla } from '../../lib/whatsapp.js';
 
 export default async function handler(req, res) {
   console.log('🔔 recordatorio-tarea ejecutado');
-  console.log('Headers:', JSON.stringify(req.headers));
-  console.log('Body:', JSON.stringify(req.body));
+  console.log('Body raw:', req.body, typeof req.body);
 
-  if (req.method !== 'POST') return res.status(405).end();
-  if (!esLlamadaQStash(req)) return res.status(401).json({ error: 'Unauthorized' });
+  try {
+    if (req.method !== 'POST') return res.status(405).end();
+    if (!esLlamadaQStash(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-  const { telefono, nombre, tarea } = req.body;
+    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    const { telefono, nombre, tarea } = body;
+    console.log('Body parseado:', { telefono, nombre, tarea });
 
-  if (!telefono || !nombre || !tarea) {
-    console.error('❌ recordatorio-tarea: faltan datos en el body');
-    return res.status(400).json({ error: 'Faltan datos' });
+    if (!telefono || !nombre || !tarea) {
+      console.error('❌ recordatorio-tarea: faltan datos en el body');
+      return res.status(400).json({ error: 'Faltan datos' });
+    }
+
+    const resultado = await enviarPlantilla(telefono, 'recordatorio_tarea', { nombre, tarea });
+    console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
+
+    return res.status(200).json({ ok: true });
+  } catch (e) {
+    console.error('❌ Error en recordatorio-tarea:', e.message, e.stack);
+    return res.status(500).json({ error: e.message });
   }
-
-  const resultado = await enviarPlantilla(telefono, 'recordatorio_tarea', { nombre, tarea });
-  console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
-
-  return res.status(200).json({ ok: true });
 }
