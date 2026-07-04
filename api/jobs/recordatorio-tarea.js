@@ -23,7 +23,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: 'Faltan datos' });
     }
 
-    const resultado = await enviarPlantilla(telefono, 'recordatorio_tarea', { nombre, tarea });
+    const resultado = await enviarPlantilla(telefono, 'recordatorio_du', { nombre, tarea });
     console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
 
     return res.status(200).json({ ok: true });
