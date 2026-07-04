@@ -301,10 +301,10 @@ export default function DashboardInicio() {
       </div>
 
       {/* Grid de métricas */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-5 mb-6">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-5 mb-6 px-4">
         {METRICAS.map((m) => (
           <div key={m.label}>
-            <div className="text-[24px] font-bold tracking-tight text-white">{m.valor}</div>
+            <div className="text-[24px] font-semibold tracking-tight text-white">{m.valor}</div>
             <div className="text-[12px] text-neutral-400 mt-1">{m.label}</div>
           </div>
         ))}
@@ -330,9 +330,13 @@ export default function DashboardInicio() {
         </div>
       ) : (
         <div className="flex">
-          <div className="flex flex-col items-center pt-1" style={{ width: '68px' }}>
+          <div className="flex flex-col items-center pr-3" style={{ width: '68px' }}>
             {timelineCorto.map((item, i) => (
-              <div key={item.id} className="flex flex-col items-center" style={{ minHeight: '92px' }}>
+              <div
+                key={item.id}
+                className="flex flex-col items-center"
+                style={{ flex: 1, paddingTop: i === 0 ? 0 : '16px' }}
+              >
                 <div className="text-[10px] text-neutral-500 text-center leading-tight">{timeAgo(item.fechaHora)}</div>
                 <div
                   className="w-1.5 h-1.5 rounded-full mt-1.5"
@@ -344,15 +348,15 @@ export default function DashboardInicio() {
               </div>
             ))}
           </div>
-          <div className="flex-1 min-w-0 flex flex-col gap-2.5">
-            {timelineCorto.map((item) => {
+          <div className="flex-1 min-w-0 flex flex-col">
+            {timelineCorto.map((item, i) => {
               const cfg = TIPO_CONFIG[item.tipo] || { label: item.tipo, color: '#71717A', icon: IconNote };
               const Icon = cfg.icon;
               return (
                 <div
                   key={item.id}
-                  className="rounded-2xl p-3.5 flex items-center gap-3 bg-neutral-900 border border-neutral-800"
-                  style={{ minHeight: '76px' }}
+                  className="flex items-center gap-3 py-4"
+                  style={{ borderBottom: i < timelineCorto.length - 1 ? '1px solid #1F1F1F' : 'none' }}
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -361,9 +365,6 @@ export default function DashboardInicio() {
                     <Icon size={18} color={cfg.color} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[11px] font-bold" style={{ color: cfg.color }}>
-                      {cfg.label}
-                    </div>
                     <div className="text-[14px] font-bold text-white truncate">{item.titulo}</div>
                     {item.subtitulo && (
                       <div className="text-[12px] text-neutral-400 truncate mt-0.5">{item.subtitulo}</div>
