@@ -301,9 +301,13 @@ export default function DashboardInicio() {
       </div>
 
       {/* Grid de métricas */}
-      <div className="grid grid-cols-2 gap-x-4 gap-y-5 mb-6 px-4">
-        {METRICAS.map((m) => (
-          <div key={m.label}>
+      <div className="grid grid-cols-2 gap-y-5 mb-6 px-4">
+        {METRICAS.map((m, i) => (
+          <div
+            key={m.label}
+            className={i % 2 === 0 ? 'pr-4' : 'pl-4'}
+            style={i % 2 === 0 ? { borderRight: '1px solid #1F1F1F' } : undefined}
+          >
             <div className="text-[24px] font-semibold tracking-tight text-white">{m.valor}</div>
             <div className="text-[12px] text-neutral-400 mt-1">{m.label}</div>
           </div>
