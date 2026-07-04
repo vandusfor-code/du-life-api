@@ -16,6 +16,7 @@ const MODULOS = [
 ];
 
 export default async function handler(req, res) {
+  console.log('📥 [reactivacion] req.body:', JSON.stringify(req.body));
   if (req.method !== 'POST') return res.status(405).end();
   if (!esLlamadaQStash(req)) return res.status(401).json({ error: 'Unauthorized' });
 

@@ -7,6 +7,7 @@ import { esLlamadaQStash } from '../../lib/qstash.js';
 import { enviarPlantillaConBotones } from '../../lib/whatsapp.js';
 
 export default async function handler(req, res) {
+  console.log('📥 [chequeo-semana] req.body:', JSON.stringify(req.body));
   if (req.method !== 'POST') return res.status(405).end();
   if (!esLlamadaQStash(req)) return res.status(401).json({ error: 'Unauthorized' });
 

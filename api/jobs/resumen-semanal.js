@@ -11,6 +11,7 @@ import Anthropic from '@anthropic-ai/sdk';
 const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 
 export default async function handler(req, res) {
+  console.log('📥 [resumen-semanal] req.body:', JSON.stringify(req.body));
   if (req.method !== 'POST') return res.status(405).end();
   if (!esLlamadaQStash(req)) return res.status(401).json({ error: 'Unauthorized' });
 

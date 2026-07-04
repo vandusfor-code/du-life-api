@@ -7,6 +7,7 @@ import { esLlamadaQStash } from '../../lib/qstash.js';
 import { enviarPlantilla } from '../../lib/whatsapp.js';
 
 export default async function handler(req, res) {
+  console.log('📥 [recordatorio-tarea] req.body:', JSON.stringify(req.body));
   if (req.method !== 'POST') return res.status(405).end();
   if (!esLlamadaQStash(req)) return res.status(401).json({ error: 'Unauthorized' });
 
