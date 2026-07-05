@@ -392,6 +392,24 @@ async function handleIdeas(usuarioId) {
   return { status: 200, body: { ideas: data || [] } };
 }
 
+async function handleCalendario(usuarioId) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const desde = new Date();
+  desde.setDate(desde.getDate() - 7);
+
+  const { data, error } = await supabase
+    .from('calendario_eventos')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .gte('fecha', desde.toISOString().split('T')[0])
+    .order('fecha', { ascending: true })
+    .order('hora_inicio', { ascending: true })
+    .limit(300);
+
+  if (error) console.error('Error calendario:', error.message);
+  return { status: 200, body: { eventos: data || [], hoy } };
+}
+
 async function handlePushSubscribe(usuarioId, req) {
   try {
     const body = req.body || {};
@@ -473,6 +491,7 @@ const HANDLERS = {
   notas: handleNotas,
   tareas: handleTareas,
   ideas: handleIdeas,
+  calendario: handleCalendario,
   usuario: handleUsuario,
   actualizar_perfil: handleActualizarPerfil,
   push_subscribe: handlePushSubscribe,

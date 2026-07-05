@@ -56,6 +56,10 @@ export default async function handler(req, res) {
         return await jobResumenSemanal(body, res);
       case 'reactivacion':
         return await jobReactivacion(body, res);
+      case 'recordatorio-calendario':
+        return await jobRecordatorioCalendario(body, res);
+      case 'revisar-calendario':
+        return await jobRevisarCalendario(body, res);
       default:
         console.error('❌ Tipo de job desconocido:', tipo);
         return res.status(400).json({ error: `Tipo desconocido: ${tipo}` });
@@ -390,4 +394,78 @@ async function jobReactivacion(body, res) {
   console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
 
   return res.status(200).json({ ok: true });
+}
+
+// ─────────────────────────────────────────
+// RECORDATORIO DE EVENTO DE CALENDARIO (agendado 5 min antes desde el chat)
+// ─────────────────────────────────────────
+
+async function jobRecordatorioCalendario(body, res) {
+  const { telefono, nombre, evento, evento_id } = body;
+  console.log('Body parseado (recordatorio-calendario):', { telefono, nombre, evento, evento_id });
+
+  if (!telefono || !nombre || !evento) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+
+  // El header "EN 5 MINUTOS" y el footer de esta plantilla son texto fijo:
+  // solo se envía el componente body con {{nombre}} y {{evento}}.
+  const resultado = await enviarPlantilla(telefono, 'recordatorio_evento_calendario', { nombre, evento });
+  console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
+
+  // Se marca por id (no por texto/título) para no depender de un match
+  // frágil que se rompe si el título tiene variaciones o caracteres raros.
+  if (evento_id) {
+    await supabase
+      .from('calendario_eventos')
+      .update({ recordatorio_enviado: true })
+      .eq('id', evento_id);
+  }
+
+  return res.status(200).json({ ok: true });
+}
+
+// ─────────────────────────────────────────
+// REVISIÓN PERIÓDICA DEL CALENDARIO (cron QStash cada 5 min)
+// Red de seguridad para eventos que no tienen un job puntual programado
+// (ej. los importados en bloque desde una foto de horario).
+// ─────────────────────────────────────────
+
+async function jobRevisarCalendario(body, res) {
+  const ahora = new Date();
+  const colombiaTime = new Date(ahora.getTime() - 5 * 60 * 60 * 1000);
+  const fechaHoy = colombiaTime.toISOString().split('T')[0];
+  const horaActual = colombiaTime.toTimeString().slice(0, 5);
+  const horaEn5 = new Date(colombiaTime.getTime() + 5 * 60 * 1000).toTimeString().slice(0, 5);
+
+  console.log(`📅 Revisando calendario: ${fechaHoy} entre ${horaActual} y ${horaEn5}`);
+
+  const { data: eventos, error } = await supabase
+    .from('calendario_eventos')
+    .select('*, usuarios(telefono, como_llamar)')
+    .eq('fecha', fechaHoy)
+    .eq('recordatorio_enviado', false)
+    .gte('hora_inicio', horaActual)
+    .lte('hora_inicio', horaEn5);
+
+  if (error) console.error('❌ Error consultando calendario_eventos:', error.message);
+  console.log(`📋 Eventos próximos: ${eventos?.length || 0}`);
+
+  for (const evento of (eventos || [])) {
+    const nombre = evento.usuarios?.como_llamar || 'amigo';
+    const telefono = evento.usuarios?.telefono;
+    if (!telefono) continue;
+
+    const textoEvento = `${evento.titulo} a las ${evento.hora_inicio.slice(0, 5)}`;
+    await enviarPlantilla(telefono, 'recordatorio_evento_calendario', { nombre, evento: textoEvento });
+
+    await supabase
+      .from('calendario_eventos')
+      .update({ recordatorio_enviado: true })
+      .eq('id', evento.id);
+
+    console.log(`✅ Recordatorio enviado: ${textoEvento} a ${nombre}`);
+  }
+
+  return res.status(200).json({ ok: true, procesados: eventos?.length || 0 });
 }

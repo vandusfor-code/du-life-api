@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import {
   IconArrowLeft, IconNote, IconBulb, IconSquareCheck, IconUsers, IconTree,
-  IconBellRinging, IconClock, IconChevronRight,
+  IconBellRinging, IconClock, IconChevronRight, IconCalendar,
 } from '@tabler/icons-react';
 
 const MODULOS = [
@@ -13,6 +13,7 @@ const MODULOS = [
   { href: '/dashboard/personas', label: 'Personas', desc: 'Conecta con lo importante', color: '#818CF8', icon: IconUsers },
   { href: '/dashboard/arbol', label: 'Árbol de vida', desc: 'Tu historia, visualizada', color: '#C4E938', icon: IconTree },
   { href: '/dashboard/timeline', label: 'Timeline', desc: 'Todo, en orden cronológico', color: '#4ADE80', icon: IconClock },
+  { href: '/dashboard/espacios/calendario', label: 'Calendario', desc: 'Tu agenda personal', color: '#C4E938', icon: IconCalendar },
   { href: '/dashboard/recordatorios', label: 'Recordatorios', desc: 'Próximamente', color: '#F87171', icon: IconBellRinging },
 ];
 
