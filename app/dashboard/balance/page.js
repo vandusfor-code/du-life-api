@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useMemo, memo } from 'react';
 import Link from 'next/link';
 import {
   IconBell, IconChevronDown, IconChevronRight,
-  IconArrowUp, IconArrowDown, IconSparkles, IconUsers,
+  IconArrowUp, IconArrowDown, IconSparkles, IconWallet,
 } from '@tabler/icons-react';
 import Avatar from '../../../components/Avatar';
 import ProfileSheet from '../../../components/ProfileSheet';
@@ -38,6 +38,43 @@ function formatFechaActividad(fecha, hora) {
   const ampm = hh >= 12 ? 'PM' : 'AM';
   hh = hh % 12 || 12;
   return `${dia}, ${hh}:${m} ${ampm}`;
+}
+
+function construirInsight(d) {
+  const candidatos = [];
+
+  if (d.gastosMes > 0 && d.variacionGastos !== 0) {
+    const signo = d.variacionGastos > 0 ? 'más' : 'menos';
+    candidatos.push(`Este mes has gastado ${Math.abs(d.variacionGastos)}% ${signo} que el mes anterior.`);
+  }
+
+  if (d.ingresosMes > 0) {
+    candidatos.push(`Tus ingresos este mes suman ${formatCOP(d.ingresosMes)}.`);
+  }
+
+  const ultimoMovimiento = d.actividadReciente?.[0];
+  if (ultimoMovimiento) {
+    const monto = formatCOP(Number(ultimoMovimiento.monto));
+    const lugar = ultimoMovimiento.descripcion ? ` en ${ultimoMovimiento.descripcion}` : '';
+    candidatos.push(
+      ultimoMovimiento.tipo === 'ingreso'
+        ? `Tu último ingreso${lugar} fue de ${monto}.`
+        : `Tu último gasto${lugar} fue de ${monto}.`
+    );
+  }
+
+  if (d.balance !== 0) {
+    candidatos.push(`Tu balance acumulado es ${formatCOP(d.balance)}.`);
+  }
+
+  if (candidatos.length === 0) {
+    return { texto: 'Aún no has registrado movimientos. Cuéntale a Du Life por WhatsApp.', link: '/dashboard/gastos', cta: 'Ver Gastos' };
+  }
+
+  // Rota entre los insights disponibles según el día del mes, para no
+  // repetir siempre el mismo pero sin inventar datos que no existan.
+  const idx = new Date().getDate() % candidatos.length;
+  return { texto: candidatos[idx], link: '/dashboard/gastos', cta: 'Ver Gastos' };
 }
 
 const MiniChartHero = memo(function MiniChartHero({ serie }) {
@@ -139,6 +176,8 @@ export default function BalancePage() {
     serieMensual: [], actividadReciente: [],
   };
 
+  const insight = construirInsight(d);
+
   return (
     <div className="px-5 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+16px)]">
 
@@ -233,18 +272,18 @@ export default function BalancePage() {
             Insight del día
           </div>
           <div className="text-[13px] font-bold tracking-tight mt-0.5 text-white leading-snug">
-            Llevas 4 días sin registrar tiempo con familia.
+            {insight.texto}
           </div>
           <Link
-            href="/dashboard/personas"
+            href={insight.link}
             prefetch
             className="mt-1.5 flex items-center gap-1 text-[12px] font-bold w-fit"
             style={{ color: '#C4E938' }}
           >
-            Ver Personas <IconChevronRight size={12} />
+            {insight.cta} <IconChevronRight size={12} />
           </Link>
         </div>
-        <IconUsers size={54} color="#242424" className="absolute -right-2 -bottom-2 flex-shrink-0" />
+        <IconWallet size={54} color="#242424" className="absolute -right-2 -bottom-2 flex-shrink-0" />
       </div>
 
       {/* Ingresos / Gastos */}

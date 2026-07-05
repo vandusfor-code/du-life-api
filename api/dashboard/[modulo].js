@@ -121,7 +121,7 @@ async function handleTimeline(usuarioId) {
       .eq('usuario_id', usuarioId)
       .is('eliminado_en', null)
       .order('fecha', { ascending: false })
-      .order('hora', { ascending: false })
+      .order('creado_en', { ascending: false })
       .limit(40),
     supabase
       .from('notas')
@@ -266,7 +266,7 @@ async function handleGastos(usuarioId) {
       .eq('usuario_id', usuarioId)
       .is('eliminado_en', null)
       .order('fecha', { ascending: false })
-      .order('hora', { ascending: false })
+      .order('creado_en', { ascending: false })
       .limit(50),
     obtenerResumenMes(usuarioId),
   ]);

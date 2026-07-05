@@ -272,13 +272,19 @@ export default function GastosPage() {
     const gastos = (data.gastos || []).map((g) => ({ ...g, tipo: 'gasto' }));
     const ingresos = (data.ingresos || []).map((i) => ({ ...i, tipo: 'ingreso' }));
 
-    let movs = [];
-    if (filtro === 'todos') movs = [...gastos, ...ingresos];
-    if (filtro === 'gastos') movs = gastos;
-    if (filtro === 'ingresos') movs = ingresos;
-
-    movs = movs.filter((m) => m.fecha === diaActivo);
-    movs.sort((a, b) => (b.hora || '').localeCompare(a.hora || ''));
+    let movs;
+    if (filtro === 'ingresos') {
+      // Los ingresos son esporádicos (ej. un salario al mes): en vez de
+      // filtrarlos por el día puntual del calendario, se muestran todos
+      // los del mes en curso para que la lista no aparezca vacía.
+      const hoy = new Date();
+      const inicioMes = `${hoy.getFullYear()}-${String(hoy.getMonth() + 1).padStart(2, '0')}-01`;
+      movs = ingresos.filter((m) => m.fecha >= inicioMes);
+    } else {
+      const base = filtro === 'gastos' ? gastos : [...gastos, ...ingresos];
+      movs = base.filter((m) => m.fecha === diaActivo);
+    }
+    movs.sort((a, b) => `${b.fecha}${b.hora || ''}`.localeCompare(`${a.fecha}${a.hora || ''}`));
 
     const inicioSemana = new Date(semana[0].fechaStr + 'T00:00:00');
     const totalSemana = gastos
@@ -425,12 +431,12 @@ export default function GastosPage() {
       <div className="mt-6">
         <div className="text-[17px] font-bold tracking-tight text-white">Movimientos</div>
         <div className="text-[12px] text-neutral-400 mt-0.5 mb-2 capitalize">
-          {formatFechaLarga(diaActivo)}
+          {filtro === 'ingresos' ? 'Este mes' : formatFechaLarga(diaActivo)}
         </div>
 
         {movimientosDia.length === 0 ? (
           <div className="text-center text-neutral-400 text-[13px] py-8">
-            Sin movimientos este día.
+            Sin movimientos {filtro === 'ingresos' ? 'este mes' : 'este día'}.
           </div>
         ) : (
           <div>

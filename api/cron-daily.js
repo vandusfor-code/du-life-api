@@ -53,7 +53,7 @@ export default async function handler(req, res) {
       // fecha_vencimiento (DATE) y hora_vencimiento (TIME) son campos separados.
       const { data: tareasHoy } = await supabase
         .from('tareas')
-        .select('titulo, fecha_vencimiento, hora_vencimiento')
+        .select('id, titulo, fecha_vencimiento, hora_vencimiento')
         .eq('usuario_id', usuario.id)
         .is('eliminado_en', null)
         .is('completada_en', null)
@@ -66,6 +66,7 @@ export default async function handler(req, res) {
         if (momentoRecordatorio > ahora) {
           await programarJob('/api/jobs/recordatorio-tarea', {
             ...payload,
+            tarea_id: tarea.id,
             tarea: tarea.titulo,
           }, momentoRecordatorio.toISOString());
           jobsProgramados++;
