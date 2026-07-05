@@ -3,7 +3,6 @@
 import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
   IconBell, IconSparkles, IconBrandWhatsapp, IconSquareCheck, IconWallet,
-  IconCalendarEvent, IconCoins, IconAdjustmentsHorizontal, IconNotes,
   IconNote, IconBulb,
 } from '@tabler/icons-react';
 import Avatar from '../../components/Avatar';
@@ -49,18 +48,30 @@ function timeAgo(fechaISO) {
   return new Date(fechaISO).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' });
 }
 
+// Vence-en-texto-relativo: nunca se muestra la fecha ISO cruda.
+function formatVencimiento(fechaStr, zonaHorario) {
+  if (!fechaStr) return '';
+  const hoyStr = new Date().toLocaleDateString('en-CA', { timeZone: zonaHorario });
+  if (fechaStr === hoyStr) return 'Vence hoy';
+
+  const manana = new Date();
+  manana.setDate(manana.getDate() + 1);
+  const mananaStr = manana.toLocaleDateString('en-CA', { timeZone: zonaHorario });
+  if (fechaStr === mananaStr) return 'Vence mañana';
+
+  const diffDias = Math.round(
+    (new Date(`${fechaStr}T00:00:00`) - new Date(`${hoyStr}T00:00:00`)) / 86400000
+  );
+  if (diffDias < 0) return `Venció hace ${Math.abs(diffDias)}d`;
+  return `Vence ${new Date(`${fechaStr}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}`;
+}
+
 const TIPO_CONFIG = {
   gasto: { color: '#4ADE80', icon: IconWallet },
   idea: { color: '#FB923C', icon: IconBulb },
   nota: { color: '#60A5FA', icon: IconNote },
   tarea: { color: '#A78BFA', icon: IconSquareCheck },
 };
-
-const MODULOS_DECORATIVOS = [
-  { key: 'finanzas', label: 'Finanzas', icon: IconCoins, size: 48 },
-  { key: 'control', label: 'Control', icon: IconAdjustmentsHorizontal, size: 64 },
-  { key: 'notas', label: 'Notas', icon: IconNotes, size: 48 },
-];
 
 // Carousel de métricas: se desliza solo cada 3s con CSS scroll-snap nativo
 // (sin librerías); el usuario puede deslizar manual y el auto-avance sigue
@@ -96,36 +107,58 @@ function useCarruselAuto(cantidad, intervaloMs = 3000) {
   return { contenedorRef, indiceActivo, onScroll };
 }
 
-// Líneas onduladas con un punto de luz que viaja de izquierda a derecha y
-// vuelve, en loop suave — puramente decorativo (ver Quick Controls).
-function LineaOndulada() {
+// Ilustraciones del carousel de métricas: planas, sin gradientes ni sombras.
+// El lime (#C4E938) marca lo destacado; las líneas internas usan currentColor
+// para heredar --icon-line-color (gris oscuro en dark, gris claro en light).
+function IlustracionTareas() {
   return (
-    <svg
-      viewBox="0 0 300 60"
-      width="100%"
-      height="60"
-      style={{ position: 'absolute', top: '50%', left: 0, transform: 'translateY(-50%)', zIndex: 0, pointerEvents: 'none' }}
-    >
-      <path
-        id="linea-quick-controls"
-        d="M 32 30 Q 90 8, 150 30 Q 210 52, 268 30"
-        fill="none"
-        stroke="#C4E938"
-        strokeOpacity="0.3"
-        strokeWidth="1.5"
-      />
-      <circle r="3" fill="#C4E938" style={{ filter: 'drop-shadow(0 0 4px rgba(196,233,56,0.9))' }}>
-        <animateMotion
-          dur="3s"
-          repeatCount="indefinite"
-          keyPoints="0;1;0"
-          keyTimes="0;0.5;1"
-          calcMode="spline"
-          keySplines="0.42 0 0.58 1;0.42 0 0.58 1"
-        >
-          <mpath href="#linea-quick-controls" />
-        </animateMotion>
-      </circle>
+    <svg width="80" height="80" viewBox="0 0 80 80">
+      <rect x="15" y="10" width="50" height="60" rx="4" fill="none" stroke="#C4E938" strokeWidth="2" />
+      <rect x="30" y="5" width="20" height="10" rx="2" fill="#C4E938" />
+      <line x1="25" y1="30" x2="55" y2="30" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+      <line x1="25" y1="42" x2="55" y2="42" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+      <line x1="25" y1="54" x2="45" y2="54" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
+      <circle cx="22" cy="30" r="5" fill="#C4E938" />
+      <polyline points="19,30 21,32 25,27" fill="none" stroke="#000" strokeWidth="1.5" />
+    </svg>
+  );
+}
+
+function IlustracionRecordatorios() {
+  return (
+    <svg width="80" height="80" viewBox="0 0 80 80">
+      <path d="M40 15 C28 15 22 24 22 35 L22 50 L58 50 L58 35 C58 24 52 15 40 15Z" fill="none" stroke="#C4E938" strokeWidth="2" />
+      <rect x="35" y="50" width="10" height="6" rx="1" fill="#C4E938" />
+      <circle cx="40" cy="58" r="4" fill="none" stroke="#C4E938" strokeWidth="2" />
+      <path d="M18 25 Q13 30 18 35" fill="none" stroke="#C4E938" strokeWidth="1.5" opacity="0.5" />
+      <path d="M13 20 Q6 30 13 40" fill="none" stroke="#C4E938" strokeWidth="1.5" opacity="0.3" />
+      <path d="M62 25 Q67 30 62 35" fill="none" stroke="#C4E938" strokeWidth="1.5" opacity="0.5" />
+      <path d="M67 20 Q74 30 67 40" fill="none" stroke="#C4E938" strokeWidth="1.5" opacity="0.3" />
+    </svg>
+  );
+}
+
+function IlustracionGastos() {
+  return (
+    <svg width="80" height="80" viewBox="0 0 80 80">
+      <rect x="10" y="25" width="55" height="35" rx="5" fill="none" stroke="#C4E938" strokeWidth="2" />
+      <rect x="10" y="25" width="55" height="12" rx="5" fill="#C4E938" opacity="0.2" />
+      <rect x="45" y="35" width="20" height="15" rx="3" fill="none" stroke="#C4E938" strokeWidth="1.5" />
+      <circle cx="55" cy="42" r="5" fill="#C4E938" />
+      <text x="55" y="46" textAnchor="middle" fontSize="7" fill="#000" fontWeight="bold">$</text>
+    </svg>
+  );
+}
+
+function IlustracionAgenda({ dia }) {
+  return (
+    <svg width="80" height="80" viewBox="0 0 80 80">
+      <rect x="12" y="18" width="56" height="50" rx="5" fill="none" stroke="#C4E938" strokeWidth="2" />
+      <rect x="12" y="18" width="56" height="16" rx="5" fill="#C4E938" />
+      <line x1="28" y1="12" x2="28" y2="24" stroke="#C4E938" strokeWidth="2.5" strokeLinecap="round" />
+      <line x1="52" y1="12" x2="52" y2="24" stroke="#C4E938" strokeWidth="2.5" strokeLinecap="round" />
+      <circle cx="40" cy="48" r="10" fill="#C4E938" />
+      <text x="40" y="52" textAnchor="middle" fontSize="10" fill="#000" fontWeight="bold">{dia}</text>
     </svg>
   );
 }
@@ -215,36 +248,17 @@ export default function DashboardInicio() {
   const fechaHoy = capitalizar(
     new Date().toLocaleDateString('es-CO', { timeZone: ZONA_COLOMBIA, weekday: 'long', day: 'numeric', month: 'long' })
   );
+  const diaHoy = new Date().toLocaleString('en-US', { timeZone: ZONA_COLOMBIA, day: 'numeric' });
 
   const eventoHoy = calendario
     .filter((e) => e.fecha === new Date().toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA }))
     .sort((a, b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''))[0];
 
   const METRICAS = [
-    {
-      key: 'tareas',
-      valor: resumenSeguro.tareas_pendientes,
-      label: 'Tareas pendientes',
-      icon: IconSquareCheck,
-    },
-    {
-      key: 'recordatorios',
-      valor: resumenSeguro.recordatorios_hoy,
-      label: 'Recordatorios hoy',
-      icon: IconBell,
-    },
-    {
-      key: 'gastos',
-      valor: formatCOPCorto(gastosSemana),
-      label: 'Gastos esta semana',
-      icon: IconWallet,
-    },
-    {
-      key: 'agenda',
-      esAgenda: true,
-      label: 'Agenda hoy',
-      icon: IconCalendarEvent,
-    },
+    { key: 'tareas', valor: resumenSeguro.tareas_pendientes, label: 'Tareas pendientes' },
+    { key: 'recordatorios', valor: resumenSeguro.recordatorios_hoy, label: 'Recordatorios hoy' },
+    { key: 'gastos', valor: formatCOPCorto(gastosSemana), label: 'Gastos esta semana' },
+    { key: 'agenda', esAgenda: true, label: 'Agenda hoy' },
   ];
 
   // Actividad reciente: solo gastos/notas/tareas/ideas, top 3.
@@ -275,7 +289,7 @@ export default function DashboardInicio() {
       id: `tarea-${t.id}`,
       tipo: 'tarea',
       titulo: t.titulo,
-      subtitulo: t.fecha_vencimiento ? `Vence ${t.fecha_vencimiento}` : '',
+      subtitulo: t.fecha_vencimiento ? formatVencimiento(t.fecha_vencimiento, ZONA_COLOMBIA) : '',
       fechaHora: new Date(t.creado_en),
     })),
   ]
@@ -317,24 +331,20 @@ export default function DashboardInicio() {
 
       {/* Hero card */}
       <div className="rounded-[20px] p-5" style={{ background: 'var(--hero-bg)' }}>
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[21px] font-bold tracking-tight leading-tight" style={{ color: 'var(--hero-text)' }}>
-              {saludo}, {nombre}
-            </div>
-            <div className="text-[13px] mt-1" style={{ color: 'rgba(0,0,0,0.6)' }}>{fechaHoy}</div>
-          </div>
-          <a
-            href={WHATSAPP_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="flex items-center gap-1.5 px-3.5 py-2.5 rounded-full flex-shrink-0"
-            style={{ background: '#0A0A0A' }}
-          >
-            <IconBrandWhatsapp size={16} color="#fff" />
-            <span className="text-[12px] font-bold text-white whitespace-nowrap">Hablar con Du</span>
-          </a>
+        <div className="text-[21px] font-bold tracking-tight leading-tight" style={{ color: 'var(--hero-text)' }}>
+          {saludo}, {nombre}
         </div>
+        <div className="text-[13px] mt-1" style={{ color: 'rgba(0,0,0,0.6)' }}>{fechaHoy}</div>
+        <a
+          href={WHATSAPP_LINK}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-full mt-4"
+          style={{ background: '#0A0A0A' }}
+        >
+          <IconBrandWhatsapp size={16} color="#fff" />
+          <span className="text-[12px] font-bold text-white whitespace-nowrap">Hablar con Du</span>
+        </a>
       </div>
 
       {/* Carousel auto-deslizante de métricas */}
@@ -347,31 +357,38 @@ export default function DashboardInicio() {
         {METRICAS.map((m) => (
           <div
             key={m.key}
-            className="flex-shrink-0 w-full rounded-2xl p-5"
+            className="flex-shrink-0 w-full rounded-2xl p-5 flex items-center justify-between gap-3"
             style={{ scrollSnapAlign: 'start', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
-            <m.icon size={20} color="var(--accent)" />
-            {m.esAgenda ? (
-              eventoHoy ? (
-                <>
-                  <div className="text-[16px] font-bold tracking-tight mt-3 truncate" style={{ color: 'var(--text-primary)' }}>
-                    {eventoHoy.titulo}
+            <div className="min-w-0">
+              {m.esAgenda ? (
+                eventoHoy ? (
+                  <>
+                    <div className="text-[16px] font-bold tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                      {eventoHoy.titulo}
+                    </div>
+                    <div className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+                      {formatHora12(eventoHoy.hora_inicio)}
+                    </div>
+                  </>
+                ) : (
+                  <div className="text-[16px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
+                    Sin eventos hoy
                   </div>
-                  <div className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                    {formatHora12(eventoHoy.hora_inicio)}
-                  </div>
-                </>
+                )
               ) : (
-                <div className="text-[16px] font-bold tracking-tight mt-3" style={{ color: 'var(--text-primary)' }}>
-                  Sin eventos hoy
+                <div className="text-[26px] font-bold tracking-tight" style={{ color: 'var(--accent)' }}>
+                  {m.valor}
                 </div>
-              )
-            ) : (
-              <div className="text-[26px] font-bold tracking-tight mt-3" style={{ color: 'var(--accent)' }}>
-                {m.valor}
-              </div>
-            )}
-            <div className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>{m.label}</div>
+              )}
+              <div className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>{m.label}</div>
+            </div>
+            <div className="flex-shrink-0" style={{ color: 'var(--icon-line-color)' }}>
+              {m.key === 'tareas' && <IlustracionTareas />}
+              {m.key === 'recordatorios' && <IlustracionRecordatorios />}
+              {m.key === 'gastos' && <IlustracionGastos />}
+              {m.key === 'agenda' && <IlustracionAgenda dia={diaHoy} />}
+            </div>
           </div>
         ))}
       </div>
@@ -388,30 +405,6 @@ export default function DashboardInicio() {
             }}
           />
         ))}
-      </div>
-
-      {/* Quick Controls — decorativo */}
-      <div className="mt-7">
-        <div className="text-[12px] mb-3" style={{ color: 'var(--text-secondary)' }}>Du puede ayudarte con</div>
-        <div className="relative flex items-center justify-between px-2" style={{ height: '90px' }}>
-          <LineaOndulada />
-          {MODULOS_DECORATIVOS.map((m) => (
-            <div key={m.key} className="relative flex flex-col items-center gap-2" style={{ zIndex: 1 }}>
-              <div
-                className="rounded-full flex items-center justify-center"
-                style={{
-                  width: `${m.size}px`,
-                  height: `${m.size}px`,
-                  background: '#111111',
-                  border: m.size === 64 ? '2px solid var(--accent)' : '1px solid var(--border-color)',
-                }}
-              >
-                <m.icon size={m.size === 64 ? 26 : 20} color="var(--accent)" />
-              </div>
-              <span className="text-[11px]" style={{ color: 'var(--text-primary)' }}>{m.label}</span>
-            </div>
-          ))}
-        </div>
       </div>
 
       {/* Actividad reciente */}

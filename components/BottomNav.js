@@ -7,6 +7,7 @@ import {
   IconHome, IconWallet, IconChartLine, IconTree, IconLayoutGrid,
   IconCalendar, IconNote, IconBulb, IconSquareCheck, IconUsers, IconClock, IconCoins,
 } from '@tabler/icons-react';
+import { useTheme } from './ThemeProvider';
 
 // Módulos que se pueden fijar en la 4ta posición del nav (reemplazando a
 // Árbol). El estado vive en usuarios.metadata.modulo_fijado — sin tabla
@@ -32,7 +33,9 @@ const ITEM_ESPACIOS = { href: '/dashboard/espacios', label: 'Espacios', icon: Ic
 
 export default function BottomNav() {
   const pathname = usePathname();
+  const { theme } = useTheme();
   const [moduloFijado, setModuloFijado] = useState('arbol');
+  const colorInactivo = theme === 'light' ? '#999999' : '#555555';
 
   useEffect(() => {
     fetch('/api/dashboard/resumen')
@@ -55,8 +58,8 @@ export default function BottomNav() {
       <div
         className="w-full max-w-app flex justify-between items-center px-2 py-2.5"
         style={{
-          background: 'rgba(10,10,10,0.85)',
-          borderTop: '1px solid #2A2A2A',
+          background: 'var(--nav-bg)',
+          borderTop: '1px solid var(--border-color)',
           backdropFilter: 'blur(12px)',
           WebkitBackdropFilter: 'blur(12px)',
         }}
@@ -71,10 +74,10 @@ export default function BottomNav() {
               className="flex-1 flex flex-col items-center gap-1 py-1"
               style={{ transition: 'all 0.15s ease' }}
             >
-              <Icon size={22} color={active ? '#C4E938' : '#555555'} />
+              <Icon size={22} color={active ? '#C4E938' : colorInactivo} />
               <span
                 className={`text-[11px] ${active ? 'font-bold' : ''}`}
-                style={{ color: active ? '#C4E938' : '#555555' }}
+                style={{ color: active ? '#C4E938' : colorInactivo }}
               >
                 {label}
               </span>
