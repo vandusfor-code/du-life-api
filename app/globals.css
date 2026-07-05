@@ -19,7 +19,8 @@
   --accent-dark: #A8CC1E;
   --hero-bg: #16161F;
   --hero-text: #FFFFFF;
-  --balance-accent: #C4E938;
+  --whatsapp-btn-bg: #C4E938;
+  --whatsapp-btn-text: #000000;
   --nav-bg: #16161F;
   --icon-line-color: #333333;
 }
@@ -37,7 +38,8 @@
   --accent-dark: #A8CC1E;
   --hero-bg: #16161F;
   --hero-text: #FFFFFF;
-  --balance-accent: #C4E938;
+  --whatsapp-btn-bg: #C4E938;
+  --whatsapp-btn-text: #000000;
   --nav-bg: #16161F;
   --icon-line-color: #333333;
 }
@@ -55,7 +57,8 @@
   --accent-dark: #A8CC1E;
   --hero-bg: #C4E938;
   --hero-text: #000000;
-  --balance-accent: #000000;
+  --whatsapp-btn-bg: #0A0A0A;
+  --whatsapp-btn-text: #FFFFFF;
   --nav-bg: #FFFFFF;
   --icon-line-color: #CCCCCC;
 }

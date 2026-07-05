@@ -41,7 +41,6 @@ const MODULOS_BANNER = [
   },
 ];
 
-const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 const formatCOPCorto = (n) => {
   if (n >= 1_000_000) return '$' + (n / 1_000_000).toFixed(2) + 'M';
   if (n >= 1_000) return '$' + Math.round(n / 1_000) + 'k';
@@ -135,28 +134,6 @@ function useCarruselAuto(cantidad, intervaloMs = 4000) {
   }, []);
 
   return { contenedorRef, indiceActivo, onScroll };
-}
-
-// Mini gráfica de barras del balance: negro absoluto en light (contraste
-// sobre el lime), verde lima en dark (sobre la card gris) — un solo color
-// por tema, controlado por --balance-accent.
-function MiniBarChart({ valores, color }) {
-  const max = Math.max(1, ...valores);
-  return (
-    <div className="flex items-end gap-1" style={{ height: '44px' }}>
-      {valores.map((v, i) => (
-        <div
-          key={i}
-          style={{
-            width: '6px',
-            height: `${Math.max(4, (v / max) * 44)}px`,
-            background: color,
-            borderRadius: '3px',
-          }}
-        />
-      ))}
-    </div>
-  );
 }
 
 // Banner fotográfico de módulo: foto real + degradado negro-a-transparente
@@ -292,14 +269,6 @@ export default function DashboardInicio() {
     .filter((g) => new Date(g.fecha) >= hace7dias)
     .reduce((sum, g) => sum + Number(g.monto), 0);
 
-  // Últimos 7 días (hora Colombia) para la mini gráfica del balance.
-  const ultimos7Dias = Array.from({ length: 7 }).map((_, i) => {
-    const d = new Date();
-    d.setDate(d.getDate() - (6 - i));
-    const clave = d.toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA });
-    return gastos.filter((g) => g.fecha === clave).reduce((s, g) => s + Number(g.monto), 0);
-  });
-
   // Saludo y fecha SIEMPRE en hora Colombia (UTC-5), sin importar el huso
   // horario configurado en el dispositivo del usuario.
   const horaColombia = parseInt(
@@ -396,40 +365,30 @@ export default function DashboardInicio() {
         </div>
       </div>
 
-      {/* Balance card con gráfica */}
-      <div className="rounded-[20px] p-5" style={{ background: 'var(--hero-bg)' }}>
-        <div className="text-[15px] font-bold tracking-tight" style={{ color: 'var(--hero-text)' }}>
-          {saludo}, {nombre}
-        </div>
-        <div className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{fechaHoy}</div>
-
-        <div className="flex items-end justify-between mt-4">
-          <div className="min-w-0">
-            <div
-              className="text-[11px] font-semibold uppercase"
-              style={{ color: 'var(--text-secondary)', letterSpacing: '0.05em' }}
-            >
-              Balance
-            </div>
-            <div
-              className="tracking-tight leading-none mt-1"
-              style={{ color: 'var(--balance-accent)', fontSize: '34px', fontWeight: 900 }}
-            >
-              {formatCOP(resumenSeguro.balance)}
-            </div>
+      {/* Tarjeta de bienvenida: dos columnas — saludo/fecha a la izquierda,
+          CTA de WhatsApp flotando a la derecha, alineados horizontalmente. */}
+      <div
+        className="rounded-[20px] px-5 py-4 flex items-center justify-between gap-3"
+        style={{ background: 'var(--hero-bg)' }}
+      >
+        <div className="min-w-0">
+          <div className="text-[15px] font-bold tracking-tight truncate" style={{ color: 'var(--hero-text)' }}>
+            {saludo}, {nombre}
           </div>
-          <MiniBarChart valores={ultimos7Dias} color="var(--balance-accent)" />
+          <div className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{fechaHoy}</div>
         </div>
 
         <a
           href={WHATSAPP_LINK}
           target="_blank"
           rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-full mt-4"
-          style={{ background: '#0A0A0A' }}
+          className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-full flex-shrink-0"
+          style={{ background: 'var(--whatsapp-btn-bg)' }}
         >
-          <IconBrandWhatsapp size={16} color="#fff" />
-          <span className="text-[12px] font-bold text-white whitespace-nowrap">Hablar con Du</span>
+          <IconBrandWhatsapp size={16} color="var(--whatsapp-btn-text)" />
+          <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: 'var(--whatsapp-btn-text)' }}>
+            Hablar con Du
+          </span>
         </a>
       </div>
 
@@ -437,7 +396,7 @@ export default function DashboardInicio() {
       <div
         ref={contenedorRef}
         onScroll={onScroll}
-        className="flex mt-4 rounded-2xl scroll-x-hidden gap-3"
+        className="flex mt-4 rounded-2xl scroll-x-hidden"
         style={{ overflowX: 'auto', scrollSnapType: 'x mandatory', scrollBehavior: 'smooth' }}
       >
         {banners.map((b) => (
@@ -476,7 +435,7 @@ export default function DashboardInicio() {
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 py-3.5"
+                  className="flex items-start gap-3 py-3.5"
                   style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}
                 >
                   <div
