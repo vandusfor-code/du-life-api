@@ -410,6 +410,56 @@ async function handleCalendario(usuarioId) {
   return { status: 200, body: { eventos: data || [], hoy } };
 }
 
+// Un solo handler para lista y detalle: sin ?id= devuelve todos los
+// préstamos del usuario, con ?id= devuelve ese préstamo + sus movimientos.
+// Así no hace falta un archivo/función nueva para la ruta [id].
+async function handlePrestamos(usuarioId, req) {
+  const { id } = req.query;
+
+  if (id) {
+    const { data: prestamo, error } = await supabase
+      .from('prestamos')
+      .select('*')
+      .eq('id', id)
+      .eq('usuario_id', usuarioId)
+      .single();
+
+    if (error || !prestamo) return { status: 404, body: { error: 'Préstamo no encontrado' } };
+
+    const { data: movimientos, error: errorMov } = await supabase
+      .from('prestamos_movimientos')
+      .select('*')
+      .eq('prestamo_id', id)
+      .order('created_at', { ascending: false });
+
+    if (errorMov) console.error('Error movimientos préstamo:', errorMov.message);
+
+    return { status: 200, body: { prestamo, movimientos: movimientos || [] } };
+  }
+
+  const [prestamosRes, movimientosRes] = await Promise.all([
+    supabase.from('prestamos').select('*').eq('usuario_id', usuarioId).order('created_at', { ascending: false }),
+    supabase
+      .from('prestamos_movimientos')
+      .select('tipo, monto, created_at')
+      .eq('usuario_id', usuarioId)
+      .neq('tipo', 'condonacion')
+      .order('created_at', { ascending: false })
+      .limit(500),
+  ]);
+
+  if (prestamosRes.error) console.error('Error prestamos:', prestamosRes.error.message);
+  if (movimientosRes.error) console.error('Error movimientos prestamos:', movimientosRes.error.message);
+
+  return {
+    status: 200,
+    body: {
+      prestamos: prestamosRes.data || [],
+      movimientos: movimientosRes.data || [],
+    },
+  };
+}
+
 async function handlePushSubscribe(usuarioId, req) {
   try {
     const body = req.body || {};
@@ -479,6 +529,40 @@ async function handleActualizarPerfil(usuarioId, req) {
   }
 }
 
+// El "módulo fijado" (sistema de pin del bottom nav) no tiene tabla/columna
+// propia — se guarda en usuarios.metadata (JSONB genérico ya existente),
+// igual que el estado de conversación de préstamos.
+async function handleFijarModulo(usuarioId, req) {
+  try {
+    const body = req.body || {};
+    const moduloFijado = body.modulo_fijado || null;
+
+    const { data: usuarioActual } = await supabase.from('usuarios').select('metadata').eq('id', usuarioId).single();
+    const metadataActual = usuarioActual?.metadata || {};
+
+    const nuevoMetadata = { ...metadataActual };
+    if (moduloFijado) nuevoMetadata.modulo_fijado = moduloFijado;
+    else delete nuevoMetadata.modulo_fijado;
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ metadata: nuevoMetadata })
+      .eq('id', usuarioId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error fijando módulo:', error.message);
+      return { status: 500, body: { error: 'No se pudo actualizar' } };
+    }
+
+    return { status: 200, body: { usuario: data } };
+  } catch (e) {
+    console.error('Error fijar_modulo:', e.message);
+    return { status: 500, body: { error: 'Error interno' } };
+  }
+}
+
 // ===== ROUTER =====
 
 const HANDLERS = {
@@ -492,8 +576,10 @@ const HANDLERS = {
   tareas: handleTareas,
   ideas: handleIdeas,
   calendario: handleCalendario,
+  prestamos: handlePrestamos,
   usuario: handleUsuario,
   actualizar_perfil: handleActualizarPerfil,
+  fijar_modulo: handleFijarModulo,
   push_subscribe: handlePushSubscribe,
   push_unsubscribe: handlePushUnsubscribe,
 };

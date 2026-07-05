@@ -11,6 +11,7 @@
 import { esLlamadaQStash, programarJob } from '../../lib/qstash.js';
 import {
   enviarMensaje, marcarLeido, enviarPlantilla, enviarPlantillaConBotones,
+  enviarListaWhatsApp,
 } from '../../lib/whatsapp.js';
 import { procesarMensaje } from '../../lib/asistente.js';
 import { procesarImagen, procesarAudio } from '../../lib/multimedia.js';
@@ -21,7 +22,13 @@ import {
 import {
   supabase, obtenerOCrearUsuario, crearTarea,
   obtenerTareaConRecordatorioPendiente, completarTarea,
+  registrarIngreso, obtenerPrestamo,
 } from '../../lib/supabase.js';
+import {
+  confirmarCreacionPrestamo, reiniciarCreacionPrestamo, cancelarCreacionPrestamo,
+  obtenerDecisionPendiente, limpiarDecisionPendiente, guardarDecisionPendiente,
+  resolverPrestamoParaPago, aplicarPagoYFormatear,
+} from '../../lib/prestamosEngine.js';
 import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
@@ -220,6 +227,16 @@ async function jobProcesarWebhook(body, res) {
       }
     }
 
+  } else if (mensaje.type === 'interactive') {
+    // Respuesta a un botón o a una lista (préstamos: confirmar/editar/
+    // cancelar creación, resolver ambigüedad pago vs ingreso, elegir a cuál
+    // préstamo corresponde un pago).
+    const tapId = mensaje.interactive?.button_reply?.id || mensaje.interactive?.list_reply?.id;
+    console.log(`🔘 Interactivo recibido de ${telefono}: ${tapId}`);
+
+    const usuario = await obtenerOCrearUsuario(telefono, nombre);
+    respuesta = await procesarRespuestaInteractiva(usuario, telefono, tapId);
+
   } else {
     console.log(`⏭️ Tipo ignorado: ${mensaje.type}`);
     respuesta = `Por ahora solo entiendo texto, imágenes y audios. 😊`;
@@ -231,6 +248,72 @@ async function jobProcesarWebhook(body, res) {
   }
 
   return res.status(200).json({ status: 'ok' });
+}
+
+// ─────────────────────────────────────────
+// RESPUESTAS A BOTONES/LISTAS DE PRÉSTAMOS
+// ─────────────────────────────────────────
+
+async function procesarRespuestaInteractiva(usuario, telefono, tapId) {
+  if (!usuario || !tapId) return null;
+
+  switch (tapId) {
+    case 'guardar_prestamo': {
+      const prestamo = await confirmarCreacionPrestamo(usuario);
+      if (!prestamo) return 'No encontré el préstamo en progreso para guardar. ¿Quieres empezar de nuevo?';
+      return `✅ Préstamo guardado: ${prestamo.nombre_deudor}, ${prestamo.cantidad_cuotas} cuotas de $${Number(prestamo.valor_cuota).toLocaleString('es-CO')}.`;
+    }
+
+    case 'editar_prestamo':
+      return await reiniciarCreacionPrestamo(usuario);
+
+    case 'cancelar_prestamo':
+      await cancelarCreacionPrestamo(usuario);
+      return 'Listo, cancelé el registro del préstamo.';
+
+    case 'pago_prestamo': {
+      const decision = obtenerDecisionPendiente(usuario);
+      if (!decision || decision.tipo !== 'ambiguedad_pago') return 'Ya no tengo ese pago pendiente por confirmar.';
+      await limpiarDecisionPendiente(usuario);
+
+      const candidatos = await resolverPrestamoParaPago(usuario.id, null);
+      if (candidatos.length === 0) return 'No tienes préstamos activos registrados.';
+      if (candidatos.length === 1) return await aplicarPagoYFormatear(candidatos[0], decision.datos.monto);
+
+      await guardarDecisionPendiente(usuario, 'seleccion_prestamo_pago', { monto: decision.datos.monto });
+      await enviarListaWhatsApp(
+        telefono,
+        '¿A cuál de tus préstamos corresponde este pago?',
+        candidatos.map((p) => ({ id: p.id, title: p.nombre_deudor }))
+      );
+      return null;
+    }
+
+    case 'ingreso_personal': {
+      const decision = obtenerDecisionPendiente(usuario);
+      if (!decision || decision.tipo !== 'ambiguedad_pago') return 'Ya no tengo ese monto pendiente por confirmar.';
+      await limpiarDecisionPendiente(usuario);
+      await registrarIngreso(usuario.id, { monto: decision.datos.monto, descripcion: 'Ingreso personal', fuente: 'otro' });
+      return `✅ Registrado como ingreso: $${Number(decision.datos.monto).toLocaleString('es-CO')}.`;
+    }
+
+    case 'otro':
+      await limpiarDecisionPendiente(usuario);
+      return 'Ok, cuéntame con más detalle de qué se trata y lo registro. 😊';
+
+    default: {
+      // No es un id fijo: puede ser la selección de un préstamo específico
+      // (id = UUID del préstamo) para un pago con varios candidatos.
+      const decision = obtenerDecisionPendiente(usuario);
+      if (decision?.tipo === 'seleccion_prestamo_pago') {
+        await limpiarDecisionPendiente(usuario);
+        const prestamo = await obtenerPrestamo(tapId);
+        if (!prestamo) return 'No encontré ese préstamo.';
+        return await aplicarPagoYFormatear(prestamo, decision.datos.monto);
+      }
+      return null;
+    }
+  }
 }
 
 // ─────────────────────────────────────────

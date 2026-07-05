@@ -9,6 +9,7 @@ import { supabase } from '../lib/supabase.js';
 import { analizarPatronesUsuario } from '../lib/patronesEngine.js';
 import { ejecutarRevisionEnvejecimiento } from '../lib/envejecimiento.js';
 import { programarJob } from '../lib/qstash.js';
+import { enviarPlantilla } from '../lib/whatsapp.js';
 
 export default async function handler(req, res) {
 
@@ -31,6 +32,11 @@ export default async function handler(req, res) {
   const esSabado = ahora.getUTCDay() === 6;
   const esDomingo = ahora.getUTCDay() === 0;
   const hoyStr = ahora.toISOString().split('T')[0];
+  // Colombia es UTC-5 fijo: el día del mes para "dia_pago" se calcula en
+  // hora local, no en UTC (el cron corre a las 11:00 UTC = 6:00 Colombia,
+  // así que normalmente coincide, pero se calcula explícito para no repetir
+  // el mismo tipo de bug de zona horaria que tuvimos en otras partes).
+  const diaHoyColombia = new Date(ahora.getTime() - 5 * 60 * 60 * 1000).getDate();
   let jobsProgramados = 0;
   const resultados = { usuarios_procesados: 0, errores: 0 };
 
@@ -71,6 +77,25 @@ export default async function handler(req, res) {
           }, momentoRecordatorio.toISOString());
           jobsProgramados++;
         }
+      }
+
+      // ── Recordatorio de préstamos: hoy es el día de cobro acordado ──
+      const { data: prestamosHoy } = await supabase
+        .from('prestamos')
+        .select('id, nombre_deudor, valor_cuota')
+        .eq('usuario_id', usuario.id)
+        .eq('dia_pago', diaHoyColombia)
+        .eq('estado', 'activo');
+
+      for (const prestamo of (prestamosHoy || [])) {
+        // Header "Recordatorio de préstamo" y footer son texto fijo de la
+        // plantilla — no se envían como parámetros, solo el body con las 3
+        // variables nombradas en el orden exacto aprobado por Meta.
+        await enviarPlantilla(usuario.telefono, 'prestamo_recordatorio_pago', {
+          nombre_usuario: nombre,
+          nombre_deudor: prestamo.nombre_deudor,
+          valor_cuota: `$${Number(prestamo.valor_cuota).toLocaleString('es-CO')}`,
+        });
       }
 
       if (!usuario.onboarding_completo) {
