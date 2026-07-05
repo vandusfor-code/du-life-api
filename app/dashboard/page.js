@@ -366,16 +366,18 @@ export default function DashboardInicio() {
       </div>
 
       {/* Tarjeta de bienvenida: dos columnas — saludo/fecha a la izquierda,
-          CTA de WhatsApp flotando a la derecha, alineados horizontalmente. */}
+          CTA de WhatsApp flotando a la derecha, alineados horizontalmente.
+          Padding y tamaño de fuente iguales a la card original (antes del
+          bloque de Balance), para que no se vea "achatada". */}
       <div
-        className="rounded-[20px] px-5 py-4 flex items-center justify-between gap-3"
+        className="rounded-[20px] p-6 flex items-center justify-between gap-4"
         style={{ background: 'var(--hero-bg)' }}
       >
-        <div className="min-w-0">
-          <div className="text-[15px] font-bold tracking-tight truncate" style={{ color: 'var(--hero-text)' }}>
+        <div className="min-w-0 flex-1">
+          <div className="text-[17px] font-bold tracking-tight leading-tight truncate" style={{ color: 'var(--hero-text)' }}>
             {saludo}, {nombre}
           </div>
-          <div className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{fechaHoy}</div>
+          <div className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>{fechaHoy}</div>
         </div>
 
         <a
@@ -386,7 +388,7 @@ export default function DashboardInicio() {
           style={{ background: 'var(--whatsapp-btn-bg)' }}
         >
           <IconBrandWhatsapp size={16} color="var(--whatsapp-btn-text)" />
-          <span className="text-[12px] font-bold whitespace-nowrap" style={{ color: 'var(--whatsapp-btn-text)' }}>
+          <span className="text-[13px] font-bold whitespace-nowrap" style={{ color: 'var(--whatsapp-btn-text)' }}>
             Hablar con Du
           </span>
         </a>
