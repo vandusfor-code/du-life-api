@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef, useMemo } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import {
   IconBell, IconSparkles, IconBrandWhatsapp, IconSquareCheck, IconWallet,
   IconNote, IconBulb,
@@ -12,6 +13,33 @@ import { useAutoRefresh } from '../../components/useAutoRefresh';
 const WHATSAPP_LINK = 'https://wa.me/573239117508';
 const NOTIFICACIONES_MOCK = 3;
 const ZONA_COLOMBIA = 'America/Bogota';
+
+// Banners fotográficos del carousel: una foto real por módulo (con overlay
+// negro-a-transparente) en vez de ilustraciones planas. Si la foto no carga
+// (sin red, CDN caído), el banner cae a un fondo sólido en vez de romperse.
+const MODULOS_BANNER = [
+  {
+    slug: 'tareas',
+    href: '/dashboard/tareas',
+    titulo: 'Tareas',
+    cta: 'Ver más',
+    foto: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=800&q=80&auto=format&fit=crop',
+  },
+  {
+    slug: 'gastos',
+    href: '/dashboard/gastos',
+    titulo: 'Gastos',
+    cta: 'Ver más',
+    foto: 'https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=800&q=80&auto=format&fit=crop',
+  },
+  {
+    slug: 'espacios',
+    href: '/dashboard/espacios',
+    titulo: 'Espacios',
+    cta: 'Gestionar',
+    foto: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&q=80&auto=format&fit=crop',
+  },
+];
 
 const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 const formatCOPCorto = (n) => {
@@ -66,18 +94,20 @@ function formatVencimiento(fechaStr, zonaHorario) {
   return `Vence ${new Date(`${fechaStr}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}`;
 }
 
-const TIPO_CONFIG = {
-  gasto: { color: '#4ADE80', icon: IconWallet },
-  idea: { color: '#FB923C', icon: IconBulb },
-  nota: { color: '#60A5FA', icon: IconNote },
-  tarea: { color: '#A78BFA', icon: IconSquareCheck },
+// Iconos de Actividad reciente: mismo color uniforme para todos (negro en
+// light, blanco en dark) — solo la forma cambia según el tipo de registro.
+const TIPO_ICONO = {
+  gasto: IconWallet,
+  idea: IconBulb,
+  nota: IconNote,
+  tarea: IconSquareCheck,
 };
 
-// Carousel de métricas: se desliza solo cada 3s con CSS scroll-snap nativo
+// Carousel de banners: se desliza solo cada 4s con CSS scroll-snap nativo
 // (sin librerías); el usuario puede deslizar manual y el auto-avance sigue
 // desde donde haya quedado, recalculando el índice a partir del scroll real
 // en vez de un contador separado que podría desincronizarse.
-function useCarruselAuto(cantidad, intervaloMs = 3000) {
+function useCarruselAuto(cantidad, intervaloMs = 4000) {
   const contenedorRef = useRef(null);
   const [indiceActivo, setIndiceActivo] = useState(0);
 
@@ -107,59 +137,83 @@ function useCarruselAuto(cantidad, intervaloMs = 3000) {
   return { contenedorRef, indiceActivo, onScroll };
 }
 
-// Ilustraciones del carousel de métricas: planas, sin gradientes ni sombras.
-// El lime (#C4E938) marca lo destacado; las líneas internas usan currentColor
-// para heredar --icon-line-color (gris oscuro en dark, gris claro en light).
-function IlustracionTareas() {
+// Mini gráfica de barras del balance: negro absoluto en light (contraste
+// sobre el lime), verde lima en dark (sobre la card gris) — un solo color
+// por tema, controlado por --balance-accent.
+function MiniBarChart({ valores, color }) {
+  const max = Math.max(1, ...valores);
   return (
-    <svg width="80" height="80" viewBox="0 0 80 80">
-      <rect x="15" y="10" width="50" height="60" rx="4" fill="none" stroke="#C4E938" strokeWidth="2" />
-      <rect x="30" y="5" width="20" height="10" rx="2" fill="#C4E938" />
-      <line x1="25" y1="30" x2="55" y2="30" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-      <line x1="25" y1="42" x2="55" y2="42" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-      <line x1="25" y1="54" x2="45" y2="54" stroke="currentColor" strokeWidth="1.5" opacity="0.4" />
-      <circle cx="22" cy="30" r="5" fill="#C4E938" />
-      <polyline points="19,30 21,32 25,27" fill="none" stroke="#000" strokeWidth="1.5" />
-    </svg>
+    <div className="flex items-end gap-1" style={{ height: '44px' }}>
+      {valores.map((v, i) => (
+        <div
+          key={i}
+          style={{
+            width: '6px',
+            height: `${Math.max(4, (v / max) * 44)}px`,
+            background: color,
+            borderRadius: '3px',
+          }}
+        />
+      ))}
+    </div>
   );
 }
 
-function IlustracionRecordatorios() {
-  return (
-    <svg width="80" height="80" viewBox="0 0 80 80">
-      <path d="M40 15 C28 15 22 24 22 35 L22 50 L58 50 L58 35 C58 24 52 15 40 15Z" fill="none" stroke="#C4E938" strokeWidth="2" />
-      <rect x="35" y="50" width="10" height="6" rx="1" fill="#C4E938" />
-      <circle cx="40" cy="58" r="4" fill="none" stroke="#C4E938" strokeWidth="2" />
-      <path d="M18 25 Q13 30 18 35" fill="none" stroke="#C4E938" strokeWidth="1.5" opacity="0.5" />
-      <path d="M13 20 Q6 30 13 40" fill="none" stroke="#C4E938" strokeWidth="1.5" opacity="0.3" />
-      <path d="M62 25 Q67 30 62 35" fill="none" stroke="#C4E938" strokeWidth="1.5" opacity="0.5" />
-      <path d="M67 20 Q74 30 67 40" fill="none" stroke="#C4E938" strokeWidth="1.5" opacity="0.3" />
-    </svg>
-  );
-}
+// Banner fotográfico de módulo: foto real + degradado negro-a-transparente
+// + CTA píldora. Si la imagen no carga, cae a un fondo sólido en vez de
+// mostrar un ícono roto.
+function BannerModulo({ href, titulo, metrica, foto, cta }) {
+  const [error, setError] = useState(false);
 
-function IlustracionGastos() {
   return (
-    <svg width="80" height="80" viewBox="0 0 80 80">
-      <rect x="10" y="25" width="55" height="35" rx="5" fill="none" stroke="#C4E938" strokeWidth="2" />
-      <rect x="10" y="25" width="55" height="12" rx="5" fill="#C4E938" opacity="0.2" />
-      <rect x="45" y="35" width="20" height="15" rx="3" fill="none" stroke="#C4E938" strokeWidth="1.5" />
-      <circle cx="55" cy="42" r="5" fill="#C4E938" />
-      <text x="55" y="46" textAnchor="middle" fontSize="7" fill="#000" fontWeight="bold">$</text>
-    </svg>
-  );
-}
-
-function IlustracionAgenda({ dia }) {
-  return (
-    <svg width="80" height="80" viewBox="0 0 80 80">
-      <rect x="12" y="18" width="56" height="50" rx="5" fill="none" stroke="#C4E938" strokeWidth="2" />
-      <rect x="12" y="18" width="56" height="16" rx="5" fill="#C4E938" />
-      <line x1="28" y1="12" x2="28" y2="24" stroke="#C4E938" strokeWidth="2.5" strokeLinecap="round" />
-      <line x1="52" y1="12" x2="52" y2="24" stroke="#C4E938" strokeWidth="2.5" strokeLinecap="round" />
-      <circle cx="40" cy="48" r="10" fill="#C4E938" />
-      <text x="40" y="52" textAnchor="middle" fontSize="10" fill="#000" fontWeight="bold">{dia}</text>
-    </svg>
+    <Link
+      href={href}
+      prefetch
+      className="relative flex-shrink-0 w-full h-[168px] rounded-2xl overflow-hidden"
+      style={{ scrollSnapAlign: 'start', background: 'var(--bg-card)' }}
+    >
+      {!error && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img
+          src={foto}
+          alt=""
+          onError={() => setError(true)}
+          className="absolute inset-0 w-full h-full object-cover"
+        />
+      )}
+      <div
+        className="absolute inset-0"
+        style={{
+          background: error
+            ? 'transparent'
+            : 'linear-gradient(90deg, rgba(0,0,0,0.88) 0%, rgba(0,0,0,0.45) 55%, rgba(0,0,0,0.15) 100%)',
+        }}
+      />
+      <div className="absolute inset-0 p-5 flex flex-col justify-between">
+        <div>
+          <div
+            className="text-[18px] font-extrabold tracking-tight"
+            style={{ color: error ? 'var(--text-primary)' : '#FFFFFF' }}
+          >
+            {titulo}
+          </div>
+          <div
+            className="text-[13px] mt-1"
+            style={{ color: error ? 'var(--text-secondary)' : 'rgba(255,255,255,0.85)' }}
+          >
+            {metrica}
+          </div>
+        </div>
+        <div className="self-end">
+          <span
+            className="inline-flex items-center px-3.5 py-2 rounded-full text-[12px] font-bold"
+            style={{ background: 'var(--accent)', color: '#000000' }}
+          >
+            {cta}
+          </span>
+        </div>
+      </div>
+    </Link>
   );
 }
 
@@ -205,7 +259,7 @@ export default function DashboardInicio() {
 
   useAutoRefresh(cargarDatos);
 
-  const { contenedorRef, indiceActivo, onScroll } = useCarruselAuto(4);
+  const { contenedorRef, indiceActivo, onScroll } = useCarruselAuto(MODULOS_BANNER.length);
 
   const nombre = usuario?.como_llamar || usuario?.nombre || 'Duvan';
 
@@ -219,8 +273,8 @@ export default function DashboardInicio() {
             <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           </div>
         </div>
-        <div className="rounded-[20px] h-[150px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
-        <div className="rounded-2xl h-[110px] mt-4 animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-[20px] h-[190px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-2xl h-[168px] mt-4 animate-pulse" style={{ background: 'var(--bg-card)' }} />
         <div className="rounded-2xl h-[130px] mt-5 animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
@@ -238,6 +292,14 @@ export default function DashboardInicio() {
     .filter((g) => new Date(g.fecha) >= hace7dias)
     .reduce((sum, g) => sum + Number(g.monto), 0);
 
+  // Últimos 7 días (hora Colombia) para la mini gráfica del balance.
+  const ultimos7Dias = Array.from({ length: 7 }).map((_, i) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (6 - i));
+    const clave = d.toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA });
+    return gastos.filter((g) => g.fecha === clave).reduce((s, g) => s + Number(g.monto), 0);
+  });
+
   // Saludo y fecha SIEMPRE en hora Colombia (UTC-5), sin importar el huso
   // horario configurado en el dispositivo del usuario.
   const horaColombia = parseInt(
@@ -248,17 +310,22 @@ export default function DashboardInicio() {
   const fechaHoy = capitalizar(
     new Date().toLocaleDateString('es-CO', { timeZone: ZONA_COLOMBIA, weekday: 'long', day: 'numeric', month: 'long' })
   );
-  const diaHoy = new Date().toLocaleString('en-US', { timeZone: ZONA_COLOMBIA, day: 'numeric' });
 
   const eventoHoy = calendario
     .filter((e) => e.fecha === new Date().toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA }))
     .sort((a, b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''))[0];
 
-  const METRICAS = [
-    { key: 'tareas', valor: resumenSeguro.tareas_pendientes, label: 'Tareas pendientes' },
-    { key: 'recordatorios', valor: resumenSeguro.recordatorios_hoy, label: 'Recordatorios hoy' },
-    { key: 'gastos', valor: formatCOPCorto(gastosSemana), label: 'Gastos esta semana' },
-    { key: 'agenda', esAgenda: true, label: 'Agenda hoy' },
+  const metricaEspacios = eventoHoy
+    ? `Hoy: ${eventoHoy.titulo} · ${formatHora12(eventoHoy.hora_inicio)}`
+    : `${notas.length + ideas.length} notas e ideas guardadas`;
+
+  const banners = [
+    {
+      ...MODULOS_BANNER[0],
+      metrica: `${resumenSeguro.tareas_pendientes} pendientes · ${resumenSeguro.recordatorios_hoy} recordatorios hoy`,
+    },
+    { ...MODULOS_BANNER[1], metrica: `${formatCOPCorto(gastosSemana)} esta semana` },
+    { ...MODULOS_BANNER[2], metrica: metricaEspacios },
   ];
 
   // Actividad reciente: solo gastos/notas/tareas/ideas, top 3.
@@ -317,7 +384,7 @@ export default function DashboardInicio() {
                 className="absolute flex items-center justify-center rounded-full"
                 style={{ width: '16px', height: '16px', background: 'var(--accent)', top: '-2px', right: '-2px' }}
               >
-                <span className="font-bold" style={{ fontSize: '9px', color: 'var(--hero-text)' }}>
+                <span className="font-bold" style={{ fontSize: '9px', color: '#000000' }}>
                   {NOTIFICACIONES_MOCK}
                 </span>
               </div>
@@ -329,12 +396,31 @@ export default function DashboardInicio() {
         </div>
       </div>
 
-      {/* Hero card */}
+      {/* Balance card con gráfica */}
       <div className="rounded-[20px] p-5" style={{ background: 'var(--hero-bg)' }}>
-        <div className="text-[21px] font-bold tracking-tight leading-tight" style={{ color: 'var(--hero-text)' }}>
+        <div className="text-[15px] font-bold tracking-tight" style={{ color: 'var(--hero-text)' }}>
           {saludo}, {nombre}
         </div>
-        <div className="text-[13px] mt-1" style={{ color: 'rgba(0,0,0,0.6)' }}>{fechaHoy}</div>
+        <div className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{fechaHoy}</div>
+
+        <div className="flex items-end justify-between mt-4">
+          <div className="min-w-0">
+            <div
+              className="text-[11px] font-semibold uppercase"
+              style={{ color: 'var(--text-secondary)', letterSpacing: '0.05em' }}
+            >
+              Balance
+            </div>
+            <div
+              className="tracking-tight leading-none mt-1"
+              style={{ color: 'var(--balance-accent)', fontSize: '34px', fontWeight: 900 }}
+            >
+              {formatCOP(resumenSeguro.balance)}
+            </div>
+          </div>
+          <MiniBarChart valores={ultimos7Dias} color="var(--balance-accent)" />
+        </div>
+
         <a
           href={WHATSAPP_LINK}
           target="_blank"
@@ -347,56 +433,22 @@ export default function DashboardInicio() {
         </a>
       </div>
 
-      {/* Carousel auto-deslizante de métricas */}
+      {/* Carousel de banners fotográficos por módulo */}
       <div
         ref={contenedorRef}
         onScroll={onScroll}
-        className="flex mt-4 rounded-2xl scroll-x-hidden"
+        className="flex mt-4 rounded-2xl scroll-x-hidden gap-3"
         style={{ overflowX: 'auto', scrollSnapType: 'x mandatory', scrollBehavior: 'smooth' }}
       >
-        {METRICAS.map((m) => (
-          <div
-            key={m.key}
-            className="flex-shrink-0 w-full rounded-2xl p-5 flex items-center justify-between gap-3"
-            style={{ scrollSnapAlign: 'start', background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
-          >
-            <div className="min-w-0">
-              {m.esAgenda ? (
-                eventoHoy ? (
-                  <>
-                    <div className="text-[16px] font-bold tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
-                      {eventoHoy.titulo}
-                    </div>
-                    <div className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-                      {formatHora12(eventoHoy.hora_inicio)}
-                    </div>
-                  </>
-                ) : (
-                  <div className="text-[16px] font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>
-                    Sin eventos hoy
-                  </div>
-                )
-              ) : (
-                <div className="text-[26px] font-bold tracking-tight" style={{ color: 'var(--accent)' }}>
-                  {m.valor}
-                </div>
-              )}
-              <div className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>{m.label}</div>
-            </div>
-            <div className="flex-shrink-0" style={{ color: 'var(--icon-line-color)' }}>
-              {m.key === 'tareas' && <IlustracionTareas />}
-              {m.key === 'recordatorios' && <IlustracionRecordatorios />}
-              {m.key === 'gastos' && <IlustracionGastos />}
-              {m.key === 'agenda' && <IlustracionAgenda dia={diaHoy} />}
-            </div>
-          </div>
+        {banners.map((b) => (
+          <BannerModulo key={b.slug} {...b} />
         ))}
       </div>
 
       <div className="flex justify-center gap-1.5 mt-3">
-        {METRICAS.map((m, i) => (
+        {banners.map((b, i) => (
           <span
-            key={m.key}
+            key={b.slug}
             className="rounded-full transition-all"
             style={{
               width: i === indiceActivo ? '16px' : '6px',
@@ -409,33 +461,29 @@ export default function DashboardInicio() {
 
       {/* Actividad reciente */}
       <div className="mt-7">
-        <div className="text-[17px] font-bold tracking-tight mb-3" style={{ color: 'var(--text-primary)' }}>
+        <div className="text-[17px] font-extrabold tracking-tight mb-1" style={{ color: 'var(--text-primary)' }}>
           Actividad reciente
         </div>
 
         {actividadReciente.length === 0 ? (
-          <div
-            className="rounded-2xl p-6 text-center text-[13px]"
-            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
-          >
+          <div className="py-6 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>
             Aún no has registrado nada. Cuéntale a Du Life por WhatsApp.
           </div>
         ) : (
-          <div className="flex flex-col gap-2.5">
-            {actividadReciente.map((item) => {
-              const cfg = TIPO_CONFIG[item.tipo] || { color: '#71717A', icon: IconNote };
-              const Icon = cfg.icon;
+          <div>
+            {actividadReciente.map((item, i) => {
+              const Icon = TIPO_ICONO[item.tipo] || IconNote;
               return (
                 <div
                   key={item.id}
-                  className="flex items-center gap-3 p-3.5 rounded-2xl"
-                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+                  className="flex items-center gap-3 py-3.5"
+                  style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}
                 >
                   <div
-                    className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
-                    style={{ background: `${cfg.color}26` }}
+                    className="w-9 h-9 rounded-[12px] flex items-center justify-center flex-shrink-0"
+                    style={{ background: 'var(--bg-card)' }}
                   >
-                    <Icon size={18} color={cfg.color} />
+                    <Icon size={17} strokeWidth={1.5} color="var(--text-primary)" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{item.titulo}</div>

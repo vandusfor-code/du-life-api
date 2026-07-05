@@ -7,52 +7,55 @@
 /* Fallback antes de que el atributo data-theme se aplique (SSR/primer
    paint): mismos valores que dark, para no arrancar con variables vacías. */
 :root {
-  --bg-primary: #000000;
-  --bg-card: #1A1A1A;
-  --bg-card-hover: #222222;
-  --border-color: #2A2A2A;
+  --bg-primary: #0D0D11;
+  --bg-card: #16161F;
+  --bg-card-hover: #1D1D28;
+  --border-color: #242430;
   --text-primary: #FFFFFF;
-  --text-secondary: #888888;
-  --text-muted: #555555;
+  --text-secondary: #888894;
+  --text-muted: #55555F;
   --accent: #C4E938;
   --accent-text: #000000;
   --accent-dark: #A8CC1E;
-  --hero-bg: #C4E938;
-  --hero-text: #000000;
-  --nav-bg: #0A0A0A;
+  --hero-bg: #16161F;
+  --hero-text: #FFFFFF;
+  --balance-accent: #C4E938;
+  --nav-bg: #16161F;
   --icon-line-color: #333333;
 }
 
 :root[data-theme="dark"] {
-  --bg-primary: #000000;
-  --bg-card: #1A1A1A;
-  --bg-card-hover: #222222;
-  --border-color: #2A2A2A;
+  --bg-primary: #0D0D11;
+  --bg-card: #16161F;
+  --bg-card-hover: #1D1D28;
+  --border-color: #242430;
   --text-primary: #FFFFFF;
-  --text-secondary: #888888;
-  --text-muted: #555555;
+  --text-secondary: #888894;
+  --text-muted: #55555F;
   --accent: #C4E938;
   --accent-text: #000000;
   --accent-dark: #A8CC1E;
-  --hero-bg: #C4E938;
-  --hero-text: #000000;
-  --nav-bg: #0A0A0A;
+  --hero-bg: #16161F;
+  --hero-text: #FFFFFF;
+  --balance-accent: #C4E938;
+  --nav-bg: #16161F;
   --icon-line-color: #333333;
 }
 
 :root[data-theme="light"] {
   --bg-primary: #FFFFFF;
-  --bg-card: #F2F2F2;
-  --bg-card-hover: #E8E8E8;
-  --border-color: #E8E8E8;
-  --text-primary: #111111;
-  --text-secondary: #888888;
-  --text-muted: #AAAAAA;
+  --bg-card: #F4F4F6;
+  --bg-card-hover: #EAEAEC;
+  --border-color: #EEEEEE;
+  --text-primary: #000000;
+  --text-secondary: #555555;
+  --text-muted: #999999;
   --accent: #C4E938;
   --accent-text: #000000;
   --accent-dark: #A8CC1E;
   --hero-bg: #C4E938;
   --hero-text: #000000;
+  --balance-accent: #000000;
   --nav-bg: #FFFFFF;
   --icon-line-color: #CCCCCC;
 }
