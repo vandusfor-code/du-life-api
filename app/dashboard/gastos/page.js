@@ -153,7 +153,7 @@ const BarChart = memo(function BarChart({ gastos, semana, fechaSeleccionada, onS
                 strokeOpacity="0.3"
                 strokeWidth="1"
               />
-              <text x={leftPad - 6} y={y + 3} textAnchor="end" fontSize="9" fill="#71717A">
+              <text x={leftPad - 6} y={y + 3} textAnchor="end" fontSize="9" fill="var(--text-secondary)">
                 {formatEje(v)}
               </text>
             </g>
@@ -192,7 +192,7 @@ const BarChart = memo(function BarChart({ gastos, semana, fechaSeleccionada, onS
               textAnchor="middle"
               fontSize="10"
               fontWeight="bold"
-              fill={p.variacion === null ? '#71717A' : p.variacion >= 0 ? '#C4E938' : '#F87171'}
+              fill={p.variacion === null ? 'var(--text-secondary)' : p.variacion >= 0 ? '#C4E938' : '#F87171'}
             >
               {p.variacion === null ? '—' : `${p.variacion >= 0 ? '+' : ''}${p.variacion.toFixed(1)}%`}
             </text>
@@ -203,7 +203,7 @@ const BarChart = memo(function BarChart({ gastos, semana, fechaSeleccionada, onS
               textAnchor="middle"
               fontSize="11"
               fontWeight={p.esSeleccionado ? 'bold' : '500'}
-              fill={p.esSeleccionado ? '#C4E938' : '#A1A1AA'}
+              fill={p.esSeleccionado ? '#C4E938' : 'var(--text-secondary)'}
             >
               {p.dia}
             </text>
@@ -296,21 +296,21 @@ export default function GastosPage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
+          <div className="w-10 h-10 rounded-full animate-pulse bg-surface" />
           <div>
-            <div className="h-3 w-20 rounded animate-pulse mb-1.5 bg-neutral-900" />
-            <div className="h-5 w-16 rounded animate-pulse bg-neutral-900" />
+            <div className="h-3 w-20 rounded animate-pulse mb-1.5 bg-surface" />
+            <div className="h-5 w-16 rounded animate-pulse bg-surface" />
           </div>
         </div>
-        <div className="h-16 rounded-2xl animate-pulse mb-5 bg-neutral-900" />
-        <div className="rounded-2xl h-[260px] animate-pulse bg-neutral-900" />
+        <div className="h-16 rounded-2xl animate-pulse mb-5 bg-surface" />
+        <div className="rounded-2xl h-[260px] animate-pulse bg-surface" />
         <div className="grid grid-cols-2 gap-3 mt-5">
-          <div className="h-16 rounded animate-pulse bg-neutral-900" />
-          <div className="h-16 rounded animate-pulse bg-neutral-900" />
+          <div className="h-16 rounded animate-pulse bg-surface" />
+          <div className="h-16 rounded animate-pulse bg-surface" />
         </div>
-        <div className="rounded-2xl h-[200px] mt-5 animate-pulse bg-neutral-900" />
+        <div className="rounded-2xl h-[200px] mt-5 animate-pulse bg-surface" />
       </div>
     );
   }
@@ -318,19 +318,19 @@ export default function GastosPage() {
   const resumen = data?.resumen || { total_gastos: 0, total_ingresos: 0, balance: 0 };
 
   return (
-    <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+    <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <Link
           href="/dashboard"
-          className="w-10 h-10 rounded-full flex items-center justify-center bg-neutral-900 border border-neutral-800"
+          className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-hairline"
         >
-          <IconArrowLeft size={18} color="#fff" />
+          <IconArrowLeft size={18} color="var(--text-primary)" />
         </Link>
         <div>
-          <div className="text-[13px] text-neutral-400">Movimientos</div>
-          <div className="text-[19px] font-bold tracking-tight text-white">Gastos</div>
+          <div className="text-[13px] text-muted">Movimientos</div>
+          <div className="text-[19px] font-bold tracking-tight text-ink">Gastos</div>
         </div>
       </div>
 
@@ -344,12 +344,12 @@ export default function GastosPage() {
               onClick={() => setFechaSeleccionada(d.fechaStr)}
               className="flex flex-col items-center gap-1.5 flex-1 py-1"
             >
-              <span className="text-[11px] text-neutral-400">{d.dia}</span>
+              <span className="text-[11px] text-muted">{d.dia}</span>
               <span
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold"
                 style={{
                   background: activo ? '#C4E938' : 'transparent',
-                  color: activo ? '#000' : '#A3A3A3',
+                  color: activo ? '#000' : 'var(--text-secondary)',
                 }}
               >
                 {d.numero}
@@ -360,19 +360,19 @@ export default function GastosPage() {
       </div>
 
       {/* Bar chart card */}
-      <div className="rounded-2xl p-5 bg-neutral-900 border border-neutral-800">
+      <div className="rounded-2xl p-5 bg-surface border border-hairline">
         <div className="flex justify-between items-start">
           <div>
-            <div className="text-[12px] text-neutral-400 uppercase tracking-wide font-medium">
+            <div className="text-[12px] text-muted uppercase tracking-wide font-medium">
               Esta semana
             </div>
-            <div className="text-[28px] font-bold tracking-tight mt-1 text-white">
+            <div className="text-[28px] font-bold tracking-tight mt-1 text-ink">
               {formatCOP(totalGastosSemana)}
             </div>
           </div>
-          <Link href="/dashboard/timeline" prefetch className="flex items-center gap-0.5 text-[13px] font-medium text-neutral-400">
+          <Link href="/dashboard/timeline" prefetch className="flex items-center gap-0.5 text-[13px] font-medium text-muted">
             Ver todo
-            <IconChevronRight size={14} color="#A1A1AA" />
+            <IconChevronRight size={14} color="var(--text-secondary)" />
           </Link>
         </div>
 
@@ -388,15 +388,15 @@ export default function GastosPage() {
       <div className="grid grid-cols-2 gap-3 mt-5">
         <div>
           <IconArrowUp size={18} color="#C4E938" />
-          <div className="text-[12px] text-neutral-400 mt-2">Ingresos mes</div>
-          <div className="text-[20px] font-bold tracking-tight mt-0.5 text-white">
+          <div className="text-[12px] text-muted mt-2">Ingresos mes</div>
+          <div className="text-[20px] font-bold tracking-tight mt-0.5 text-ink">
             {formatCOPCorto(Number(resumen.total_ingresos) || 0)}
           </div>
         </div>
         <div>
-          <IconArrowDown size={18} color="#A1A1AA" />
-          <div className="text-[12px] text-neutral-400 mt-2">Gastos mes</div>
-          <div className="text-[20px] font-bold tracking-tight mt-0.5 text-white">
+          <IconArrowDown size={18} color="var(--text-secondary)" />
+          <div className="text-[12px] text-muted mt-2">Gastos mes</div>
+          <div className="text-[20px] font-bold tracking-tight mt-0.5 text-ink">
             {formatCOPCorto(Number(resumen.total_gastos) || 0)}
           </div>
         </div>
@@ -417,8 +417,8 @@ export default function GastosPage() {
               className="flex-1 py-2.5 rounded-full text-[13px] font-bold transition-all"
               style={{
                 background: active ? '#C4E938' : 'transparent',
-                color: active ? '#0A0A0A' : '#A1A1AA',
-                border: active ? 'none' : '1px solid #2A2A2A',
+                color: active ? '#0A0A0A' : 'var(--text-secondary)',
+                border: active ? 'none' : '1px solid var(--border-color)',
               }}
             >
               {f.label}
@@ -429,13 +429,13 @@ export default function GastosPage() {
 
       {/* Feed de movimientos del día seleccionado — plano, sin cajas */}
       <div className="mt-6">
-        <div className="text-[17px] font-bold tracking-tight text-white">Movimientos</div>
-        <div className="text-[12px] text-neutral-400 mt-0.5 mb-2 capitalize">
+        <div className="text-[17px] font-bold tracking-tight text-ink">Movimientos</div>
+        <div className="text-[12px] text-muted mt-0.5 mb-2 capitalize">
           {filtro === 'ingresos' ? 'Este mes' : formatFechaLarga(diaActivo)}
         </div>
 
         {movimientosDia.length === 0 ? (
-          <div className="text-center text-neutral-400 text-[13px] py-8">
+          <div className="text-center text-muted text-[13px] py-8">
             Sin movimientos {filtro === 'ingresos' ? 'este mes' : 'este día'}.
           </div>
         ) : (
@@ -449,16 +449,16 @@ export default function GastosPage() {
                   style={{ borderBottom: i < movimientosDia.length - 1 ? '1px solid #1F1F1F' : 'none' }}
                 >
                   <div className="min-w-0">
-                    <div className="text-[15px] font-bold text-white truncate">
+                    <div className="text-[15px] font-bold text-ink truncate">
                       {m.descripcion || (esIngreso ? 'Ingreso' : 'Gasto')}
                     </div>
-                    <div className="text-[12px] text-neutral-400 mt-0.5">
+                    <div className="text-[12px] text-muted mt-0.5">
                       {m.lugar || m.fuente || (esIngreso ? 'Ingreso' : 'Efectivo')}
                     </div>
                   </div>
                   <div
                     className="text-[15px] font-bold flex-shrink-0 ml-3"
-                    style={{ color: esIngreso ? '#C4E938' : '#fff' }}
+                    style={{ color: esIngreso ? '#C4E938' : 'var(--text-primary)' }}
                   >
                     {esIngreso ? '+' : '−'}
                     {formatCOP(Number(m.monto))}

@@ -50,13 +50,13 @@ export default function EspaciosPage() {
         <Link
           href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <IconArrowLeft size={18} color="#fff" />
+          <IconArrowLeft size={18} color="var(--text-primary)" />
         </Link>
         <div>
           <div className="text-[13px] text-muted">{MODULOS.length} módulos</div>
-          <div className="text-[19px] font-bold tracking-tight text-white">Espacios</div>
+          <div className="text-[19px] font-bold tracking-tight text-ink">Espacios</div>
         </div>
       </div>
 
@@ -69,7 +69,7 @@ export default function EspaciosPage() {
               href={href}
               prefetch
               className="rounded-card p-4 flex flex-col relative"
-              style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
             >
               {pinKey && (
                 <button
@@ -91,7 +91,7 @@ export default function EspaciosPage() {
               >
                 <Icon size={22} color={color} />
               </div>
-              <div className="text-[14px] font-bold text-white mt-3 pr-4">{label}</div>
+              <div className="text-[14px] font-bold text-ink mt-3 pr-4">{label}</div>
               <div className="text-[11px] text-soft mt-1 leading-snug">{desc}</div>
               <IconChevronRight size={16} color={color} className="mt-2.5 self-end" />
             </Link>

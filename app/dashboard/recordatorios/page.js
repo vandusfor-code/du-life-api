@@ -12,19 +12,19 @@ export default function RecordatoriosPage() {
         <Link
           href="/dashboard/espacios"
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <IconArrowLeft size={18} color="#fff" />
+          <IconArrowLeft size={18} color="var(--text-primary)" />
         </Link>
         <div>
           <div className="text-[13px] text-muted">Próximamente</div>
-          <div className="text-[19px] font-bold tracking-tight text-white">Recordatorios</div>
+          <div className="text-[19px] font-bold tracking-tight text-ink">Recordatorios</div>
         </div>
       </div>
 
       <div
         className="rounded-card p-8 mt-6 text-center"
-        style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
         <div className="flex justify-center mb-3">
           <div
@@ -34,7 +34,7 @@ export default function RecordatoriosPage() {
             <IconBellRinging size={26} color="#F87171" />
           </div>
         </div>
-        <div className="text-[14px] font-bold text-white mb-2">Esta pantalla aún no existe</div>
+        <div className="text-[14px] font-bold text-ink mb-2">Esta pantalla aún no existe</div>
         <div className="text-[13px] text-muted leading-relaxed">
           Estamos trabajando en un espacio dedicado para tus recordatorios. Muy pronto podrás verlos aquí.
         </div>

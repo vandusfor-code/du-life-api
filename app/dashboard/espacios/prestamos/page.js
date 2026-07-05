@@ -129,8 +129,8 @@ const GraficaFlujoRecuperacion = memo(function GraficaFlujoRecuperacion({ serie,
 
   return (
     <svg width="100%" height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: 'block' }}>
-      <line x1={leftPad} y1={yPendiente} x2={W - rightPad} y2={yPendiente} stroke="#71717A" strokeWidth="1.5" strokeDasharray="4 3" />
-      <text x={leftPad - 6} y={yPendiente + 3} textAnchor="end" fontSize="9" fill="#71717A">
+      <line x1={leftPad} y1={yPendiente} x2={W - rightPad} y2={yPendiente} stroke="var(--text-secondary)" strokeWidth="1.5" strokeDasharray="4 3" />
+      <text x={leftPad - 6} y={yPendiente + 3} textAnchor="end" fontSize="9" fill="var(--text-secondary)">
         {(totalPendiente / 1000).toFixed(0)}k
       </text>
       <path d={pathRecuperado} fill="none" stroke="#C4E938" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
@@ -138,7 +138,7 @@ const GraficaFlujoRecuperacion = memo(function GraficaFlujoRecuperacion({ serie,
         <circle key={i} cx={p.x} cy={p.y} r="3" fill="#C4E938" />
       ))}
       {serie.map((s, i) => (
-        <text key={i} x={leftPad + i * slot} y={H - 4} textAnchor="middle" fontSize="9" fill="#71717A">
+        <text key={i} x={leftPad + i * slot} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--text-secondary)">
           {s.label}
         </text>
       ))}
@@ -183,8 +183,8 @@ const DonutDistribucion = memo(function DonutDistribucion({ segmentos }) {
         {segmentos.map((s, i) => (
           <div key={i} className="flex items-center gap-2 min-w-0">
             <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: s.color }} />
-            <span className="text-[12px] text-white truncate flex-1">{s.nombre}</span>
-            <span className="text-[11px] text-neutral-400 flex-shrink-0">{Math.round((s.valor / total) * 100)}%</span>
+            <span className="text-[12px] text-ink truncate flex-1">{s.nombre}</span>
+            <span className="text-[11px] text-muted flex-shrink-0">{Math.round((s.valor / total) * 100)}%</span>
           </div>
         ))}
       </div>
@@ -266,33 +266,33 @@ export default function PrestamosPage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
         <div className="flex justify-between items-center mb-5">
-          <div className="h-7 w-24 rounded animate-pulse bg-neutral-900" />
+          <div className="h-7 w-24 rounded animate-pulse bg-surface" />
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
-            <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
+            <div className="w-10 h-10 rounded-full animate-pulse bg-surface" />
+            <div className="w-10 h-10 rounded-full animate-pulse bg-surface" />
           </div>
         </div>
-        <div className="rounded-[20px] h-[150px] animate-pulse bg-neutral-900" />
-        <div className="rounded-2xl h-[100px] mt-4 animate-pulse bg-neutral-900" />
-        <div className="rounded-2xl h-[100px] mt-3 animate-pulse bg-neutral-900" />
+        <div className="rounded-[20px] h-[150px] animate-pulse bg-surface" />
+        <div className="rounded-2xl h-[100px] mt-4 animate-pulse bg-surface" />
+        <div className="rounded-2xl h-[100px] mt-3 animate-pulse bg-surface" />
       </div>
     );
   }
 
   return (
-    <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+    <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
 
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
         <div className="text-xl font-bold tracking-tight">
           <span style={{ color: '#C4E938' }}>Du</span>{' '}
-          <span className="text-white">Life</span>
+          <span className="text-ink">Life</span>
         </div>
         <div className="flex items-center gap-2">
-          <button className="relative w-10 h-10 rounded-full flex items-center justify-center bg-neutral-900 border border-neutral-800">
-            <IconBell size={18} color="#fff" />
+          <button className="relative w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-hairline">
+            <IconBell size={18} color="var(--text-primary)" />
             {NOTIFICACIONES_MOCK > 0 && (
               <div
                 className="absolute flex items-center justify-center rounded-full"
@@ -343,12 +343,12 @@ export default function PrestamosPage() {
 
       {/* Préstamos activos */}
       <div className="flex items-center justify-between mt-6 mb-3">
-        <div className="text-[17px] font-bold tracking-tight text-white">Préstamos activos</div>
-        <span className="text-[13px] text-neutral-400">{activos.length} activo{activos.length === 1 ? '' : 's'}</span>
+        <div className="text-[17px] font-bold tracking-tight text-ink">Préstamos activos</div>
+        <span className="text-[13px] text-muted">{activos.length} activo{activos.length === 1 ? '' : 's'}</span>
       </div>
 
       {activos.length === 0 ? (
-        <div className="rounded-2xl p-6 text-center text-neutral-400 text-[13px] bg-neutral-900 border border-neutral-800">
+        <div className="rounded-2xl p-6 text-center text-muted text-[13px] bg-surface border border-hairline">
           Aún no tienes préstamos activos.
         </div>
       ) : (
@@ -361,11 +361,11 @@ export default function PrestamosPage() {
                 href={`/dashboard/espacios/prestamos/${p.id}`}
                 prefetch
                 className="rounded-2xl p-4"
-                style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
               >
                 <div className="flex items-center gap-3">
                   <Avatar name={p.nombre_deudor} size="md" />
-                  <div className="flex-1 min-w-0 text-[15px] font-bold text-white truncate">{p.nombre_deudor}</div>
+                  <div className="flex-1 min-w-0 text-[15px] font-bold text-ink truncate">{p.nombre_deudor}</div>
                   <span
                     className="px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0"
                     style={{ background: 'rgba(196,233,56,0.15)', color: '#C4E938' }}
@@ -375,17 +375,17 @@ export default function PrestamosPage() {
                 </div>
 
                 <div className="mt-3">
-                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: '#2A2A2A' }}>
+                  <div className="w-full h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
                     <div className="h-full rounded-full" style={{ width: `${m.porcentaje}%`, background: '#C4E938' }} />
                   </div>
                   <div className="flex justify-between items-center mt-1.5">
-                    <span className="text-[11px] text-neutral-400">{p.cuotas_pagadas} de {p.cantidad_cuotas} cuotas</span>
-                    <span className="text-[11px] font-bold text-white">{Math.round(m.porcentaje)}%</span>
+                    <span className="text-[11px] text-muted">{p.cuotas_pagadas} de {p.cantidad_cuotas} cuotas</span>
+                    <span className="text-[11px] font-bold text-ink">{Math.round(m.porcentaje)}%</span>
                   </div>
                 </div>
 
                 <div className="flex justify-between items-center mt-3">
-                  <span className="text-[12px] text-neutral-400">Próximo pago: {proximoPagoTexto(p.dia_pago)}</span>
+                  <span className="text-[12px] text-muted">Próximo pago: {proximoPagoTexto(p.dia_pago)}</span>
                   <span className="text-[14px] font-bold" style={{ color: '#C4E938' }}>{formatCOP(p.valor_cuota)}</span>
                 </div>
               </Link>
@@ -396,26 +396,26 @@ export default function PrestamosPage() {
 
       {/* Estadísticas */}
       <div className="grid grid-cols-2 gap-3 mt-6">
-        <div className="rounded-2xl p-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-          <div className="text-[11px] text-neutral-400">Ganancia total</div>
-          <div className="text-[18px] font-bold text-white tracking-tight mt-1">{formatCOPCorto(resumen.ganancia)}</div>
+        <div className="rounded-2xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+          <div className="text-[11px] text-muted">Ganancia total</div>
+          <div className="text-[18px] font-bold text-ink tracking-tight mt-1">{formatCOPCorto(resumen.ganancia)}</div>
           <div className="text-[11px] mt-1" style={{ color: '#C4E938' }}>
             {resumen.rentabilidadPromedio.toFixed(1)}% rentabilidad prom.
           </div>
         </div>
-        <div className="rounded-2xl p-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-          <div className="text-[11px] text-neutral-400">Préstamos</div>
-          <div className="text-[18px] font-bold text-white tracking-tight mt-1">
-            {resumen.completados} <span className="text-neutral-500 text-[13px] font-medium">completados</span>
+        <div className="rounded-2xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+          <div className="text-[11px] text-muted">Préstamos</div>
+          <div className="text-[18px] font-bold text-ink tracking-tight mt-1">
+            {resumen.completados} <span className="text-soft text-[13px] font-medium">completados</span>
           </div>
-          <div className="text-[11px] text-neutral-400 mt-1">{resumen.activos} activos</div>
+          <div className="text-[11px] text-muted mt-1">{resumen.activos} activos</div>
         </div>
       </div>
 
       {/* Gráfica: flujo de recuperación */}
       {prestamos.length > 0 && (
-        <div className="rounded-2xl p-4 mt-6" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-          <div className="text-[12px] text-neutral-400 uppercase tracking-wide font-medium mb-2">
+        <div className="rounded-2xl p-4 mt-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+          <div className="text-[12px] text-muted uppercase tracking-wide font-medium mb-2">
             Flujo de recuperación
           </div>
           <GraficaFlujoRecuperacion serie={serieMensual} totalPendiente={resumen.totalPendiente} />
@@ -424,8 +424,8 @@ export default function PrestamosPage() {
 
       {/* Gráfica: distribución por deudor */}
       {segmentosDonut.length > 0 && (
-        <div className="rounded-2xl p-4 mt-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-          <div className="text-[12px] text-neutral-400 uppercase tracking-wide font-medium mb-3">
+        <div className="rounded-2xl p-4 mt-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+          <div className="text-[12px] text-muted uppercase tracking-wide font-medium mb-3">
             Distribución por deudor
           </div>
           <DonutDistribucion segmentos={segmentosDonut} />

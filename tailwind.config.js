@@ -7,23 +7,23 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Fondos
-        page: '#0A0A0A',        // fondo principal (dark)
-        surface: '#1A1A1A',     // cards / superficies elevadas
-        elevated: '#242424',    // segundo nivel de elevación (badges, inputs)
+        // Todos apuntan a las CSS variables de tema (app/globals.css) en vez
+        // de hex fijos, para que /login y /verify (que no llevan el switch
+        // de tema, solo dark) sigan viéndose igual, pero cualquier pantalla
+        // del dashboard que use estas clases cambie sola con el tema.
+        page: 'var(--bg-primary)',
+        surface: 'var(--bg-card)',
+        elevated: 'var(--bg-card-hover)',
 
-        // Textos
-        ink: '#FFFFFF',         // texto principal
-        muted: '#A1A1AA',       // texto secundario
-        soft: '#71717A',        // texto terciario / disabled
+        ink: 'var(--text-primary)',
+        muted: 'var(--text-secondary)',
+        soft: 'var(--text-muted)',
 
-        // Bordes
-        hairline: '#2A2A2A',    // bordes sutiles
+        hairline: 'var(--border-color)',
 
-        // Acentos
-        lime: '#C4E938',
-        'lime-soft': 'rgba(196, 233, 56, 0.15)',   // fondo de badges lime en dark
-        'lime-text': '#C4E938',                     // texto lime
+        lime: 'var(--accent)',
+        'lime-soft': 'rgba(196, 233, 56, 0.15)',
+        'lime-text': 'var(--accent)',
       },
       fontFamily: {
         sans: ['Inter', 'system-ui', 'sans-serif'],

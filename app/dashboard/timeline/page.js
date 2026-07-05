@@ -158,15 +158,15 @@ export default function TimelinePage() {
     return (
       <div className="px-5 pt-4 pb-32">
         <div className="flex items-center justify-between mb-5">
-          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div className="flex gap-2">
-            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
-            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
+            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           </div>
         </div>
-        <div className="h-8 w-52 rounded animate-pulse mb-2" style={{ background: '#1A1A1A' }} />
-        <div className="h-4 w-40 rounded animate-pulse mb-5" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[160px] animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="h-8 w-52 rounded animate-pulse mb-2" style={{ background: 'var(--bg-card)' }} />
+        <div className="h-4 w-40 rounded animate-pulse mb-5" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-card h-[160px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
   }
@@ -178,31 +178,31 @@ export default function TimelinePage() {
         <Link
           href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <IconArrowLeft size={18} color="#fff" />
+          <IconArrowLeft size={18} color="var(--text-primary)" />
         </Link>
         <div className="flex gap-2">
           <button
             type="button"
             className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
-            <IconSearch size={17} color="#fff" />
+            <IconSearch size={17} color="var(--text-primary)" />
           </button>
           <button
             type="button"
             className="relative w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
-            <IconFilter size={17} color="#fff" />
+            <IconFilter size={17} color="var(--text-primary)" />
             <div className="absolute w-2 h-2 rounded-full" style={{ background: '#4ADE80', top: '6px', right: '7px' }} />
           </button>
         </div>
       </div>
 
       {/* Título */}
-      <div className="text-[26px] font-bold tracking-tight text-white">
+      <div className="text-[26px] font-bold tracking-tight text-ink">
         Línea de <span style={{ color: '#C4E938' }}>tiempo</span>
       </div>
       <div className="text-[13px] text-muted mt-1 mb-4">Tu historia, en orden cronológico.</div>
@@ -212,9 +212,9 @@ export default function TimelinePage() {
         <button
           type="button"
           className="flex-shrink-0 w-10 h-9 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <IconCalendarEvent size={16} color="#A1A1AA" />
+          <IconCalendarEvent size={16} color="var(--text-secondary)" />
         </button>
         {FILTROS.map((f) => {
           const active = filtro === f.id;
@@ -224,9 +224,9 @@ export default function TimelinePage() {
               onClick={() => setFiltro(f.id)}
               className="flex-shrink-0 px-4 py-2 rounded-full text-[13px] font-bold whitespace-nowrap"
               style={{
-                background: active ? '#C4E938' : '#1A1A1A',
-                color: active ? '#0A0A0A' : '#A1A1AA',
-                border: active ? 'none' : '1px solid #2A2A2A',
+                background: active ? '#C4E938' : 'var(--bg-card)',
+                color: active ? '#0A0A0A' : 'var(--text-secondary)',
+                border: active ? 'none' : '1px solid var(--border-color)',
               }}
             >
               {f.label}
@@ -239,7 +239,7 @@ export default function TimelinePage() {
       {grupos.length === 0 ? (
         <div
           className="rounded-card p-8 mt-6 text-center text-muted text-[13px]"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
           Sin registros para este filtro.
         </div>
@@ -255,9 +255,9 @@ export default function TimelinePage() {
               return (
                 <div key={item.id} className="flex gap-3 mb-3">
                   <div className="flex flex-col items-end flex-shrink-0" style={{ width: '54px' }}>
-                    <div className="text-[13px] font-bold text-white">
+                    <div className="text-[13px] font-bold text-ink">
                       {item.fechaHora.getDate()}{' '}
-                      <span className="text-[11px]" style={{ color: '#A1A1AA' }}>
+                      <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>
                         {item.fechaHora.toLocaleDateString('es-CO', { month: 'short' }).replace('.', '').toUpperCase()}
                       </span>
                     </div>
@@ -272,18 +272,18 @@ export default function TimelinePage() {
                       <Icon size={16} color={cfg.color} />
                     </div>
                     {i < grupo.items.length - 1 && (
-                      <div className="flex-1 w-px mt-1" style={{ background: '#2A2A2A', minHeight: '20px' }} />
+                      <div className="flex-1 w-px mt-1" style={{ background: 'var(--border-color)', minHeight: '20px' }} />
                     )}
                   </div>
 
-                  <div className="flex-1 min-w-0 rounded-card p-3.5" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+                  <div className="flex-1 min-w-0 rounded-card p-3.5" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
                     <div className="flex items-start justify-between">
                       <div className="text-[11px] font-bold" style={{ color: cfg.color }}>
                         {cfg.label}
                       </div>
-                      <IconDots size={16} color="#71717A" />
+                      <IconDots size={16} color="var(--text-secondary)" />
                     </div>
-                    <div className="text-[14px] font-bold text-white mt-0.5 truncate">{item.titulo}</div>
+                    <div className="text-[14px] font-bold text-ink mt-0.5 truncate">{item.titulo}</div>
                     {item.subtitulo && (
                       <div className="text-[12px] text-soft mt-0.5 truncate">{item.subtitulo}</div>
                     )}

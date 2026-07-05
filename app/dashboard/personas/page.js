@@ -93,14 +93,14 @@ export default function PersonasPage() {
     return (
       <div className="px-5 pt-4 pb-32">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div>
-            <div className="h-3 w-20 rounded animate-pulse mb-1.5" style={{ background: '#1A1A1A' }} />
-            <div className="h-5 w-24 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+            <div className="h-3 w-20 rounded animate-pulse mb-1.5" style={{ background: 'var(--bg-card)' }} />
+            <div className="h-5 w-24 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} />
           </div>
         </div>
-        <div className="rounded-hero h-[180px] animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[160px] mt-6 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-hero h-[180px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-card h-[160px] mt-6 animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
   }
@@ -114,22 +114,22 @@ export default function PersonasPage() {
           <Link
             href="/dashboard"
             className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
-            <IconArrowLeft size={18} color="#fff" />
+            <IconArrowLeft size={18} color="var(--text-primary)" />
           </Link>
           <div>
             <div className="text-[13px] text-muted">{personas.length} contactos</div>
-            <div className="text-[19px] font-bold tracking-tight text-white">Personas</div>
+            <div className="text-[19px] font-bold tracking-tight text-ink">Personas</div>
           </div>
         </div>
         <div className="flex gap-2">
           <button
             onClick={() => setShowBuscador(!showBuscador)}
             className="w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
-            <IconSearch size={17} color={showBuscador ? '#C4E938' : '#fff'} />
+            <IconSearch size={17} color={showBuscador ? '#C4E938' : 'var(--text-primary)'} />
           </button>
           <button
             className="w-10 h-10 rounded-full flex items-center justify-center"
@@ -150,9 +150,9 @@ export default function PersonasPage() {
           placeholder="Buscar por nombre..."
           className="w-full px-4 py-3 rounded-2xl text-[14px] outline-none mb-4"
           style={{
-            background: '#1A1A1A',
-            color: '#fff',
-            border: '1px solid #2A2A2A',
+            background: 'var(--bg-card)',
+            color: 'var(--text-primary)',
+            border: '1px solid var(--border-color)',
           }}
         />
       )}
@@ -161,9 +161,9 @@ export default function PersonasPage() {
       {personas.length === 0 ? (
         <div
           className="rounded-card p-8 text-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <div className="text-[14px] font-bold text-white mb-2">
+          <div className="text-[14px] font-bold text-ink mb-2">
             Aún no me has hablado de nadie
           </div>
           <div className="text-[13px] text-muted leading-relaxed">
@@ -208,12 +208,12 @@ export default function PersonasPage() {
           {/* Hace tiempo sin contactar */}
           {sinContactar.length > 0 && (
             <>
-              <div className="text-[17px] font-bold tracking-tight text-white mt-6 mb-2.5">
+              <div className="text-[17px] font-bold tracking-tight text-ink mt-6 mb-2.5">
                 Hace tiempo sin contactar
               </div>
               <div
                 className="rounded-card px-4"
-                style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
               >
                 {sinContactar.map((p, i) => {
                   const dias = diasDesde(p.ultima_mencion);
@@ -228,7 +228,7 @@ export default function PersonasPage() {
                     >
                       <Avatar name={p.nombre} size="lg" />
                       <div className="flex-1">
-                        <div className="text-[14px] font-bold text-white">{p.nombre}</div>
+                        <div className="text-[14px] font-bold text-ink">{p.nombre}</div>
                         <div className="text-[12px] text-soft mt-0.5">
                           {p.descripcion?.slice(0, 30) || 'Sin descripción'}
                           {p.descripcion?.length > 30 ? '...' : ''}
@@ -253,7 +253,7 @@ export default function PersonasPage() {
           {masMencionadas.length > 0 && (
             <>
               <div className="flex justify-between items-baseline mt-6 mb-2.5">
-                <div className="text-[17px] font-bold tracking-tight text-white">
+                <div className="text-[17px] font-bold tracking-tight text-ink">
                   Más mencionadas
                 </div>
                 <div className="text-[13px] text-muted font-medium">
@@ -266,15 +266,15 @@ export default function PersonasPage() {
                     key={p.id}
                     className="flex-shrink-0 rounded-card p-3.5 text-center"
                     style={{
-                      background: '#1A1A1A',
-                      border: '1px solid #2A2A2A',
+                      background: 'var(--bg-card)',
+                      border: '1px solid var(--border-color)',
                       width: '110px',
                     }}
                   >
                     <div className="flex justify-center">
                       <Avatar name={p.nombre} size="lg" />
                     </div>
-                    <div className="text-[13px] font-bold mt-2.5 text-white truncate">
+                    <div className="text-[13px] font-bold mt-2.5 text-ink truncate">
                       {p.nombre}
                     </div>
                     <div className="text-[11px] text-soft mt-0.5">
@@ -290,12 +290,12 @@ export default function PersonasPage() {
           {todas.length > 0 && (
             <>
               <div className="flex justify-between items-baseline mt-6 mb-2.5">
-                <div className="text-[17px] font-bold tracking-tight text-white">Todos</div>
+                <div className="text-[17px] font-bold tracking-tight text-ink">Todos</div>
                 <div className="text-[13px] text-muted font-medium">A-Z</div>
               </div>
               <div
                 className="rounded-card px-4"
-                style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+                style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
               >
                 {todas.map((p, i) => (
                   <button
@@ -307,7 +307,7 @@ export default function PersonasPage() {
                   >
                     <Avatar name={p.nombre} size="md" />
                     <div className="flex-1">
-                      <div className="text-[14px] font-bold text-white">{p.nombre}</div>
+                      <div className="text-[14px] font-bold text-ink">{p.nombre}</div>
                       {p.descripcion && (
                         <div className="text-[11px] text-soft mt-0.5">
                           {p.descripcion.slice(0, 40)}
@@ -315,7 +315,7 @@ export default function PersonasPage() {
                         </div>
                       )}
                     </div>
-                    <IconChevronRight size={17} color="#71717A" />
+                    <IconChevronRight size={17} color="var(--text-secondary)" />
                   </button>
                 ))}
               </div>

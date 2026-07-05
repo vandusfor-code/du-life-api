@@ -46,7 +46,7 @@ function parseCookies(cookieHeader) {
 async function handleResumen(usuarioId) {
   const { data: usuario } = await supabase
     .from('usuarios')
-    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url')
+    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url, metadata')
     .eq('id', usuarioId)
     .single();
 
@@ -563,6 +563,37 @@ async function handleFijarModulo(usuarioId, req) {
   }
 }
 
+// Preferencias generales (por ahora solo "tema"), mismo patrón de merge en
+// usuarios.metadata que handleFijarModulo — sin tabla/columna dedicada.
+async function handleGuardarPreferencias(usuarioId, req) {
+  try {
+    const body = req.body || {};
+
+    const { data: usuarioActual } = await supabase.from('usuarios').select('metadata').eq('id', usuarioId).single();
+    const metadataActual = usuarioActual?.metadata || {};
+
+    const nuevoMetadata = { ...metadataActual };
+    if (body.tema === 'light' || body.tema === 'dark') nuevoMetadata.tema = body.tema;
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update({ metadata: nuevoMetadata })
+      .eq('id', usuarioId)
+      .select()
+      .single();
+
+    if (error) {
+      console.error('Error guardando preferencias:', error.message);
+      return { status: 500, body: { error: 'No se pudo actualizar' } };
+    }
+
+    return { status: 200, body: { usuario: data } };
+  } catch (e) {
+    console.error('Error preferencias:', e.message);
+    return { status: 500, body: { error: 'Error interno' } };
+  }
+}
+
 // ===== ROUTER =====
 
 const HANDLERS = {
@@ -580,6 +611,7 @@ const HANDLERS = {
   usuario: handleUsuario,
   actualizar_perfil: handleActualizarPerfil,
   fijar_modulo: handleFijarModulo,
+  preferencias: handleGuardarPreferencias,
   push_subscribe: handlePushSubscribe,
   push_unsubscribe: handlePushUnsubscribe,
 };

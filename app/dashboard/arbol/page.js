@@ -172,10 +172,10 @@ function NodoPill({ icon: Icon, label, count, color, style }) {
   return (
     <div
       className="absolute flex items-center gap-1.5 rounded-[20px]"
-      style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', padding: '6px 12px', whiteSpace: 'nowrap', ...style }}
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '6px 12px', whiteSpace: 'nowrap', ...style }}
     >
       <Icon size={13} color={color} />
-      <span className="text-[11px] font-bold text-white">{label}</span>
+      <span className="text-[11px] font-bold text-ink">{label}</span>
       <span className="text-[11px] font-bold" style={{ color }}>{count}</span>
     </div>
   );
@@ -216,14 +216,14 @@ export default function ArbolPage() {
     return (
       <div className="px-5 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+16px)]">
         <div className="flex items-center justify-between mb-4">
-          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
-          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
         </div>
-        <div className="h-7 w-44 rounded animate-pulse mb-2" style={{ background: '#1A1A1A' }} />
-        <div className="h-4 w-52 rounded animate-pulse mb-4" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[36px] animate-pulse mb-4" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-hero h-[320px] animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[90px] mt-4 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="h-7 w-44 rounded animate-pulse mb-2" style={{ background: 'var(--bg-card)' }} />
+        <div className="h-4 w-52 rounded animate-pulse mb-4" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-card h-[36px] animate-pulse mb-4" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-hero h-[320px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-card h-[90px] mt-4 animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
   }
@@ -250,27 +250,27 @@ export default function ArbolPage() {
         <Link
           href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <IconArrowLeft size={18} color="#fff" />
+          <IconArrowLeft size={18} color="var(--text-primary)" />
         </Link>
         <button
           type="button"
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <IconDotsVertical size={18} color="#fff" />
+          <IconDotsVertical size={18} color="var(--text-primary)" />
         </button>
       </div>
 
       <div className="flex items-center gap-2">
-        <div className="text-[22px] font-bold tracking-tight text-white">Árbol de vida</div>
+        <div className="text-[22px] font-bold tracking-tight text-ink">Árbol de vida</div>
         <IconTree size={19} color="#C4E938" />
       </div>
       <div className="text-[12px] text-muted mt-0.5 mb-3">Tu historia, visualizada y conectada.</div>
 
       {/* Tabs */}
-      <div className="flex rounded-full p-1 mb-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', height: '36px' }}>
+      <div className="flex rounded-full p-1 mb-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', height: '36px' }}>
         {TABS.map((t) => {
           const active = tab === t.id;
           return (
@@ -280,7 +280,7 @@ export default function ArbolPage() {
               className="flex-1 flex items-center justify-center gap-1 rounded-full overflow-hidden"
               style={{
                 background: active ? '#242424' : 'transparent',
-                color: active ? '#C4E938' : '#71717A',
+                color: active ? '#C4E938' : 'var(--text-secondary)',
                 fontSize: '11px',
                 fontWeight: 500,
                 padding: '0 6px',
@@ -298,9 +298,9 @@ export default function ArbolPage() {
       {tab !== 'arbol' ? (
         <div
           className="rounded-card p-8 text-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <div className="text-[14px] font-bold text-white mb-2">Próximamente</div>
+          <div className="text-[14px] font-bold text-ink mb-2">Próximamente</div>
           <div className="text-[13px] text-muted leading-relaxed">
             {tab === 'tiempo'
               ? 'Pronto podrás ver la línea de tiempo de tu árbol aquí.'
@@ -312,7 +312,7 @@ export default function ArbolPage() {
           {/* Árbol + nodos flotantes */}
           <div
             className="rounded-hero relative overflow-visible"
-            style={{ background: '#0A0A0A', border: '1px solid #2A2A2A', height: '290px' }}
+            style={{ background: '#0A0A0A', border: '1px solid var(--border-color)', height: '290px' }}
           >
             <div className="relative" style={{ height: '232px', marginTop: '28px' }}>
               {CATEGORIAS_CONFIG.map((c, i) => (
@@ -338,18 +338,18 @@ export default function ArbolPage() {
             <div
               className="absolute flex items-center gap-1.5 rounded-[20px]"
               style={{
-                background: '#1A1A1A', border: '1px solid #2A2A2A', padding: '6px 14px',
+                background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '6px 14px',
                 bottom: '6px', left: '50%', transform: 'translateX(-50%)', whiteSpace: 'nowrap',
               }}
             >
-              <span className="text-[12px] font-bold text-white">{momentos} momentos</span>
+              <span className="text-[12px] font-bold text-ink">{momentos} momentos</span>
               <IconSparkles size={13} color="#C4E938" />
             </div>
           </div>
 
           {/* Resumen de tu historia */}
-          <div className="rounded-card mt-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', padding: '12px' }}>
-            <div className="text-[13px] font-bold text-white mb-3">Resumen de tu historia</div>
+          <div className="rounded-card mt-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', padding: '12px' }}>
+            <div className="text-[13px] font-bold text-ink mb-3">Resumen de tu historia</div>
             <div className="grid grid-cols-4 gap-1">
               {STATS.map((s, i) => (
                 <div
@@ -360,7 +360,7 @@ export default function ArbolPage() {
                   <div className="flex justify-center mb-1">
                     <s.icon size={16} color={s.color} />
                   </div>
-                  <div className="font-bold text-white leading-tight" style={{ fontSize: '20px' }}>
+                  <div className="font-bold text-ink leading-tight" style={{ fontSize: '20px' }}>
                     {s.valor}
                   </div>
                   <div className="text-[11px] text-soft mt-0.5 leading-tight">{s.label}</div>
@@ -370,7 +370,7 @@ export default function ArbolPage() {
           </div>
 
           {/* Insight */}
-          <div className="rounded-card p-3 mt-3 flex items-center gap-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+          <div className="rounded-card p-3 mt-3 flex items-center gap-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
             <div
               className="w-[34px] h-[34px] rounded-[10px] flex items-center justify-center flex-shrink-0"
               style={{ background: '#C4E938' }}
@@ -381,7 +381,7 @@ export default function ArbolPage() {
               <div className="text-[10px] font-bold uppercase tracking-wide" style={{ color: '#C4E938' }}>
                 Insight de tu árbol
               </div>
-              <div className="text-[12px] font-bold text-white mt-0.5 leading-snug">
+              <div className="text-[12px] font-bold text-ink mt-0.5 leading-snug">
                 Este mes has crecido especialmente en aprendizajes y finanzas.
               </div>
             </div>

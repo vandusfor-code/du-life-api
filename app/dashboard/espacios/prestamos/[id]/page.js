@@ -12,7 +12,7 @@ const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 
 const ESTADO_CONFIG = {
   activo: { label: 'Activo', bg: 'rgba(196,233,56,0.15)', color: '#C4E938' },
-  completado: { label: 'Completado', bg: '#242424', color: '#A1A1AA' },
+  completado: { label: 'Completado', bg: '#242424', color: 'var(--text-secondary)' },
   cancelado: { label: 'Cancelado', bg: 'rgba(248,113,113,0.15)', color: '#F87171' },
 };
 
@@ -20,7 +20,7 @@ const TIPO_MOVIMIENTO_CONFIG = {
   pago_completo: { emoji: '💰', color: '#4ADE80', label: 'Pago completo' },
   abono: { emoji: '➕', color: '#EAB308', label: 'Abono' },
   pago_adelantado: { emoji: '⏩', color: '#3B82F6', label: 'Pago adelantado' },
-  ajuste: { emoji: '✏️', color: '#A1A1AA', label: 'Ajuste' },
+  ajuste: { emoji: '✏️', color: 'var(--text-secondary)', label: 'Ajuste' },
   condonacion: { emoji: '🎁', color: '#A78BFA', label: 'Condonación' },
 };
 
@@ -105,7 +105,7 @@ const GraficaPagosPorMes = memo(function GraficaPagosPorMes({ movimientos }) {
             {m.abono > 0 && (
               <rect x={x - barW / 2} y={yAbono} width={barW} height={alturaAbono} rx="2" fill="#EAB308" />
             )}
-            <text x={x} y={H - 4} textAnchor="middle" fontSize="9" fill="#71717A">{m.label}</text>
+            <text x={x} y={H - 4} textAnchor="middle" fontSize="9" fill="var(--text-secondary)">{m.label}</text>
           </g>
         );
       })}
@@ -151,26 +151,26 @@ export default function PrestamoDetallePage({ params }) {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
-          <div className="h-6 w-32 rounded animate-pulse bg-neutral-900" />
+          <div className="w-10 h-10 rounded-full animate-pulse bg-surface" />
+          <div className="h-6 w-32 rounded animate-pulse bg-surface" />
         </div>
-        <div className="rounded-2xl h-[220px] animate-pulse bg-neutral-900" />
+        <div className="rounded-2xl h-[220px] animate-pulse bg-surface" />
       </div>
     );
   }
 
   if (!prestamo) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
         <Link href="/dashboard/espacios/prestamos" className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-neutral-900 border border-neutral-800">
-            <IconArrowLeft size={18} color="#fff" />
+          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-hairline">
+            <IconArrowLeft size={18} color="var(--text-primary)" />
           </div>
-          <span className="text-white font-bold">Volver</span>
+          <span className="text-ink font-bold">Volver</span>
         </Link>
-        <div className="text-center text-neutral-400 text-[13px] mt-10">No encontré este préstamo.</div>
+        <div className="text-center text-muted text-[13px] mt-10">No encontré este préstamo.</div>
       </div>
     );
   }
@@ -185,19 +185,19 @@ export default function PrestamoDetallePage({ params }) {
   const mensajePago = encodeURIComponent(`Registrar pago de préstamo - ${prestamo.nombre_deudor}: `);
 
   return (
-    <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+    <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
         <Link
           href="/dashboard/espacios/prestamos"
-          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-neutral-900 border border-neutral-800"
+          className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 bg-surface border border-hairline"
         >
-          <IconArrowLeft size={18} color="#fff" />
+          <IconArrowLeft size={18} color="var(--text-primary)" />
         </Link>
         <Avatar name={prestamo.nombre_deudor} size="lg" />
         <div className="flex-1 min-w-0">
-          <div className="text-[18px] font-bold text-white truncate">{prestamo.nombre_deudor}</div>
+          <div className="text-[18px] font-bold text-ink truncate">{prestamo.nombre_deudor}</div>
         </div>
         <span
           className="px-2.5 py-1 rounded-full text-[10px] font-bold flex-shrink-0"
@@ -208,51 +208,51 @@ export default function PrestamoDetallePage({ params }) {
       </div>
 
       {/* Card resumen principal */}
-      <div className="rounded-[20px] p-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-        <div className="text-[12px] text-neutral-400">Capital prestado</div>
-        <div className="text-[28px] font-bold text-white tracking-tight mt-0.5">{formatCOP(prestamo.capital)}</div>
+      <div className="rounded-[20px] p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+        <div className="text-[12px] text-muted">Capital prestado</div>
+        <div className="text-[28px] font-bold text-ink tracking-tight mt-0.5">{formatCOP(prestamo.capital)}</div>
 
         <div className="mt-4">
-          <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: '#2A2A2A' }}>
+          <div className="w-full h-2.5 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
             <div className="h-full rounded-full" style={{ width: `${porcentaje}%`, background: '#C4E938' }} />
           </div>
           <div className="flex justify-between items-center mt-1.5">
-            <span className="text-[11px] text-neutral-400">{prestamo.cuotas_pagadas} de {prestamo.cantidad_cuotas} cuotas</span>
-            <span className="text-[11px] font-bold text-white">{Math.round(porcentaje)}%</span>
+            <span className="text-[11px] text-muted">{prestamo.cuotas_pagadas} de {prestamo.cantidad_cuotas} cuotas</span>
+            <span className="text-[11px] font-bold text-ink">{Math.round(porcentaje)}%</span>
           </div>
         </div>
 
         <div className="grid grid-cols-2 gap-3 mt-4">
           <div>
-            <div className="text-[11px] text-neutral-400">💰 Recuperado</div>
-            <div className="text-[15px] font-bold text-white mt-0.5">{formatCOP(recuperado)}</div>
+            <div className="text-[11px] text-muted">💰 Recuperado</div>
+            <div className="text-[15px] font-bold text-ink mt-0.5">{formatCOP(recuperado)}</div>
           </div>
           <div>
-            <div className="text-[11px] text-neutral-400">⏳ Saldo pendiente</div>
-            <div className="text-[15px] font-bold text-white mt-0.5">{formatCOP(saldoPendiente)}</div>
+            <div className="text-[11px] text-muted">⏳ Saldo pendiente</div>
+            <div className="text-[15px] font-bold text-ink mt-0.5">{formatCOP(saldoPendiente)}</div>
           </div>
           <div>
-            <div className="text-[11px] text-neutral-400">✅ Cuotas pagadas</div>
-            <div className="text-[15px] font-bold text-white mt-0.5">{prestamo.cuotas_pagadas}</div>
+            <div className="text-[11px] text-muted">✅ Cuotas pagadas</div>
+            <div className="text-[15px] font-bold text-ink mt-0.5">{prestamo.cuotas_pagadas}</div>
           </div>
           <div>
-            <div className="text-[11px] text-neutral-400">📅 Cuotas restantes</div>
-            <div className="text-[15px] font-bold text-white mt-0.5">{cuotasRestantes}</div>
+            <div className="text-[11px] text-muted">📅 Cuotas restantes</div>
+            <div className="text-[15px] font-bold text-ink mt-0.5">{cuotasRestantes}</div>
           </div>
         </div>
       </div>
 
       {/* Gráfica de pagos */}
-      <div className="rounded-2xl p-4 mt-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+      <div className="rounded-2xl p-4 mt-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
         <div className="flex items-center gap-3 mb-2">
-          <div className="text-[12px] text-neutral-400 uppercase tracking-wide font-medium">Pagos por mes</div>
+          <div className="text-[12px] text-muted uppercase tracking-wide font-medium">Pagos por mes</div>
           <div className="flex items-center gap-1 ml-auto">
             <span className="w-2 h-2 rounded-full" style={{ background: '#C4E938' }} />
-            <span className="text-[10px] text-neutral-400">Completo</span>
+            <span className="text-[10px] text-muted">Completo</span>
           </div>
           <div className="flex items-center gap-1">
             <span className="w-2 h-2 rounded-full" style={{ background: '#EAB308' }} />
-            <span className="text-[10px] text-neutral-400">Abono</span>
+            <span className="text-[10px] text-muted">Abono</span>
           </div>
         </div>
         <GraficaPagosPorMes movimientos={movimientos} />
@@ -260,13 +260,13 @@ export default function PrestamoDetallePage({ params }) {
 
       {/* Próximo pago */}
       {prestamo.estado === 'activo' && (
-        <div className="rounded-2xl p-4 mt-4 flex items-center gap-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+        <div className="rounded-2xl p-4 mt-4 flex items-center gap-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
           <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,233,56,0.15)' }}>
             <IconClock size={20} color="#C4E938" />
           </div>
           <div className="flex-1 min-w-0">
-            <div className="text-[13px] font-bold text-white">Día {prestamo.dia_pago} · en {diasRestantes} día{diasRestantes === 1 ? '' : 's'}</div>
-            <div className="text-[12px] text-neutral-400 mt-0.5">
+            <div className="text-[13px] font-bold text-ink">Día {prestamo.dia_pago} · en {diasRestantes} día{diasRestantes === 1 ? '' : 's'}</div>
+            <div className="text-[12px] text-muted mt-0.5">
               {prestamo.abono_cuota_actual > 0
                 ? `Abonado $${Math.round(prestamo.abono_cuota_actual).toLocaleString('es-CO')} · falta ${formatCOP(faltaParaCuota)}`
                 : `Cuota completa`}
@@ -278,17 +278,17 @@ export default function PrestamoDetallePage({ params }) {
 
       {/* Historial de movimientos */}
       <div className="mt-6">
-        <div className="text-[17px] font-bold tracking-tight text-white mb-3">Historial</div>
+        <div className="text-[17px] font-bold tracking-tight text-ink mb-3">Historial</div>
 
         {movimientos.length === 0 ? (
-          <div className="rounded-2xl p-6 text-center text-neutral-400 text-[13px] bg-neutral-900 border border-neutral-800">
+          <div className="rounded-2xl p-6 text-center text-muted text-[13px] bg-surface border border-hairline">
             Aún no hay movimientos registrados.
           </div>
         ) : (
           Object.entries(movimientosPorMes).map(([mes, movs]) => (
             <div key={mes} className="mb-4">
-              <div className="text-[12px] font-bold text-neutral-400 uppercase tracking-wide mb-2">{mes}</div>
-              <div className="rounded-2xl px-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+              <div className="text-[12px] font-bold text-muted uppercase tracking-wide mb-2">{mes}</div>
+              <div className="rounded-2xl px-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
                 {movs.map((mov, i) => {
                   const tcfg = TIPO_MOVIMIENTO_CONFIG[mov.tipo] || TIPO_MOVIMIENTO_CONFIG.ajuste;
                   return (
@@ -304,8 +304,8 @@ export default function PrestamoDetallePage({ params }) {
                         {tcfg.emoji}
                       </div>
                       <div className="flex-1 min-w-0">
-                        <div className="text-[14px] font-bold text-white truncate">{tcfg.label}</div>
-                        <div className="text-[11px] text-neutral-500 mt-0.5">{formatFechaHora(mov.created_at)}</div>
+                        <div className="text-[14px] font-bold text-ink truncate">{tcfg.label}</div>
+                        <div className="text-[11px] text-soft mt-0.5">{formatFechaHora(mov.created_at)}</div>
                       </div>
                       <div className="text-[14px] font-bold flex-shrink-0" style={{ color: tcfg.color }}>
                         {formatCOP(mov.monto)}
@@ -320,34 +320,34 @@ export default function PrestamoDetallePage({ params }) {
       </div>
 
       {/* Estadísticas del préstamo */}
-      <div ref={statsRef} className="rounded-2xl p-4 mt-2" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
-        <div className="text-[12px] text-neutral-400 uppercase tracking-wide font-medium mb-3">Estadísticas</div>
+      <div ref={statsRef} className="rounded-2xl p-4 mt-2" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+        <div className="text-[12px] text-muted uppercase tracking-wide font-medium mb-3">Estadísticas</div>
         <div className="flex flex-col gap-2.5">
           <div className="flex justify-between items-center">
-            <span className="text-[13px] text-neutral-400">Capital original</span>
-            <span className="text-[13px] font-bold text-white">{formatCOP(prestamo.capital)}</span>
+            <span className="text-[13px] text-muted">Capital original</span>
+            <span className="text-[13px] font-bold text-ink">{formatCOP(prestamo.capital)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[13px] text-neutral-400">Total esperado</span>
-            <span className="text-[13px] font-bold text-white">{formatCOP(prestamo.total_esperado)}</span>
+            <span className="text-[13px] text-muted">Total esperado</span>
+            <span className="text-[13px] font-bold text-ink">{formatCOP(prestamo.total_esperado)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[13px] text-neutral-400">Ganancia esperada</span>
+            <span className="text-[13px] text-muted">Ganancia esperada</span>
             <span className="text-[13px] font-bold" style={{ color: '#C4E938' }}>{formatCOP(prestamo.ganancia_esperada)}</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[13px] text-neutral-400">Rentabilidad</span>
+            <span className="text-[13px] text-muted">Rentabilidad</span>
             <span className="text-[13px] font-bold" style={{ color: '#C4E938' }}>{Number(prestamo.rentabilidad).toFixed(1)}%</span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[13px] text-neutral-400">Fecha de inicio</span>
-            <span className="text-[13px] font-bold text-white">
+            <span className="text-[13px] text-muted">Fecha de inicio</span>
+            <span className="text-[13px] font-bold text-ink">
               {new Date(prestamo.created_at).toLocaleDateString('es-CO', { day: 'numeric', month: 'short', year: 'numeric' })}
             </span>
           </div>
           <div className="flex justify-between items-center">
-            <span className="text-[13px] text-neutral-400">Cierre estimado</span>
-            <span className="text-[13px] font-bold text-white">
+            <span className="text-[13px] text-muted">Cierre estimado</span>
+            <span className="text-[13px] font-bold text-ink">
               {calcularFechaCierreEstimada(prestamo.created_at, prestamo.cantidad_cuotas)}
             </span>
           </div>
@@ -361,7 +361,7 @@ export default function PrestamoDetallePage({ params }) {
           target="_blank"
           rel="noopener noreferrer"
           className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-full text-[13px] font-bold"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#C4E938' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: '#C4E938' }}
         >
           <IconWallet size={16} color="#C4E938" /> Registrar pago
         </a>
@@ -369,9 +369,9 @@ export default function PrestamoDetallePage({ params }) {
           type="button"
           onClick={() => statsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}
           className="flex-1 flex items-center justify-center gap-1.5 py-3 rounded-full text-[13px] font-bold"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#A1A1AA' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
         >
-          <IconChartBar size={16} color="#A1A1AA" /> Ver estadísticas
+          <IconChartBar size={16} color="var(--text-secondary)" /> Ver estadísticas
         </button>
       </div>
 

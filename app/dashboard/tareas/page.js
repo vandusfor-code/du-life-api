@@ -115,15 +115,15 @@ export default function TareasPage() {
     return (
       <div className="px-5 pt-4 pb-32">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div>
-            <div className="h-3 w-16 rounded animate-pulse mb-1.5" style={{ background: '#1A1A1A' }} />
-            <div className="h-5 w-16 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+            <div className="h-3 w-16 rounded animate-pulse mb-1.5" style={{ background: 'var(--bg-card)' }} />
+            <div className="h-5 w-16 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} />
           </div>
         </div>
-        <div className="rounded-hero h-[130px] animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[160px] mt-6 animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[120px] mt-4 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-hero h-[130px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-card h-[160px] mt-6 animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-card h-[120px] mt-4 animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
   }
@@ -136,13 +136,13 @@ export default function TareasPage() {
         <Link
           href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <IconArrowLeft size={18} color="#fff" />
+          <IconArrowLeft size={18} color="var(--text-primary)" />
         </Link>
         <div>
           <div className="text-[13px] text-muted">Pendientes</div>
-          <div className="text-[19px] font-bold tracking-tight text-white">Tareas</div>
+          <div className="text-[19px] font-bold tracking-tight text-ink">Tareas</div>
         </div>
       </div>
 
@@ -175,9 +175,9 @@ export default function TareasPage() {
       {tareas.length === 0 ? (
         <div
           className="rounded-card p-8 mt-6 text-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <div className="text-[14px] font-bold text-white mb-2">
+          <div className="text-[14px] font-bold text-ink mb-2">
             Sin tareas pendientes
           </div>
           <div className="text-[13px] text-muted leading-relaxed">
@@ -201,12 +201,12 @@ function SeccionTareas({ titulo, tareas, onCompletar }) {
 
   return (
     <>
-      <div className="text-[17px] font-bold tracking-tight text-white mt-6 mb-2.5">
+      <div className="text-[17px] font-bold tracking-tight text-ink mt-6 mb-2.5">
         {titulo}
       </div>
       <div
         className="rounded-card px-4"
-        style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
         {tareas.map((t, i) => {
           const prio = colorPrioridad(t.prioridad);
@@ -221,12 +221,12 @@ function SeccionTareas({ titulo, tareas, onCompletar }) {
               <button
                 onClick={() => onCompletar(t.id)}
                 className="w-6 h-6 rounded-full flex items-center justify-center flex-shrink-0"
-                style={{ border: '1.5px solid #71717A', background: 'transparent' }}
+                style={{ border: '1.5px solid var(--text-secondary)', background: 'transparent' }}
               >
                 {/* Vacío hasta que se toque */}
               </button>
               <div className="flex-1 min-w-0">
-                <div className="text-[14px] font-bold text-white truncate">
+                <div className="text-[14px] font-bold text-ink truncate">
                   {t.titulo}
                 </div>
                 <div className="flex items-center gap-2 mt-0.5">

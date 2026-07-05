@@ -71,14 +71,14 @@ export default function NotasPage() {
     return (
       <div className="px-5 pt-4 pb-32">
         <div className="flex items-center gap-3 mb-5">
-          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div>
-            <div className="h-3 w-14 rounded animate-pulse mb-1.5" style={{ background: '#1A1A1A' }} />
-            <div className="h-5 w-16 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+            <div className="h-3 w-14 rounded animate-pulse mb-1.5" style={{ background: 'var(--bg-card)' }} />
+            <div className="h-5 w-16 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} />
           </div>
         </div>
-        <div className="rounded-hero h-[150px] animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[160px] mt-6 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-hero h-[150px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-card h-[160px] mt-6 animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
   }
@@ -91,25 +91,25 @@ export default function NotasPage() {
         <Link
           href="/dashboard"
           className="w-10 h-10 rounded-full flex items-center justify-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <IconArrowLeft size={18} color="#fff" />
+          <IconArrowLeft size={18} color="var(--text-primary)" />
         </Link>
         <div>
           <div className="text-[13px] text-muted">
             {notas.length} {notas.length === 1 ? 'nota' : 'notas'}
           </div>
-          <div className="text-[19px] font-bold tracking-tight text-white">Notas</div>
+          <div className="text-[19px] font-bold tracking-tight text-ink">Notas</div>
         </div>
       </div>
 
       {notas.length === 0 ? (
         <div
           className="rounded-card p-8 mt-6 text-center"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
           <div className="text-[36px] mb-2">📝</div>
-          <div className="text-[14px] font-bold text-white mb-2">Sin notas aún</div>
+          <div className="text-[14px] font-bold text-ink mb-2">Sin notas aún</div>
           <div className="text-[13px] text-muted leading-relaxed">
             Cuéntale a Du Life por WhatsApp lo que quieras recordar.
           </div>
@@ -163,10 +163,10 @@ function SeccionNotas({ titulo, icon, notas }) {
     <>
       <div className="flex items-center gap-2 mt-6 mb-2.5">
         {icon}
-        <div className="text-[17px] font-bold tracking-tight text-white">{titulo}</div>
+        <div className="text-[17px] font-bold tracking-tight text-ink">{titulo}</div>
         <div className="text-[13px] text-muted font-medium ml-auto">{notas.length}</div>
       </div>
-      <div className="rounded-card px-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+      <div className="rounded-card px-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
         {notas.map((n, i) => (
           <div
             key={n.id}
@@ -174,7 +174,7 @@ function SeccionNotas({ titulo, icon, notas }) {
             style={{ borderBottom: i < notas.length - 1 ? '1px solid #242424' : 'none' }}
           >
             <div className="flex-1 min-w-0">
-              <div className="text-[14px] font-bold text-white truncate">
+              <div className="text-[14px] font-bold text-ink truncate">
                 {n.titulo || 'Sin título'}
               </div>
               {n.contenido && (
@@ -192,7 +192,7 @@ function SeccionNotas({ titulo, icon, notas }) {
               )}
               <div className="text-[11px] text-soft mt-1">{timeAgo(n.creado_en)}</div>
             </div>
-            <IconChevronRight size={16} color="#71717A" className="flex-shrink-0" />
+            <IconChevronRight size={16} color="var(--text-secondary)" className="flex-shrink-0" />
           </div>
         ))}
       </div>

@@ -26,7 +26,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="es">
+    <html lang="es" data-theme="dark">
       <head>
         <link rel="manifest" href="/manifest.json" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
@@ -34,6 +34,23 @@ export default function RootLayout({ children }) {
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
         <meta name="apple-mobile-web-app-title" content="Du Life" />
         <meta name="theme-color" content="#0A0A0A" />
+        {/* Script síncrono ANTES del primer paint: evita el flash del tema
+            equivocado sin requerir server-side dynamic rendering (cookies()
+            en el layout raíz volvería TODAS las páginas dinámicas, cada una
+            costando una Serverless Function — ya nos pasó una vez este
+            proyecto con revalidate=0 y rompió el límite de Vercel Hobby). */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              (function() {
+                try {
+                  var t = localStorage.getItem('du-theme') || 'dark';
+                  document.documentElement.setAttribute('data-theme', t);
+                } catch (e) {}
+              })();
+            `,
+          }}
+        />
       </head>
       <body>
         {children}

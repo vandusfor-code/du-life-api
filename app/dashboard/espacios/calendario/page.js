@@ -139,34 +139,34 @@ export default function CalendarioPage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
         <div className="flex justify-between items-center mb-5">
-          <div className="h-7 w-24 rounded animate-pulse bg-neutral-900" />
+          <div className="h-7 w-24 rounded animate-pulse bg-surface" />
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
-            <div className="w-10 h-10 rounded-full animate-pulse bg-neutral-900" />
+            <div className="w-10 h-10 rounded-full animate-pulse bg-surface" />
+            <div className="w-10 h-10 rounded-full animate-pulse bg-surface" />
           </div>
         </div>
-        <div className="h-24 rounded-2xl animate-pulse mb-5 bg-neutral-900" />
-        <div className="h-16 rounded-2xl animate-pulse mb-5 bg-neutral-900" />
-        <div className="rounded-2xl h-[300px] animate-pulse bg-neutral-900" />
+        <div className="h-24 rounded-2xl animate-pulse mb-5 bg-surface" />
+        <div className="h-16 rounded-2xl animate-pulse mb-5 bg-surface" />
+        <div className="rounded-2xl h-[300px] animate-pulse bg-surface" />
       </div>
     );
   }
 
   return (
-    <div className="px-5 pt-4 pb-32 bg-black min-h-screen">
+    <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
 
       {/* Header */}
       <div className="flex justify-between items-center mb-5">
         <div className="relative flex items-center">
           <span className="text-xl font-bold tracking-tight" style={{ color: '#C4E938' }}>Du</span>
-          <span className="text-xl font-bold tracking-tight text-white">&nbsp;Life</span>
+          <span className="text-xl font-bold tracking-tight text-ink">&nbsp;Life</span>
           <span className="text-[13px]" style={{ color: '#C4E938', marginLeft: '2px', marginTop: '-14px' }}>✦</span>
         </div>
         <div className="flex items-center gap-2">
-          <button className="relative w-10 h-10 rounded-full flex items-center justify-center bg-neutral-900 border border-neutral-800">
-            <IconBell size={18} color="#fff" />
+          <button className="relative w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-hairline">
+            <IconBell size={18} color="var(--text-primary)" />
             {NOTIFICACIONES_MOCK > 0 && (
               <div
                 className="absolute flex items-center justify-center rounded-full"
@@ -187,7 +187,7 @@ export default function CalendarioPage() {
       {/* Hero card */}
       <div
         className="rounded-2xl p-4 mb-5 flex items-center justify-between overflow-hidden"
-        style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
         <div className="flex items-start gap-3 min-w-0">
           <div
@@ -198,11 +198,11 @@ export default function CalendarioPage() {
           </div>
           <div className="min-w-0">
             <div className="text-[15px] font-bold tracking-tight leading-snug">
-              <span className="text-white">Tu </span>
+              <span className="text-ink">Tu </span>
               <span style={{ color: '#C4E938' }}>agenda</span>
-              <span className="text-white"> de hoy</span>
+              <span className="text-ink"> de hoy</span>
             </div>
-            <div className="text-[12px] text-neutral-400 mt-1 leading-snug">
+            <div className="text-[12px] text-muted mt-1 leading-snug">
               Organiza tu día, enfócate y logra más.
             </div>
           </div>
@@ -223,12 +223,12 @@ export default function CalendarioPage() {
               onClick={() => setDiaSeleccionado(d.fechaStr)}
               className="flex flex-col items-center gap-1.5 flex-1 py-1"
             >
-              <span className="text-[11px] text-neutral-400">{d.dia}</span>
+              <span className="text-[11px] text-muted">{d.dia}</span>
               <span
                 className="w-8 h-8 rounded-full flex items-center justify-center text-[13px] font-bold"
                 style={{
                   background: activo ? '#C4E938' : 'transparent',
-                  color: activo ? '#000' : '#A3A3A3',
+                  color: activo ? '#000' : 'var(--text-secondary)',
                 }}
               >
                 {d.numero}
@@ -246,13 +246,13 @@ export default function CalendarioPage() {
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-1.5 min-w-0">
           <IconCalendar size={15} color="#C4E938" className="flex-shrink-0" />
-          <span className="text-[15px] font-bold text-white capitalize truncate">
+          <span className="text-[15px] font-bold text-ink capitalize truncate">
             {formatFechaLarga(diaActivo)}
           </span>
         </div>
         <span
           className="flex items-center gap-0.5 px-3 py-1 rounded-full text-[12px] font-bold flex-shrink-0"
-          style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', color: '#C4E938' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: '#C4E938' }}
         >
           {formatEtiquetaPill(diaActivo)}
           <IconChevronDown size={12} color="#C4E938" />
@@ -261,7 +261,7 @@ export default function CalendarioPage() {
 
       {/* Timeline de eventos */}
       {eventosDia.length === 0 ? (
-        <div className="rounded-2xl p-6 text-center text-neutral-400 text-[13px] bg-neutral-900 border border-neutral-800">
+        <div className="rounded-2xl p-6 text-center text-muted text-[13px] bg-surface border border-hairline">
           No tienes eventos este día. ¡Agenda algo! 📅
         </div>
       ) : (
@@ -271,12 +271,12 @@ export default function CalendarioPage() {
               const cfg = CATEGORIA_CONFIG[ev.categoria] || CATEGORIA_CONFIG.personal;
               return (
                 <div key={ev.id} className="flex flex-col items-center" style={{ flex: 1, minHeight: '84px' }}>
-                  <div className="text-[11px] text-neutral-500 text-center leading-tight">
+                  <div className="text-[11px] text-soft text-center leading-tight">
                     {formatHora(ev.hora_inicio)}
                   </div>
                   <div className="w-2 h-2 rounded-full mt-1.5 flex-shrink-0" style={{ background: cfg.color }} />
                   {i < eventosDia.length - 1 && (
-                    <div className="flex-1 w-px mt-1" style={{ background: '#2A2A2A' }} />
+                    <div className="flex-1 w-px mt-1" style={{ background: 'var(--border-color)' }} />
                   )}
                 </div>
               );
@@ -290,7 +290,7 @@ export default function CalendarioPage() {
                 <div
                   key={ev.id}
                   className="rounded-2xl p-3.5 flex items-center gap-3"
-                  style={{ background: '#1A1A1A', border: '1px solid #2A2A2A', minHeight: '76px' }}
+                  style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '76px' }}
                 >
                   <div
                     className="w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
@@ -299,8 +299,8 @@ export default function CalendarioPage() {
                     <Icon size={18} color={cfg.color} />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-[14px] font-bold text-white leading-snug">{ev.titulo}</div>
-                    <div className="text-[12px] text-neutral-400 mt-0.5">
+                    <div className="text-[14px] font-bold text-ink leading-snug">{ev.titulo}</div>
+                    <div className="text-[12px] text-muted mt-0.5">
                       {formatHora(ev.hora_inicio)} – {formatHora(ev.hora_fin)}
                     </div>
                   </div>

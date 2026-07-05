@@ -4,13 +4,61 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Fallback antes de que el atributo data-theme se aplique (SSR/primer
+   paint): mismos valores que dark, para no arrancar con variables vacías. */
+:root {
+  --bg-primary: #000000;
+  --bg-card: #1A1A1A;
+  --bg-card-hover: #222222;
+  --border-color: #2A2A2A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #888888;
+  --text-muted: #555555;
+  --accent: #C4E938;
+  --accent-dark: #A8CC1E;
+  --hero-bg: #C4E938;
+  --hero-text: #000000;
+  --nav-bg: #0A0A0A;
+}
+
+:root[data-theme="dark"] {
+  --bg-primary: #000000;
+  --bg-card: #1A1A1A;
+  --bg-card-hover: #222222;
+  --border-color: #2A2A2A;
+  --text-primary: #FFFFFF;
+  --text-secondary: #888888;
+  --text-muted: #555555;
+  --accent: #C4E938;
+  --accent-dark: #A8CC1E;
+  --hero-bg: #C4E938;
+  --hero-text: #000000;
+  --nav-bg: #0A0A0A;
+}
+
+:root[data-theme="light"] {
+  --bg-primary: #F5F5F0;
+  --bg-card: #FFFFFF;
+  --bg-card-hover: #F0F0EB;
+  --border-color: #E5E5E0;
+  --text-primary: #0A0A0A;
+  --text-secondary: #555555;
+  --text-muted: #999999;
+  --accent: #C4E938;
+  --accent-dark: #A8CC1E;
+  --hero-bg: #C4E938;
+  --hero-text: #000000;
+  --nav-bg: #FFFFFF;
+}
+
 html, body {
   margin: 0;
   padding: 0;
-  background: #0A0A0A;
+  background: var(--bg-primary);
   font-family: 'Inter', system-ui, sans-serif;
-  color: #FFFFFF;
+  color: var(--text-primary);
   -webkit-font-smoothing: antialiased;
+  transition: background-color 0.2s ease, color 0.2s ease;
 }
 
 /* Safe area para iPhone con notch/Dynamic Island */

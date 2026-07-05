@@ -153,19 +153,19 @@ export default function BalancePage() {
     return (
       <div className="px-5 pt-4 pb-32">
         <div className="flex justify-between items-center mb-5">
-          <div className="h-7 w-24 rounded animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="h-7 w-24 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div className="flex items-center gap-2">
-            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
-            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: '#1A1A1A' }} />
+            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
+            <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           </div>
         </div>
-        <div className="rounded-hero h-[145px] animate-pulse" style={{ background: '#1A1A1A' }} />
-        <div className="rounded-card h-[90px] mt-3.5 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-hero h-[145px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="rounded-card h-[90px] mt-3.5 animate-pulse" style={{ background: 'var(--bg-card)' }} />
         <div className="grid grid-cols-2 gap-3 mt-3.5">
-          <div className="rounded-card h-[95px] animate-pulse" style={{ background: '#1A1A1A' }} />
-          <div className="rounded-card h-[95px] animate-pulse" style={{ background: '#1A1A1A' }} />
+          <div className="rounded-card h-[95px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+          <div className="rounded-card h-[95px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
         </div>
-        <div className="rounded-card h-[220px] mt-5 animate-pulse" style={{ background: '#1A1A1A' }} />
+        <div className="rounded-card h-[220px] mt-5 animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
   }
@@ -185,14 +185,14 @@ export default function BalancePage() {
       <div className="flex justify-between items-center mb-1">
         <div className="text-xl font-bold tracking-tight">
           <span style={{ color: '#C4E938' }}>Du</span>{' '}
-          <span className="text-white">Life</span>
+          <span className="text-ink">Life</span>
         </div>
         <div className="flex items-center gap-2">
           <button
             className="relative w-10 h-10 rounded-full flex items-center justify-center"
-            style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
-            <IconBell size={18} color="#fff" />
+            <IconBell size={18} color="var(--text-primary)" />
             {NOTIFICACIONES_MOCK > 0 && (
               <div
                 className="absolute flex items-center justify-center rounded-full"
@@ -259,7 +259,7 @@ export default function BalancePage() {
       {/* Insight del día */}
       <div
         className="mt-3.5 rounded-card p-3.5 flex items-center gap-3 relative overflow-hidden"
-        style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
         <div
           className="w-[38px] h-[38px] rounded-[11px] flex items-center justify-center flex-shrink-0"
@@ -271,7 +271,7 @@ export default function BalancePage() {
           <div className="text-[11px] font-bold uppercase tracking-wide" style={{ color: '#C4E938' }}>
             Insight del día
           </div>
-          <div className="text-[13px] font-bold tracking-tight mt-0.5 text-white leading-snug">
+          <div className="text-[13px] font-bold tracking-tight mt-0.5 text-ink leading-snug">
             {insight.texto}
           </div>
           <Link
@@ -288,7 +288,7 @@ export default function BalancePage() {
 
       {/* Ingresos / Gastos */}
       <div className="grid grid-cols-2 gap-3 mt-3.5">
-        <div className="rounded-card p-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+        <div className="rounded-card p-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
           <div className="flex items-center gap-2">
             <div
               className="w-[26px] h-[26px] rounded-full flex items-center justify-center flex-shrink-0"
@@ -298,7 +298,7 @@ export default function BalancePage() {
             </div>
             <div className="text-[11px] text-muted">Ingresos</div>
           </div>
-          <div className="text-[17px] font-bold tracking-tight text-white mt-2">
+          <div className="text-[17px] font-bold tracking-tight text-ink mt-2">
             {formatCOPCorto(d.ingresosMes)}
           </div>
           <div
@@ -312,17 +312,17 @@ export default function BalancePage() {
           </div>
         </div>
 
-        <div className="rounded-card p-3" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+        <div className="rounded-card p-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
           <div className="flex items-center gap-2">
             <div
               className="w-[26px] h-[26px] rounded-full flex items-center justify-center flex-shrink-0"
               style={{ background: '#242424' }}
             >
-              <IconArrowDown size={13} color="#A1A1AA" />
+              <IconArrowDown size={13} color="var(--text-secondary)" />
             </div>
             <div className="text-[11px] text-muted">Gastos</div>
           </div>
-          <div className="text-[17px] font-bold tracking-tight text-white mt-2">
+          <div className="text-[17px] font-bold tracking-tight text-ink mt-2">
             {formatCOPCorto(d.gastosMes)}
           </div>
           <div
@@ -343,18 +343,18 @@ export default function BalancePage() {
 
       {/* Actividad reciente */}
       <div className="flex justify-between items-center mt-6 mb-2.5">
-        <div className="text-[17px] font-bold tracking-tight text-white">Actividad reciente</div>
+        <div className="text-[17px] font-bold tracking-tight text-ink">Actividad reciente</div>
         <Link href="/dashboard/gastos" prefetch className="flex items-center gap-0.5 text-[13px] font-bold" style={{ color: '#C4E938' }}>
           Ver todo <IconChevronRight size={13} />
         </Link>
       </div>
 
       {d.actividadReciente.length === 0 ? (
-        <div className="rounded-card p-6 text-center text-muted text-[13px]" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+        <div className="rounded-card p-6 text-center text-muted text-[13px]" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
           Aún no hay movimientos registrados.
         </div>
       ) : (
-        <div className="rounded-card px-4" style={{ background: '#1A1A1A', border: '1px solid #2A2A2A' }}>
+        <div className="rounded-card px-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
           {d.actividadReciente.map((m, i) => {
             const esIngreso = m.tipo === 'ingreso';
             const nombreItem = m.descripcion || m.lugar || m.fuente || (esIngreso ? 'Ingreso' : 'Gasto');
@@ -366,7 +366,7 @@ export default function BalancePage() {
               >
                 <Avatar name={nombreItem} size="md" />
                 <div className="flex-1 min-w-0">
-                  <div className="text-[14px] font-bold text-white truncate">{nombreItem}</div>
+                  <div className="text-[14px] font-bold text-ink truncate">{nombreItem}</div>
                   <div className="text-[12px] text-soft mt-0.5 truncate">
                     {formatFechaActividad(m.fecha, m.hora)}
                     {(m.categoria || m.fuente) && ` · ${m.categoria || m.fuente}`}
@@ -379,7 +379,7 @@ export default function BalancePage() {
                   </div>
                   <div className="text-[11px] text-soft mt-0.5 capitalize">{m.metodo_pago || ''}</div>
                 </div>
-                <IconChevronRight size={16} color="#71717A" className="flex-shrink-0" />
+                <IconChevronRight size={16} color="var(--text-secondary)" className="flex-shrink-0" />
               </div>
             );
           })}
