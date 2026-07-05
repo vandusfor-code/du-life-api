@@ -64,7 +64,7 @@ export default async function handler(req, res) {
         const vencimiento = new Date(`${tarea.fecha_vencimiento}T${tarea.hora_vencimiento}`);
         const momentoRecordatorio = new Date(vencimiento.getTime() - 30 * 60 * 1000);
         if (momentoRecordatorio > ahora) {
-          await programarJob('/api/jobs/recordatorio-tarea', {
+          await programarJob('recordatorio-tarea', {
             ...payload,
             tarea_id: tarea.id,
             tarea: tarea.titulo,
@@ -87,7 +87,7 @@ export default async function handler(req, res) {
       ritualHoy.setUTCHours(horaUTC, min || 0, 0, 0);
 
       if (ritualHoy > ahora) {
-        await programarJob('/api/jobs/ritual-cierre', payload, ritualHoy.toISOString());
+        await programarJob('ritual-cierre', payload, ritualHoy.toISOString());
         jobsProgramados++;
       }
 
@@ -96,7 +96,7 @@ export default async function handler(req, res) {
         const chequeo = new Date(ahora);
         chequeo.setUTCHours(19, 0, 0, 0);
         if (chequeo > ahora) {
-          await programarJob('/api/jobs/chequeo-semana', payload, chequeo.toISOString());
+          await programarJob('chequeo-semana', payload, chequeo.toISOString());
           jobsProgramados++;
         }
       }
@@ -106,7 +106,7 @@ export default async function handler(req, res) {
         const lunes = new Date(ahora);
         lunes.setUTCDate(lunes.getUTCDate() + 1);
         lunes.setUTCHours(0, 0, 0, 0);
-        await programarJob('/api/jobs/resumen-semanal', payload, lunes.toISOString());
+        await programarJob('resumen-semanal', payload, lunes.toISOString());
         jobsProgramados++;
       }
 
@@ -122,7 +122,7 @@ export default async function handler(req, res) {
       if (ultimoMsg) {
         const reactivacionEn = new Date(new Date(ultimoMsg.creado_en).getTime() + 24 * 60 * 60 * 1000);
         if (reactivacionEn > ahora && reactivacionEn < new Date(ahora.getTime() + 24 * 60 * 60 * 1000)) {
-          await programarJob('/api/jobs/reactivacion', payload, reactivacionEn.toISOString());
+          await programarJob('reactivacion', payload, reactivacionEn.toISOString());
           jobsProgramados++;
         }
       }

@@ -113,7 +113,7 @@ export default async function handler(req, res) {
       // encola como job de QStash y corre en background: así Meta recibe su
       // 200 casi de inmediato y no reintenta/duplica el webhook si Claude o
       // Supabase tardan más de lo esperado.
-      await programarJob('/api/jobs/procesar-webhook', {
+      await programarJob('procesar-webhook', {
         telefono,
         nombre,
         messageId,
