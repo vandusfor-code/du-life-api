@@ -79,7 +79,7 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
         <div className="flex-1 min-w-0">
           <div className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{nombre}</div>
           {telefonoFormat && <div className="text-[12px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{telefonoFormat}</div>}
-          <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase" style={{ background: 'rgba(196,233,56,0.15)', color: '#C4E938' }}>
+          <span className="inline-block mt-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase" style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}>
             Plan {plan || 'Free'}
           </span>
         </div>

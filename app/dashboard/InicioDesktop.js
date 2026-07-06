@@ -7,10 +7,10 @@ import {
   IconBellRinging, IconCalendar, IconDots,
 } from '@tabler/icons-react';
 import { useInicioData } from './useInicioData';
-import { GraficoAreaLinea, GraficoBarras, BadgeVariacion, formatCOP } from './InicioMobile';
+import { useTheme } from '../../components/ThemeProvider';
+import { GraficoAreaLinea, GraficoBarras, formatCOP } from './InicioMobile';
 
 const ZONA_COLOMBIA = 'America/Bogota';
-const LIMA = '#C4E938';
 const MORADO = '#A855F7';
 
 function capitalizar(str) {
@@ -66,8 +66,8 @@ const TIPO_ICONO = {
 function Tarjeta({ children, className = '', style = {} }) {
   return (
     <div
-      className={`rounded-3xl p-5 ${className}`}
-      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)', ...style }}
+      className={`rounded-2xl p-5 border shadow-[var(--shadow-sm)] hover:shadow-[var(--shadow-md)] transition-shadow duration-200 ${className}`}
+      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', ...style }}
     >
       {children}
     </div>
@@ -77,8 +77,8 @@ function Tarjeta({ children, className = '', style = {} }) {
 function Chip({ icon: Icon, children }) {
   return (
     <div
-      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold"
-      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', boxShadow: 'var(--card-shadow)' }}
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold border shadow-[var(--shadow-sm)]"
+      style={{ backgroundColor: 'var(--bg-card)', borderColor: 'var(--border-color)', color: 'var(--text-secondary)' }}
     >
       {Icon && <Icon size={13} color="var(--text-secondary)" />}
       {children}
@@ -106,7 +106,15 @@ function EncabezadoSeccion({ titulo, href }) {
 // — este componente arma la columna central: saludo + chips de estado,
 // balance con resplandor, tarjetas de módulos y timeline.
 export default function InicioDesktop() {
+  const { theme } = useTheme();
   const { data, ideas, notas, tareas, calendario, usuario, resumen, balanceData, loading } = useInicioData();
+
+  // Acento reactivo al tema: esmeralda premium en escritorio-claro, el
+  // mismo lima de siempre en oscuro. Valores hex literales (no var())
+  // porque GraficoAreaLinea/GraficoBarras arman un id de gradiente SVG a
+  // partir del string de color.
+  const ACCENT = theme === 'light' ? '#027A48' : '#C4E938';
+  const ACCENT_RGB = theme === 'light' ? '2, 122, 72' : '196, 233, 56';
 
   if (loading) {
     return (
@@ -235,21 +243,31 @@ export default function InicioDesktop() {
         <Chip icon={IconCalendar}>{fechaHoy}</Chip>
       </div>
 
-      {/* Balance general — con resplandor lima, igual que el hero móvil */}
+      {/* Balance general — con resplandor sutil del acento del tema */}
       <Tarjeta
         style={{
-          background: 'radial-gradient(120% 140% at 85% 0%, rgba(196,233,56,0.16) 0%, rgba(196,233,56,0.04) 45%, var(--bg-card) 75%)',
+          background: `radial-gradient(120% 140% at 85% 0%, rgba(${ACCENT_RGB}, 0.16) 0%, rgba(${ACCENT_RGB}, 0.04) 45%, var(--bg-card) 75%)`,
         }}
       >
         <div className="grid grid-cols-[minmax(0,220px)_1fr] gap-6 items-center">
           <div>
-            <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>Balance general</div>
-            <div className="font-black tracking-tight leading-tight mt-1 text-[32px]" style={{ color: LIMA }}>
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>Balance general</span>
+            </div>
+            <div className="font-black tracking-tight leading-tight mt-1 text-[32px] md:text-[36px] antialiased" style={{ color: ACCENT }}>
               {formatCOP(balanceGeneral)}
             </div>
-            <div className="mt-3"><BadgeVariacion pct={varBalance} /></div>
+            {varBalance !== null && (
+              <span
+                className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-[12px] font-semibold mt-3"
+                style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}
+              >
+                <IconArrowUpRight size={12} style={{ transform: varBalance <= 0 ? 'scaleY(-1)' : 'none' }} />
+                {varBalance >= 0 ? '+' : ''}{varBalance}% v. mes anterior
+              </span>
+            )}
           </div>
-          <GraficoAreaLinea valores={serieBalance} color={LIMA} alto={140} conEje />
+          <GraficoAreaLinea valores={serieBalance} color={ACCENT} alto={140} conEje />
         </div>
       </Tarjeta>
 
@@ -266,13 +284,13 @@ export default function InicioDesktop() {
           {varGastos !== null && (
             <span
               className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold mt-1.5"
-              style={{ background: 'rgba(196,233,56,0.16)', color: LIMA }}
+              style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}
             >
-              <IconArrowUpRight size={11} color={LIMA} style={{ transform: varGastos <= 0 ? 'scaleY(-1)' : 'none' }} />
+              <IconArrowUpRight size={11} color={ACCENT} style={{ transform: varGastos <= 0 ? 'scaleY(-1)' : 'none' }} />
               {Math.abs(varGastos)}%
             </span>
           )}
-          <div className="mt-3"><GraficoBarras valores={serieGastos} color={LIMA} alto={40} /></div>
+          <div className="mt-3"><GraficoBarras valores={serieGastos} color={ACCENT} alto={40} /></div>
         </Tarjeta>
 
         <Tarjeta>

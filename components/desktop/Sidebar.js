@@ -38,10 +38,11 @@ function ItemNav({ href, label, icon: Icon, activo }) {
     <Link
       href={href}
       prefetch
-      className="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-medium transition-colors"
+      className="flex items-center gap-3 pl-2.5 pr-3 py-2 rounded-xl text-[14px] font-medium transition-colors"
       style={{
         color: activo ? 'var(--nav-active-fg)' : 'var(--text-secondary)',
         background: activo ? 'var(--nav-active-bg)' : 'transparent',
+        borderLeft: `2px solid ${activo ? 'var(--nav-active-border)' : 'transparent'}`,
       }}
     >
       <Icon size={18} color={activo ? 'var(--nav-active-fg)' : 'var(--text-secondary)'} />
@@ -67,7 +68,7 @@ export default function Sidebar() {
   return (
     <aside
       className="flex flex-col justify-between flex-shrink-0 h-screen sticky top-0 px-3 py-6"
-      style={{ width: '240px', borderRight: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}
+      style={{ width: '240px', borderRight: '1px solid var(--border-color)', background: 'var(--sidebar-bg)' }}
     >
       <div className="flex flex-col gap-6">
         <div className="flex items-center px-3">

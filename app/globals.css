@@ -49,7 +49,12 @@
      por componentes de components/desktop/**, nunca por el móvil. */
   --nav-active-bg: #C4E938;
   --nav-active-fg: #000000;
+  --nav-active-border: transparent;
   --card-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --accent-bg: rgba(196, 233, 56, 0.15);
+  --sidebar-bg: var(--bg-primary);
 }
 
 :root[data-theme="light"] {
@@ -71,10 +76,43 @@
   --nav-bg: #FFFFFF;
   --icon-line-color: #CCCCCC;
   /* Escritorio: pill negro sólido para el item activo del sidebar (estilo
-     SaaS claro) y sombra suave en tarjetas sobre el fondo blanco. */
+     SaaS claro) y sombra suave en tarjetas sobre el fondo blanco. Estos
+     valores solo aplican por debajo de 1024px (móvil/tablet angosto); la
+     paleta premium real vive en el @media de acá abajo, para no afectar
+     jamás al tema claro del móvil. */
   --nav-active-bg: #0A0A0A;
   --nav-active-fg: #FFFFFF;
+  --nav-active-border: transparent;
   --card-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
+  --shadow-sm: var(--card-shadow);
+  --shadow-md: var(--card-shadow);
+  --accent-bg: rgba(196, 233, 56, 0.15);
+  --sidebar-bg: var(--bg-primary);
+}
+
+/* Paleta premium de escritorio (light) — precisión cromática Slate +
+   Emerald en vez del lima/negro genérico. Escopeada a >=1024px a propósito:
+   un teléfono real nunca cumple este media query, así que el tema claro
+   del móvil (accesible desde el toggle de ProfileSheet) queda intacto. */
+@media (min-width: 1024px) {
+  :root[data-theme="light"] {
+    --bg-primary: #F8FAFC;
+    --bg-card: #FFFFFF;
+    --bg-card-hover: #F1F5F9;
+    --sidebar-bg: #FFFFFF;
+    --border-color: rgba(15, 23, 42, 0.05);
+    --text-primary: #0F172A;
+    --text-secondary: #475569;
+    --text-muted: #94A3B8;
+    --accent: #027A48;
+    --accent-bg: #ECFDF3;
+    --card-shadow: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+    --shadow-sm: 0 1px 2px 0 rgba(15, 23, 42, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(15, 23, 42, 0.03), 0 2px 4px -2px rgba(15, 23, 42, 0.03);
+    --nav-active-bg: #F1F5F9;
+    --nav-active-fg: #0F172A;
+    --nav-active-border: #0F172A;
+  }
 }
 
 html, body {

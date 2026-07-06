@@ -5,13 +5,12 @@ import Link from 'next/link';
 import { IconTrendingUp, IconChevronRight } from '@tabler/icons-react';
 
 const ZONA_COLOMBIA = 'America/Bogota';
-const LIMA_TEXTO = '#C4E938';
 
 // Color por tipo de actividad — el mismo criterio que ya usan los íconos
 // del Timeline, solo que acá se representa como punto de color (más
 // compacto para una lista densa en el panel lateral).
 const COLOR_TIPO = {
-  gasto: '#C4E938',
+  gasto: 'var(--accent)',
   tarea: '#A855F7',
   nota: '#FBBF24',
   idea: '#60A5FA',
@@ -98,7 +97,7 @@ export default function AiPanel() {
         <div
           className="rounded-2xl p-4 text-[13px] leading-snug"
           style={{
-            background: 'radial-gradient(120% 140% at 100% 0%, rgba(196,233,56,0.14) 0%, var(--bg-card) 60%)',
+            background: 'radial-gradient(120% 140% at 100% 0%, var(--accent-bg) 0%, var(--bg-card) 60%)',
             border: '1px solid var(--border-color)', color: 'var(--text-primary)', boxShadow: 'var(--card-shadow)',
           }}
         >
@@ -106,7 +105,7 @@ export default function AiPanel() {
             <>
               {insight.split(/(\d+% (?:más|menos))/).map((parte, i) =>
                 /\d+%/.test(parte)
-                  ? <span key={i} className="font-black text-[16px]" style={{ color: LIMA_TEXTO }}>{parte}</span>
+                  ? <span key={i} className="font-black text-[16px]" style={{ color: 'var(--accent)' }}>{parte}</span>
                   : <span key={i}>{parte}</span>
               )}
             </>
@@ -168,7 +167,7 @@ export default function AiPanel() {
               className="flex items-center gap-2 rounded-xl p-2.5 text-[12px]"
               style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
             >
-              <span className="w-1.5 h-6 rounded-full flex-shrink-0" style={{ background: '#C4E938' }} />
+              <span className="w-1.5 h-6 rounded-full flex-shrink-0" style={{ background: 'var(--accent)' }} />
               <span className="flex-1 truncate font-medium" style={{ color: 'var(--text-primary)' }}>{e.titulo}</span>
               <span className="flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{formatVencimiento(e.fecha)}</span>
             </div>
