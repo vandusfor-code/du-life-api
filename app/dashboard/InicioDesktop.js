@@ -213,7 +213,7 @@ export default function InicioDesktop() {
     .slice(0, 8);
 
   return (
-    <div className="p-8 flex flex-col gap-6 max-w-5xl">
+    <div className="p-8 flex flex-col gap-6 w-full">
       <div>
         <h1 className="text-[28px] font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
           {saludo}, {nombre} 👋
