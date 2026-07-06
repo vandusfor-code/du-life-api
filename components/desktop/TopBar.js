@@ -1,29 +1,16 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { IconSearch, IconCalendar } from '@tabler/icons-react';
-import Avatar from '../Avatar';
-import ProfileMenu from './ProfileMenu';
+import { IconSearch, IconCalendar, IconBell } from '@tabler/icons-react';
 
 const ZONA_COLOMBIA = 'America/Bogota';
 
 // Barra superior de escritorio: búsqueda (solo visual en esta fase — no hay
 // backend de búsqueda global todavía, así que no se conecta a nada para no
-// prometer una función que no existe) + fecha real + avatar/perfil.
+// prometer una función que no existe) + fecha real + campana. El perfil
+// vive ahora en la tarjeta de usuario al final del Sidebar.
 export default function TopBar() {
-  const [usuario, setUsuario] = useState(null);
-  const [menuAbierto, setMenuAbierto] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/dashboard/resumen')
-      .then((r) => r.json())
-      .then((d) => setUsuario(d?.usuario || null))
-      .catch(() => {});
-  }, []);
-
-  const nombre = usuario?.como_llamar || usuario?.nombre || '';
   const fechaHoy = new Date().toLocaleDateString('es-CO', {
-    timeZone: ZONA_COLOMBIA, weekday: 'short', day: 'numeric', month: 'short',
+    timeZone: ZONA_COLOMBIA, weekday: 'long', day: 'numeric', month: 'long',
   });
 
   return (
@@ -37,9 +24,15 @@ export default function TopBar() {
           type="text"
           placeholder="Buscar cualquier cosa..."
           disabled
-          className="w-full pl-9 pr-3 py-2 rounded-xl text-[13px] outline-none"
+          className="w-full pl-9 pr-14 py-2 rounded-xl text-[13px] outline-none"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', boxShadow: 'var(--card-shadow)' }}
         />
+        <span
+          className="absolute right-2.5 top-1/2 -translate-y-1/2 px-1.5 py-0.5 rounded-md text-[10px] font-bold"
+          style={{ background: 'var(--bg-card-hover)', color: 'var(--text-muted)', border: '1px solid var(--border-color)' }}
+        >
+          ⌘K
+        </span>
       </div>
 
       <div
@@ -50,20 +43,13 @@ export default function TopBar() {
         {fechaHoy}
       </div>
 
-      <div className="relative">
-        <button type="button" onClick={() => setMenuAbierto((v) => !v)}>
-          <Avatar name={nombre} size="md" fotoUrl={usuario?.foto_url || null} />
-        </button>
-        <ProfileMenu
-          open={menuAbierto}
-          onClose={() => setMenuAbierto(false)}
-          nombre={nombre}
-          telefono={usuario?.telefono}
-          plan={usuario?.plan}
-          fotoUrl={usuario?.foto_url || null}
-          onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
-        />
-      </div>
+      <button
+        type="button"
+        className="relative w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <IconBell size={17} color="var(--text-secondary)" />
+      </button>
     </header>
   );
 }

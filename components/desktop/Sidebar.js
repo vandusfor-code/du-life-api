@@ -5,9 +5,12 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   IconHome, IconWallet, IconChartLine, IconLayoutGrid, IconSettings,
-  IconClock, IconBulb, IconNote, IconSquareCheck, IconUsers,
+  IconClock, IconBulb, IconNote, IconSquareCheck, IconUsers, IconSparkles,
+  IconChevronRight,
 } from '@tabler/icons-react';
 import { MODULOS_FIJABLES } from '../BottomNav';
+import Avatar from '../Avatar';
+import ProfileMenu from './ProfileMenu';
 
 // Grupo principal: los módulos del mockup (Inicio, Árbol, Timeline, Personas,
 // Ideas, Agenda). "Agenda" en el mockup es el módulo real de Calendario.
@@ -49,14 +52,17 @@ function ItemNav({ href, label, icon: Icon, activo }) {
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [nombre, setNombre] = useState('');
+  const [usuario, setUsuario] = useState(null);
+  const [menuAbierto, setMenuAbierto] = useState(false);
 
   useEffect(() => {
     fetch('/api/dashboard/resumen')
       .then((r) => r.json())
-      .then((d) => setNombre(d?.usuario?.como_llamar || d?.usuario?.nombre || ''))
+      .then((d) => setUsuario(d?.usuario || null))
       .catch(() => {});
   }, []);
+
+  const nombre = usuario?.como_llamar || usuario?.nombre || '';
 
   return (
     <aside
@@ -64,16 +70,10 @@ export default function Sidebar() {
       style={{ width: '240px', borderRight: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}
     >
       <div className="flex flex-col gap-6">
-        <div className="px-3">
-          <div className="flex items-center">
-            <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--accent)' }}>Du</span>
-            <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>&nbsp;Life</span>
-          </div>
-          {nombre && (
-            <div className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
-              Hola, {nombre} 👋
-            </div>
-          )}
+        <div className="flex items-center px-3">
+          <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--accent)' }}>Du</span>
+          <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>&nbsp;Life</span>
+          <IconSparkles size={14} color="var(--accent)" style={{ marginLeft: '2px', marginTop: '-10px' }} />
         </div>
 
         <nav className="flex flex-col gap-1">
@@ -92,7 +92,36 @@ export default function Sidebar() {
         </div>
       </div>
 
-      <ItemNav href="/dashboard/settings" label="Ajustes" icon={IconSettings} activo={pathname === '/dashboard/settings'} />
+      <div className="flex flex-col gap-1">
+        <ItemNav href="/dashboard/settings" label="Ajustes" icon={IconSettings} activo={pathname === '/dashboard/settings'} />
+
+        <div className="relative mt-2">
+          <button
+            type="button"
+            onClick={() => setMenuAbierto((v) => !v)}
+            className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-2xl"
+            style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+          >
+            <Avatar name={nombre} size="md" fotoUrl={usuario?.foto_url || null} />
+            <div className="flex-1 min-w-0 text-left">
+              <div className="text-[13px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{nombre || '...'}</div>
+              <div className="text-[11px] truncate" style={{ color: 'var(--text-secondary)' }}>
+                Plan {usuario?.plan || 'Free'} {usuario?.plan && usuario.plan !== 'free' ? '👑' : ''}
+              </div>
+            </div>
+            <IconChevronRight size={14} color="var(--text-secondary)" />
+          </button>
+          <ProfileMenu
+            open={menuAbierto}
+            onClose={() => setMenuAbierto(false)}
+            nombre={nombre}
+            telefono={usuario?.telefono}
+            plan={usuario?.plan}
+            fotoUrl={usuario?.foto_url || null}
+            onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
+          />
+        </div>
+      </div>
     </aside>
   );
 }

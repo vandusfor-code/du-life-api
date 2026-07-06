@@ -71,7 +71,7 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
   return (
     <div
       ref={ref}
-      className="absolute right-0 top-[calc(100%+8px)] z-50 w-72 rounded-2xl overflow-hidden"
+      className="absolute left-0 bottom-[calc(100%+8px)] z-50 w-64 rounded-2xl overflow-hidden"
       style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: '0 12px 32px rgba(0,0,0,0.35)' }}
     >
       <div className="flex items-center gap-3 p-4" style={{ borderBottom: '1px solid var(--border-color)' }}>
