@@ -156,7 +156,7 @@ export default function TimelinePage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32">
+      <div className="px-5 pt-4 pb-32 lg:max-w-4xl lg:mx-auto">
         <div className="flex items-center justify-between mb-5">
           <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div className="flex gap-2">

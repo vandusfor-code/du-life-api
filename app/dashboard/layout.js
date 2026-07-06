@@ -1,17 +1,17 @@
-import BottomNav from '../../components/BottomNav';
-import EnableNotifications from '../../components/EnableNotifications';
+import { redirect } from 'next/navigation';
+import { cookies } from 'next/headers';
 import { ThemeProvider } from '../../components/ThemeProvider';
+import ResponsiveShell from '../../components/ResponsiveShell';
 
 export default function DashboardLayout({ children }) {
+  const cookieStore = cookies();
+  if (!cookieStore.get('dulife_token')) {
+    redirect('/login');
+  }
+
   return (
     <ThemeProvider>
-      <div className="min-h-screen flex flex-col max-w-app mx-auto" style={{ background: 'var(--bg-primary)' }}>
-        <EnableNotifications />
-        <div className="flex-1 overflow-y-auto pb-[calc(64px+env(safe-area-inset-bottom))]">
-          {children}
-        </div>
-        <BottomNav />
-      </div>
+      <ResponsiveShell>{children}</ResponsiveShell>
     </ThemeProvider>
   );
 }

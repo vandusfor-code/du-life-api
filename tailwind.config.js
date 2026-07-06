@@ -5,6 +5,16 @@ export default {
     './components/**/*.{js,jsx}',
   ],
   theme: {
+    // Explícitos (son los defaults de Tailwind) para dejar constancia de que
+    // `lg` (1024px) es el corte oficial mobile/desktop del proyecto: <1024px
+    // usa el shell móvil actual, >=1024px usa el shell de escritorio nuevo.
+    screens: {
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
+      xl: '1280px',
+      '2xl': '1536px',
+    },
     extend: {
       colors: {
         // Todos apuntan a las CSS variables de tema (app/globals.css) en vez

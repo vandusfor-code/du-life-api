@@ -214,7 +214,7 @@ export default function ArbolPage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+16px)]">
+      <div className="px-5 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+16px)] lg:max-w-4xl lg:mx-auto">
         <div className="flex items-center justify-between mb-4">
           <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
@@ -243,7 +243,7 @@ export default function ArbolPage() {
   ];
 
   return (
-    <div className="px-5 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+16px)]">
+    <div className="px-5 pt-4 pb-[calc(4rem+env(safe-area-inset-bottom)+16px)] lg:max-w-4xl lg:mx-auto">
 
       {/* Header */}
       <div className="flex items-center justify-between mb-4">

@@ -151,7 +151,7 @@ export default function BalancePage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32">
+      <div className="px-5 pt-4 pb-32 lg:max-w-4xl lg:mx-auto">
         <div className="flex justify-between items-center mb-5">
           <div className="h-7 w-24 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div className="flex items-center gap-2">

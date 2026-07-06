@@ -266,7 +266,7 @@ export default function PrestamosPage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen lg:max-w-4xl lg:mx-auto">
         <div className="flex justify-between items-center mb-5">
           <div className="h-7 w-24 rounded animate-pulse bg-surface" />
           <div className="flex items-center gap-2">

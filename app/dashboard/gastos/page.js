@@ -296,7 +296,7 @@ export default function GastosPage() {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen lg:max-w-4xl lg:mx-auto">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-full animate-pulse bg-surface" />
           <div>
@@ -318,7 +318,7 @@ export default function GastosPage() {
   const resumen = data?.resumen || { total_gastos: 0, total_ingresos: 0, balance: 0 };
 
   return (
-    <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
+    <div className="px-5 pt-4 pb-32 bg-page min-h-screen lg:max-w-4xl lg:mx-auto">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">

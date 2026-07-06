@@ -5,7 +5,7 @@ import { IconArrowLeft, IconBellRinging } from '@tabler/icons-react';
 
 export default function RecordatoriosPage() {
   return (
-    <div className="px-5 pt-4 pb-32">
+    <div className="px-5 pt-4 pb-32 lg:max-w-4xl lg:mx-auto">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">

@@ -151,7 +151,7 @@ export default function PrestamoDetallePage({ params }) {
 
   if (loading) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen lg:max-w-4xl lg:mx-auto">
         <div className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-full animate-pulse bg-surface" />
           <div className="h-6 w-32 rounded animate-pulse bg-surface" />
@@ -163,7 +163,7 @@ export default function PrestamoDetallePage({ params }) {
 
   if (!prestamo) {
     return (
-      <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
+      <div className="px-5 pt-4 pb-32 bg-page min-h-screen lg:max-w-4xl lg:mx-auto">
         <Link href="/dashboard/espacios/prestamos" className="flex items-center gap-3 mb-5">
           <div className="w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-hairline">
             <IconArrowLeft size={18} color="var(--text-primary)" />
@@ -222,7 +222,7 @@ export default function PrestamoDetallePage({ params }) {
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 mt-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
           <div>
             <div className="text-[11px] text-muted">💰 Recuperado</div>
             <div className="text-[15px] font-bold text-ink mt-0.5">{formatCOP(recuperado)}</div>

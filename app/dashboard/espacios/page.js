@@ -43,7 +43,7 @@ export default function EspaciosPage() {
   }, [moduloFijado]);
 
   return (
-    <div className="px-5 pt-4 pb-32">
+    <div className="px-5 pt-4 pb-32 lg:max-w-4xl lg:mx-auto">
 
       {/* Header */}
       <div className="flex items-center gap-3 mb-5">
@@ -60,7 +60,7 @@ export default function EspaciosPage() {
         </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid grid-cols-2 lg:grid-cols-3 gap-3">
         {MODULOS.map(({ href, label, desc, color, icon: Icon, pinKey }) => {
           const fijado = pinKey && moduloFijado === pinKey;
           return (
