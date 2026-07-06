@@ -219,7 +219,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, on
               onClick={guardarPerfil}
               disabled={guardando}
               className="w-full h-12 rounded-full flex items-center justify-center gap-2 font-bold text-[14px] mt-5"
-              style={{ background: 'var(--accent)', color: 'var(--hero-text)', opacity: guardando ? 0.6 : 1 }}
+              style={{ background: 'var(--accent)', color: 'var(--accent-text)', opacity: guardando ? 0.6 : 1 }}
             >
               {guardando ? 'Guardando...' : <>Guardar <IconCheck size={16} /></>}
             </button>

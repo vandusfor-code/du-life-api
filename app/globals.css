@@ -17,11 +17,12 @@
   --accent: #C4E938;
   --accent-text: #000000;
   --accent-dark: #A8CC1E;
-  --hero-bg: #16161F;
-  --hero-text: #FFFFFF;
-  --whatsapp-btn-bg: #C4E938;
-  --whatsapp-btn-text: #000000;
-  --nav-bg: #16161F;
+  --hero-bg: #C4E938;
+  --hero-text: #000000;
+  --hero-text-soft: rgba(0, 0, 0, 0.55);
+  --whatsapp-btn-bg: #0D0D11;
+  --whatsapp-btn-text: #FFFFFF;
+  --nav-bg: #0D0D11;
   --icon-line-color: #333333;
 }
 
@@ -36,11 +37,12 @@
   --accent: #C4E938;
   --accent-text: #000000;
   --accent-dark: #A8CC1E;
-  --hero-bg: #16161F;
-  --hero-text: #FFFFFF;
-  --whatsapp-btn-bg: #C4E938;
-  --whatsapp-btn-text: #000000;
-  --nav-bg: #16161F;
+  --hero-bg: #C4E938;
+  --hero-text: #000000;
+  --hero-text-soft: rgba(0, 0, 0, 0.55);
+  --whatsapp-btn-bg: #0D0D11;
+  --whatsapp-btn-text: #FFFFFF;
+  --nav-bg: #0D0D11;
   --icon-line-color: #333333;
 }
 
@@ -55,10 +57,11 @@
   --accent: #C4E938;
   --accent-text: #000000;
   --accent-dark: #A8CC1E;
-  --hero-bg: #C4E938;
-  --hero-text: #000000;
-  --whatsapp-btn-bg: #0A0A0A;
-  --whatsapp-btn-text: #FFFFFF;
+  --hero-bg: #16161F;
+  --hero-text: #FFFFFF;
+  --hero-text-soft: rgba(255, 255, 255, 0.6);
+  --whatsapp-btn-bg: #C4E938;
+  --whatsapp-btn-text: #000000;
   --nav-bg: #FFFFFF;
   --icon-line-color: #CCCCCC;
 }
