@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   IconBell, IconSparkles, IconBrandWhatsapp, IconSquareCheck, IconWallet,
-  IconNote, IconBulb,
+  IconNote, IconBulb, IconSun, IconMoon, IconCloud,
 } from '@tabler/icons-react';
 import Avatar from '../../components/Avatar';
 import ProfileSheet from '../../components/ProfileSheet';
@@ -134,6 +134,25 @@ function useCarruselAuto(cantidad, intervaloMs = 4000) {
   }, []);
 
   return { contenedorRef, indiceActivo, onScroll };
+}
+
+// Ícono decorativo de la tarjeta de bienvenida: sol de día, luna con nubes
+// de noche — llena el espacio que antes ocupaba el balance/gráfica.
+function IconoClima({ esDeDia, color }) {
+  if (esDeDia) {
+    return <IconSun size={34} color={color} strokeWidth={1.75} />;
+  }
+  return (
+    <div className="relative" style={{ width: '38px', height: '34px' }}>
+      <IconMoon size={28} color={color} strokeWidth={1.75} style={{ position: 'absolute', top: 0, left: 4 }} />
+      <IconCloud
+        size={22}
+        color={color}
+        strokeWidth={1.75}
+        style={{ position: 'absolute', bottom: -2, right: -2 }}
+      />
+    </div>
+  );
 }
 
 // Banner fotográfico de módulo: foto real + degradado negro-a-transparente
@@ -276,6 +295,7 @@ export default function DashboardInicio() {
     10
   );
   const saludo = horaColombia < 12 ? 'Buenos días' : horaColombia < 19 ? 'Buenas tardes' : 'Buenas noches';
+  const esDeDia = horaColombia >= 6 && horaColombia < 19;
   const fechaHoy = capitalizar(
     new Date().toLocaleDateString('es-CO', { timeZone: ZONA_COLOMBIA, weekday: 'long', day: 'numeric', month: 'long' })
   );
@@ -365,33 +385,36 @@ export default function DashboardInicio() {
         </div>
       </div>
 
-      {/* Tarjeta de bienvenida: dos columnas — saludo/fecha a la izquierda,
-          CTA de WhatsApp flotando a la derecha, alineados horizontalmente.
-          Padding y tamaño de fuente iguales a la card original (antes del
-          bloque de Balance), para que no se vea "achatada". */}
-      <div
-        className="rounded-[20px] p-6 flex items-center justify-between gap-4"
-        style={{ background: 'var(--hero-bg)' }}
-      >
-        <div className="min-w-0 flex-1">
-          <div className="text-[17px] font-bold tracking-tight leading-tight truncate" style={{ color: 'var(--hero-text)' }}>
-            {saludo}, {nombre}
+      {/* Tarjeta de bienvenida: altura igual a la versión con Balance (la que
+          el usuario tomó como referencia de tamaño). El espacio que dejó el
+          balance/gráfica ahora lo llena un ícono de sol/luna decorativo;
+          el botón de WhatsApp queda abajo, alineado a la derecha, siempre
+          lima con texto negro (color fijo de marca, no cambia con el tema). */}
+      <div className="rounded-[20px] p-5" style={{ background: 'var(--hero-bg)' }}>
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <div className="text-[17px] font-bold tracking-tight leading-tight truncate" style={{ color: 'var(--hero-text)' }}>
+              {saludo}, {nombre}
+            </div>
+            <div className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>{fechaHoy}</div>
           </div>
-          <div className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>{fechaHoy}</div>
+          <IconoClima esDeDia={esDeDia} color="var(--hero-text)" />
         </div>
 
-        <a
-          href={WHATSAPP_LINK}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-full flex-shrink-0"
-          style={{ background: 'var(--whatsapp-btn-bg)' }}
-        >
-          <IconBrandWhatsapp size={16} color="var(--whatsapp-btn-text)" />
-          <span className="text-[13px] font-bold whitespace-nowrap" style={{ color: 'var(--whatsapp-btn-text)' }}>
-            Hablar con Du
-          </span>
-        </a>
+        <div className="flex justify-end mt-6">
+          <a
+            href={WHATSAPP_LINK}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-1.5 px-3.5 py-2.5 rounded-full"
+            style={{ background: 'var(--whatsapp-btn-bg)' }}
+          >
+            <IconBrandWhatsapp size={16} color="var(--whatsapp-btn-text)" />
+            <span className="text-[13px] font-bold whitespace-nowrap" style={{ color: 'var(--whatsapp-btn-text)' }}>
+              Hablar con Du
+            </span>
+          </a>
+        </div>
       </div>
 
       {/* Carousel de banners fotográficos por módulo */}
