@@ -1,5 +1,6 @@
 'use client';
 
+import { usePathname } from 'next/navigation';
 import { useIsDesktop } from '../hooks/useIsDesktop';
 import BottomNav from './BottomNav';
 import EnableNotifications from './EnableNotifications';
@@ -10,7 +11,16 @@ import DesktopShell from './desktop/DesktopShell';
 // app/dashboard/layout.js, que sigue siendo Server Component y mantiene el
 // guard de auth intacto — acá solo se decide la UI, no la autenticación.
 export default function ResponsiveShell({ children }) {
+  const pathname = usePathname();
   const { isDesktop, mounted } = useIsDesktop();
+
+  // Control Center tiene su propio shell completo (ver
+  // app/dashboard/control-center/layout.js + AdminShell) — al ser un
+  // layout anidado DENTRO de app/dashboard, este componente padre lo
+  // envolvería con el Sidebar/TopBar normales si no se lo salta acá.
+  if (pathname.startsWith('/dashboard/control-center')) {
+    return children;
+  }
 
   // Antes de montar (o en móvil) se renderiza exactamente lo mismo que había
   // en layout.js antes de este cambio — cero regresión visual en móvil.

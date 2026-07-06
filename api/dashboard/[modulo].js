@@ -617,6 +617,179 @@ async function handleGuardarPreferencias(usuarioId, req) {
   }
 }
 
+// ===== CONTROL CENTER (admin) =====
+// Estos handlers, además de la verificación de token normal (ya hecha en
+// el router más abajo), exigen que el usuario tenga rol owner/admin en
+// usuarios.metadata.rol antes de tocar datos de otros usuarios. El rol
+// nunca se lee del JWT (que no se modifica) — siempre se consulta fresco.
+
+async function verificarRolAdmin(usuarioId) {
+  const { data } = await supabase
+    .from('usuarios')
+    .select('metadata')
+    .eq('id', usuarioId)
+    .single();
+  const rol = data?.metadata?.rol;
+  return rol === 'owner' || rol === 'admin';
+}
+
+async function handleAdminDashboard(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const hoyISO = new Date().toISOString().split('T')[0];
+  const inicioHoy = `${hoyISO}T00:00:00.000Z`;
+
+  const inicioMedicion = Date.now();
+  const [
+    usuariosTotalRes,
+    usuariosActivosRes,
+    mensajesHoyRes,
+    mensajesUsuarioHoyRes,
+    prestamosActivosRes,
+    recordatoriosHoyRes,
+    ultimoMensajeClaudeRes,
+    ultimoMensajeMetaRes,
+    ultimaTareaRecordatorioRes,
+    ultimoResumenSemanalRes,
+  ] = await Promise.all([
+    supabase.from('usuarios').select('id', { count: 'exact', head: true }),
+    supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('activo', true),
+    supabase.from('mensajes').select('id, usuario_id, tokens_usados', { count: 'exact' }).gte('creado_en', inicioHoy),
+    supabase.from('mensajes').select('id', { count: 'exact', head: true }).eq('role', 'user').gte('creado_en', inicioHoy),
+    supabase.from('prestamos').select('id', { count: 'exact', head: true }).eq('estado', 'activo'),
+    supabase.from('tareas').select('id', { count: 'exact', head: true }).gte('recordatorio_enviado_en', inicioHoy),
+    supabase.from('mensajes').select('creado_en, metadata').eq('role', 'assistant').not('metadata->duracion_ms', 'is', null).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('mensajes').select('creado_en').eq('role', 'user').order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('tareas').select('recordatorio_enviado_en').not('recordatorio_enviado_en', 'is', null).order('recordatorio_enviado_en', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('resumen_semanal').select('creado_en').order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+  ]);
+  const latenciaSupabaseMs = Date.now() - inicioMedicion;
+
+  const mensajesHoy = mensajesHoyRes.data || [];
+  const conversacionesHoy = new Set(mensajesHoy.map((m) => m.usuario_id)).size;
+  const mensajesRecibidosHoy = mensajesUsuarioHoyRes.count || 0;
+  const mensajesEnviadosHoy = mensajesHoy.length - mensajesRecibidosHoy;
+  const tokensHoy = mensajesHoy.reduce((s, m) => s + (m.tokens_usados || 0), 0);
+
+  const ultimaEjecucionCron = [ultimaTareaRecordatorioRes.data?.recordatorio_enviado_en, ultimoResumenSemanalRes.data?.creado_en]
+    .filter(Boolean)
+    .sort()
+    .reverse()[0] || null;
+
+  return {
+    status: 200,
+    body: {
+      contadores: {
+        usuarios_registrados: usuariosTotalRes.count || 0,
+        usuarios_activos: usuariosActivosRes.count || 0,
+        conversaciones_hoy: conversacionesHoy,
+        mensajes_enviados_hoy: mensajesEnviadosHoy,
+        mensajes_recibidos_hoy: mensajesRecibidosHoy,
+        tokens_output_hoy: tokensHoy,
+        prestamos_activos: prestamosActivosRes.count || 0,
+        recordatorios_enviados_hoy: recordatoriosHoyRes.count || 0,
+      },
+      // input_tokens y costo monetario: no se capturan hoy — null explícito,
+      // nunca un número inventado. El frontend debe mostrar "No disponible".
+      estado_sistema: {
+        claude: {
+          ultima_llamada: ultimoMensajeClaudeRes.data?.creado_en || null,
+          duracion_ms: ultimoMensajeClaudeRes.data?.metadata?.duracion_ms ?? null,
+        },
+        supabase: {
+          latencia_ms: latenciaSupabaseMs,
+        },
+        meta: {
+          ultima_actividad: ultimoMensajeMetaRes.data?.creado_en || null,
+        },
+        cron: {
+          ultima_ejecucion: ultimaEjecucionCron,
+        },
+        vercel: {
+          online: true,
+        },
+      },
+    },
+  };
+}
+
+async function handleAdminActividad(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const [mensajesRes, usuariosRes, prestamosRes, tareasRes] = await Promise.all([
+    supabase.from('mensajes').select('usuario_id, creado_en').eq('role', 'user').order('creado_en', { ascending: false }).limit(8),
+    supabase.from('usuarios').select('id, nombre, como_llamar, creado_en').order('creado_en', { ascending: false }).limit(5),
+    supabase.from('prestamos').select('usuario_id, nombre_deudor, created_at').order('created_at', { ascending: false }).limit(5),
+    supabase.from('tareas').select('usuario_id, titulo, recordatorio_enviado_en').not('recordatorio_enviado_en', 'is', null).order('recordatorio_enviado_en', { ascending: false }).limit(5),
+  ]);
+
+  const idsUsuarios = [
+    ...(mensajesRes.data || []).map((m) => m.usuario_id),
+    ...(prestamosRes.data || []).map((p) => p.usuario_id),
+    ...(tareasRes.data || []).map((t) => t.usuario_id),
+  ];
+  const { data: nombresRes } = idsUsuarios.length
+    ? await supabase.from('usuarios').select('id, nombre, como_llamar').in('id', [...new Set(idsUsuarios)])
+    : { data: [] };
+  const nombrePorId = Object.fromEntries((nombresRes || []).map((u) => [u.id, u.como_llamar || u.nombre || 'Usuario']));
+
+  const eventos = [
+    ...(mensajesRes.data || []).map((m) => ({
+      tipo: 'mensaje',
+      texto: `${nombrePorId[m.usuario_id] || 'Usuario'} envió un mensaje`,
+      fecha: m.creado_en,
+    })),
+    ...(usuariosRes.data || []).map((u) => ({
+      tipo: 'usuario_nuevo',
+      texto: `Nuevo usuario registrado: ${u.como_llamar || u.nombre}`,
+      fecha: u.creado_en,
+    })),
+    ...(prestamosRes.data || []).map((p) => ({
+      tipo: 'prestamo',
+      texto: `${nombrePorId[p.usuario_id] || 'Usuario'} creó un préstamo a ${p.nombre_deudor}`,
+      fecha: p.created_at,
+    })),
+    ...(tareasRes.data || []).map((t) => ({
+      tipo: 'recordatorio',
+      texto: `Recordatorio enviado a ${nombrePorId[t.usuario_id] || 'Usuario'}: ${t.titulo}`,
+      fecha: t.recordatorio_enviado_en,
+    })),
+  ]
+    .filter((e) => e.fecha)
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+    .slice(0, 10);
+
+  return { status: 200, body: { eventos } };
+}
+
+// Descripción estática de la arquitectura real del proyecto (archivos y
+// tablas que existen de verdad hoy) — no son métricas en vivo, es
+// documentación interactiva de lo que ya construimos.
+const ARQUITECTURA_NODOS = [
+  { id: 'usuario', nombre: 'Usuario', descripcion: 'Persona que escribe por WhatsApp.', archivos: [], servicios: [], tablas: [] },
+  { id: 'whatsapp', nombre: 'WhatsApp Cloud API', descripcion: 'Entrada y salida de mensajes.', archivos: ['api/webhook.js'], servicios: ['Meta Cloud API v20.0'], tablas: [] },
+  { id: 'webhook', nombre: 'Webhook', descripcion: 'Recibe el evento de Meta, responde 200 OK de inmediato y encola el procesamiento real.', archivos: ['api/webhook.js'], servicios: ['QStash (Upstash)'], tablas: [] },
+  { id: 'motor_ia', nombre: 'Motor de Decisión', descripcion: 'Job asíncrono que decide qué hacer con el mensaje (texto, imagen o audio) y arma el contexto del usuario.', archivos: ['api/jobs/index.js', 'lib/asistente.js'], servicios: [], tablas: ['usuarios'] },
+  { id: 'prompt', nombre: 'Claude (Prompt)', descripcion: 'Clasifica intención, extrae memoria y genera la respuesta.', archivos: ['lib/claude.js'], servicios: ['Anthropic Claude (Sonnet / Haiku)'], tablas: ['mensajes'] },
+  { id: 'embeddings', nombre: 'Embeddings', descripcion: 'Búsqueda semántica sobre entidades y hechos guardados.', archivos: ['lib/embeddings.js'], servicios: ['OpenAI text-embedding-3-small'], tablas: ['entidades', 'hechos'] },
+  { id: 'memoria', nombre: 'Memoria', descripcion: 'Entidades y hechos persistentes sobre el usuario.', archivos: ['lib/supabase.js'], servicios: [], tablas: ['entidades', 'hechos'] },
+  { id: 'modulo', nombre: 'Módulo correspondiente', descripcion: 'Gastos, tareas, calendario, préstamos, notas, ideas — según la intención detectada.', archivos: ['lib/supabase.js'], servicios: [], tablas: ['gastos', 'ingresos', 'tareas', 'notas', 'ideas', 'calendario_eventos', 'prestamos'] },
+  { id: 'supabase', nombre: 'Supabase', descripcion: 'Base de datos Postgres + pgvector.', archivos: ['lib/supabase.js'], servicios: ['Supabase (PostgreSQL)'], tablas: [] },
+  { id: 'dashboard', nombre: 'Dashboard', descripcion: 'App web (móvil y escritorio) donde el usuario ve sus datos.', archivos: ['app/dashboard/**', 'api/dashboard/[modulo].js'], servicios: ['Vercel'], tablas: [] },
+  { id: 'respuesta', nombre: 'Respuesta', descripcion: 'Texto final enviado de vuelta por WhatsApp.', archivos: ['lib/asistente.js'], servicios: ['Meta Cloud API'], tablas: [] },
+];
+
+async function handleAdminArquitectura(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+  return { status: 200, body: { nodos: ARQUITECTURA_NODOS } };
+}
+
 // ===== ROUTER =====
 
 const HANDLERS = {
@@ -637,6 +810,9 @@ const HANDLERS = {
   preferencias: handleGuardarPreferencias,
   push_subscribe: handlePushSubscribe,
   push_unsubscribe: handlePushUnsubscribe,
+  admin_dashboard: handleAdminDashboard,
+  admin_actividad: handleAdminActividad,
+  admin_arquitectura: handleAdminArquitectura,
 };
 
 export default async function handler(req, res) {

@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   IconHome, IconWallet, IconChartLine, IconLayoutGrid, IconSettings,
   IconClock, IconBulb, IconNote, IconSquareCheck, IconUsers, IconSparkles,
-  IconChevronRight,
+  IconChevronRight, IconShieldLock,
 } from '@tabler/icons-react';
 import { MODULOS_FIJABLES } from '../BottomNav';
 import Avatar from '../Avatar';
@@ -64,6 +64,8 @@ export default function Sidebar() {
   }, []);
 
   const nombre = usuario?.como_llamar || usuario?.nombre || '';
+  const rol = usuario?.metadata?.rol;
+  const esAdmin = rol === 'owner' || rol === 'admin';
 
   return (
     <aside
@@ -94,6 +96,14 @@ export default function Sidebar() {
       </div>
 
       <div className="flex flex-col gap-1">
+        {esAdmin && (
+          <ItemNav
+            href="/dashboard/control-center"
+            label="Control Center"
+            icon={IconShieldLock}
+            activo={pathname.startsWith('/dashboard/control-center')}
+          />
+        )}
         <ItemNav href="/dashboard/settings" label="Ajustes" icon={IconSettings} activo={pathname === '/dashboard/settings'} />
 
         <div className="relative mt-2">

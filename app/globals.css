@@ -115,6 +115,39 @@
   }
 }
 
+/* Control Center: tema oscuro forzado, independiente del toggle claro/oscuro
+   del resto de la app. Como la regla del tema normal es `:root[data-theme]`
+   (atada al <html>), envolver un div en data-theme="dark" no alcanza — por
+   eso este bloque usa una clase propia aplicada directo en el layout de
+   /dashboard/control-center. Mismos valores que el dark actual, más un par
+   de tokens de estado (éxito/alerta/error) específicos del backoffice. */
+.cc-theme {
+  --bg-primary: #0D0D11;
+  --bg-card: #16161F;
+  --bg-card-hover: #1D1D28;
+  --border-color: #242430;
+  --text-primary: #FFFFFF;
+  --text-secondary: #888894;
+  --text-muted: #55555F;
+  --accent: #C4E938;
+  --accent-text: #000000;
+  --accent-bg: rgba(196, 233, 56, 0.15);
+  --nav-active-bg: #C4E938;
+  --nav-active-fg: #000000;
+  --nav-active-border: transparent;
+  --card-shadow: 0 1px 2px rgba(0,0,0,0.3), 0 8px 24px rgba(0,0,0,0.25);
+  --shadow-sm: none;
+  --shadow-md: none;
+  --sidebar-bg: #0A0A0D;
+  --cc-success: #22C55E;
+  --cc-warning: #F59E0B;
+  --cc-danger: #EF4444;
+
+  background: var(--bg-primary);
+  color: var(--text-primary);
+  min-height: 100vh;
+}
+
 html, body {
   margin: 0;
   padding: 0;
