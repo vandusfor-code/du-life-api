@@ -14,6 +14,7 @@ import {
   enviarListaWhatsApp,
 } from '../../lib/whatsapp.js';
 import { procesarMensaje } from '../../lib/asistente.js';
+import { esperarPushesPendientes } from '../../lib/push.js';
 import { procesarImagen, procesarAudio } from '../../lib/multimedia.js';
 import {
   obtenerPreguntaPendiente, marcarPreguntado, guardarRespuestaPerfil,
@@ -246,6 +247,11 @@ async function jobProcesarWebhook(body, res) {
   if (respuesta) {
     await enviarMensaje(telefono, respuesta);
   }
+
+  // Mantener viva la función hasta que los push disparados dentro de
+  // procesarMensaje terminen de salir — si respondemos antes, Vercel
+  // congela la función y la notificación muere en vuelo.
+  await esperarPushesPendientes();
 
   return res.status(200).json({ status: 'ok' });
 }
