@@ -22,10 +22,19 @@ const SIZES = {
   xl: { box: 'w-14 h-14', text: 'text-[21px]' },
 };
 
-export default function Avatar({ name = '', size = 'md' }) {
+export default function Avatar({ name = '', size = 'md', fotoUrl = null }) {
   const [from, to] = GRADIENTS[hashName(name) % GRADIENTS.length];
   const initials = name.split(' ').slice(0, 2).map(w => w[0] || '').join('').toUpperCase() || '?';
   const s = SIZES[size];
+
+  if (fotoUrl) {
+    return (
+      <div className={`${s.box} rounded-full overflow-hidden flex-shrink-0`} style={{ border: '1px solid var(--border-color)' }}>
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={fotoUrl} alt={name} className="w-full h-full object-cover" />
+      </div>
+    );
+  }
 
   return (
     <div

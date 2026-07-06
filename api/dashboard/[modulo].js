@@ -504,15 +504,38 @@ async function handleUsuario(usuarioId) {
 async function handleActualizarPerfil(usuarioId, req) {
   try {
     const body = req.body || {};
-    const comoLlamar = (body.como_llamar || '').toString().trim();
+    const updates = {};
 
-    if (!comoLlamar || comoLlamar.length < 1 || comoLlamar.length > 50) {
-      return { status: 400, body: { error: 'Nombre inválido' } };
+    // Nombre: opcional, pero si viene debe ser válido.
+    if (body.como_llamar !== undefined) {
+      const comoLlamar = String(body.como_llamar).trim();
+      if (!comoLlamar || comoLlamar.length > 50) {
+        return { status: 400, body: { error: 'Nombre inválido' } };
+      }
+      updates.como_llamar = comoLlamar;
+    }
+
+    // Foto de perfil: data URL base64 (ya viene comprimida desde el cliente,
+    // ~15-30KB). foto_url es TEXT, así que se guarda directo sin Storage.
+    // '' o null borra la foto.
+    if (body.foto_url !== undefined) {
+      const foto = body.foto_url;
+      if (foto === null || foto === '') {
+        updates.foto_url = null;
+      } else if (typeof foto === 'string' && foto.startsWith('data:image/') && foto.length <= 400000) {
+        updates.foto_url = foto;
+      } else {
+        return { status: 400, body: { error: 'Imagen inválida' } };
+      }
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return { status: 400, body: { error: 'Nada que actualizar' } };
     }
 
     const { data, error } = await supabase
       .from('usuarios')
-      .update({ como_llamar: comoLlamar })
+      .update(updates)
       .eq('id', usuarioId)
       .select()
       .single();

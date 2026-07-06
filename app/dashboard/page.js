@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
-  IconBell, IconSparkles, IconBrandWhatsapp, IconSquareCheck, IconWallet,
+  IconBell, IconSparkles, IconSquareCheck, IconWallet,
   IconNote, IconBulb, IconSun, IconMoon, IconCloud, IconArrowUpRight,
   IconChevronRight, IconCalendarEvent,
 } from '@tabler/icons-react';
@@ -11,9 +11,11 @@ import Avatar from '../../components/Avatar';
 import ProfileSheet from '../../components/ProfileSheet';
 import { useAutoRefresh } from '../../components/useAutoRefresh';
 
-const WHATSAPP_LINK = 'https://wa.me/573239117508';
 const NOTIFICACIONES_MOCK = 3;
 const ZONA_COLOMBIA = 'America/Bogota';
+
+const LIMA = '#C4E938';
+const MORADO = '#A855F7';
 
 // Banners fotográficos del carousel: una foto real por módulo (con overlay
 // negro-a-transparente) en vez de ilustraciones planas. Si la foto no carga
@@ -43,6 +45,22 @@ const MODULOS_BANNER = [
 ];
 
 const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
+const formatEjeCorto = (n) => {
+  const abs = Math.abs(n);
+  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1) + 'M';
+  if (abs >= 1_000) return Math.round(n / 1_000) + 'k';
+  return '' + Math.round(n);
+};
+
+// Techo "redondo" para el eje (1, 2, 5 x potencia de 10) — para que las guías
+// caigan en cifras limpias como 1.0M, 2.0M, etc.
+function techoRedondo(v) {
+  if (v <= 0) return 1;
+  const pot = Math.pow(10, Math.floor(Math.log10(v)));
+  const n = v / pot;
+  const mult = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
+  return mult * pot;
+}
 
 function capitalizar(str) {
   if (!str) return '';
@@ -90,9 +108,7 @@ function formatVencimiento(fechaStr, zonaHorario) {
   return `Vence ${new Date(`${fechaStr}T00:00:00`).toLocaleDateString('es-CO', { day: 'numeric', month: 'short' })}`;
 }
 
-// Iconos de Actividad reciente: mismo trazo monocromático para todos — solo
-// la forma cambia según el tipo de registro (sin colores por categoría, para
-// mantener la pantalla limpia).
+// Iconos de Actividad reciente: mismo trazo monocromático para todos.
 const TIPO_ICONO = {
   gasto: IconWallet,
   idea: IconBulb,
@@ -100,10 +116,22 @@ const TIPO_ICONO = {
   tarea: IconSquareCheck,
 };
 
-// Carousel de banners: se desliza solo cada 4s con CSS scroll-snap nativo
-// (sin librerías); el usuario puede deslizar manual y el auto-avance sigue
-// desde donde haya quedado, recalculando el índice a partir del scroll real
-// en vez de un contador separado que podría desincronizarse.
+// Mide el ancho real del contenedor para dibujar los gráficos SVG a escala
+// de píxel (sin distorsión por preserveAspectRatio). Se recalcula si cambia.
+function useAncho() {
+  const ref = useRef(null);
+  const [ancho, setAncho] = useState(0);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const ro = new ResizeObserver((entries) => setAncho(entries[0].contentRect.width));
+    ro.observe(el);
+    setAncho(el.clientWidth);
+    return () => ro.disconnect();
+  }, []);
+  return [ref, ancho];
+}
+
 function useCarruselAuto(cantidad, intervaloMs = 4000) {
   const contenedorRef = useRef(null);
   const [indiceActivo, setIndiceActivo] = useState(0);
@@ -134,24 +162,176 @@ function useCarruselAuto(cantidad, intervaloMs = 4000) {
   return { contenedorRef, indiceActivo, onScroll };
 }
 
-// Detalle decorativo del hero: sol de día, luna con nube de noche — según la
-// hora real de Colombia. Se dibuja tenue (hero-text-soft) para no competir
-// con la tipografía del saludo.
-function IconoClima({ esDeDia, color }) {
-  if (esDeDia) {
-    return <IconSun size={30} color={color} strokeWidth={1.6} />;
-  }
+// Gráfico de línea + área (SVG a mano, sin librerías). Con eje Y opcional
+// (guías punteadas + etiquetas a la derecha) para la tarjeta de balance.
+function GraficoAreaLinea({ valores, color, alto = 120, conEje = false }) {
+  const [ref, ancho] = useAncho();
+  const gid = `grad-${color.replace('#', '')}-${conEje ? 'eje' : 'mini'}`;
+
+  const vals = valores && valores.length ? valores : [0, 0];
+  const padTop = 12;
+  const padBottom = conEje ? 18 : 8;
+  const padRight = conEje ? 40 : 4;
+  const padLeft = 4;
+  const innerH = alto - padTop - padBottom;
+  const innerW = Math.max(0, ancho - padLeft - padRight);
+
+  const dataMax = Math.max(...vals);
+  const dataMin = Math.min(0, ...vals);
+  const topEje = conEje ? techoRedondo(dataMax) : dataMax || 1;
+  const maxV = conEje ? topEje : dataMax || 1;
+  const minV = conEje ? (dataMin < 0 ? -techoRedondo(-dataMin) : 0) : dataMin;
+  const rango = maxV - minV || 1;
+
+  const xAt = (i) => padLeft + (vals.length === 1 ? innerW / 2 : (i / (vals.length - 1)) * innerW);
+  const yAt = (v) => padTop + innerH - ((v - minV) / rango) * innerH;
+
+  const puntos = vals.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`);
+  const lineaPath = 'M' + puntos.join(' L');
+  const areaPath = `M${xAt(0).toFixed(1)},${(padTop + innerH).toFixed(1)} L${puntos.join(' L')} L${xAt(vals.length - 1).toFixed(1)},${(padTop + innerH).toFixed(1)} Z`;
+
+  const nTicks = 4;
+  const ticks = Array.from({ length: nTicks + 1 }).map((_, k) => minV + (rango * k) / nTicks);
+
   return (
-    <div className="relative" style={{ width: '34px', height: '30px' }}>
-      <IconMoon size={24} color={color} strokeWidth={1.6} style={{ position: 'absolute', top: 0, left: 4 }} />
-      <IconCloud size={18} color={color} strokeWidth={1.6} style={{ position: 'absolute', bottom: -1, right: -2 }} />
+    <div ref={ref} style={{ width: '100%', height: alto }}>
+      {ancho > 0 && (
+        <svg width={ancho} height={alto}>
+          <defs>
+            <linearGradient id={gid} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={color} stopOpacity="0.32" />
+              <stop offset="100%" stopColor={color} stopOpacity="0" />
+            </linearGradient>
+          </defs>
+
+          {conEje && ticks.map((t, k) => {
+            const yy = yAt(t);
+            return (
+              <g key={k}>
+                <line
+                  x1={padLeft} y1={yy} x2={padLeft + innerW} y2={yy}
+                  stroke="var(--border-color)" strokeWidth="1" strokeDasharray="3 4"
+                />
+                <text
+                  x={ancho - 2} y={yy + 3} textAnchor="end"
+                  fontSize="10" fontWeight="600" fill="var(--text-muted)"
+                >
+                  {formatEjeCorto(t)}
+                </text>
+              </g>
+            );
+          })}
+
+          <path d={areaPath} fill={`url(#${gid})`} />
+          <path d={lineaPath} fill="none" stroke={color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+          <circle cx={xAt(vals.length - 1)} cy={yAt(vals[vals.length - 1])} r="4" fill={color} />
+        </svg>
+      )}
     </div>
   );
 }
 
-// Banner fotográfico de módulo: foto real + degradado negro-a-transparente
-// + CTA píldora. Si la imagen no carga, cae a un fondo sólido en vez de
-// mostrar un ícono roto.
+// Gráfico de barras (SVG). Resalta la barra más alta en color pleno; el resto
+// queda tenue. Guías punteadas de fondo opcionales.
+function GraficoBarras({ valores, color, alto = 56 }) {
+  const [ref, ancho] = useAncho();
+  const vals = valores && valores.length ? valores : [0];
+  const max = Math.max(1, ...vals);
+  const idxMax = vals.indexOf(Math.max(...vals));
+  const gap = 4;
+  const bw = vals.length > 0 ? Math.max(3, (ancho - gap * (vals.length - 1)) / vals.length) : 0;
+  const padBottom = 2;
+  const innerH = alto - padBottom;
+
+  return (
+    <div ref={ref} style={{ width: '100%', height: alto }}>
+      {ancho > 0 && (
+        <svg width={ancho} height={alto}>
+          {vals.map((v, i) => {
+            const bh = Math.max(3, (v / max) * (innerH - 4));
+            const x = i * (bw + gap);
+            const activa = i === idxMax && v > 0;
+            return (
+              <rect
+                key={i}
+                x={x} y={innerH - bh} width={bw} height={bh} rx={Math.min(3, bw / 2)}
+                fill={activa ? color : 'var(--border-color)'}
+                opacity={activa ? 1 : 0.8}
+              />
+            );
+          })}
+        </svg>
+      )}
+    </div>
+  );
+}
+
+// Badge de variación tipo píldora (fondo lima tenue, texto lima) con flecha
+// según el signo — igual al mockup para balance y gastos.
+function BadgeVariacion({ pct }) {
+  if (pct === null || pct === undefined || Number.isNaN(pct)) return null;
+  const subiendo = pct >= 0;
+  return (
+    <div className="inline-flex items-center gap-2">
+      <span
+        className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[11px] font-bold"
+        style={{ background: 'rgba(196,233,56,0.16)', color: LIMA }}
+      >
+        <IconArrowUpRight
+          size={12}
+          color={LIMA}
+          style={{ transform: subiendo ? 'none' : 'scaleY(-1)' }}
+        />
+        {Math.abs(pct)}%
+      </span>
+      <span className="text-[11px]" style={{ color: 'var(--text-secondary)' }}>vs mes anterior</span>
+    </div>
+  );
+}
+
+// Escena decorativa del hero: colinas al fondo, estrellas y luna (noche) o
+// sol (día) según la hora real de Colombia. Todo en lima sobre el degradado
+// verde. Puramente decorativo (pointer-events: none).
+function HeroEscena({ esDeDia }) {
+  return (
+    <div className="absolute inset-0 overflow-hidden rounded-[24px]" style={{ pointerEvents: 'none' }}>
+      <svg viewBox="0 0 400 168" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 w-full h-full">
+        {/* Colinas */}
+        <path d="M0 150 Q 90 118 190 140 T 400 128 L400 168 L0 168 Z" fill="rgba(150,180,40,0.30)" />
+        <path d="M0 162 Q 130 134 250 154 T 400 150 L400 168 L0 168 Z" fill="rgba(90,115,20,0.55)" />
+
+        {/* Estrellas / destellos (solo de noche) */}
+        {!esDeDia && (
+          <g fill={LIMA}>
+            <circle cx="238" cy="58" r="1.6" opacity="0.9" />
+            <circle cx="300" cy="42" r="1.1" opacity="0.7" />
+            <circle cx="332" cy="92" r="1.3" opacity="0.8" />
+            <circle cx="268" cy="100" r="1" opacity="0.6" />
+            <path d="M258 40 l1.4 3.4 3.4 1.4 -3.4 1.4 -1.4 3.4 -1.4 -3.4 -3.4 -1.4 3.4 -1.4 z" opacity="0.9" />
+            <path d="M352 60 l1 2.4 2.4 1 -2.4 1 -1 2.4 -1 -2.4 -2.4 -1 2.4 -1 z" opacity="0.8" />
+          </g>
+        )}
+      </svg>
+
+      {/* Luna + nube (noche) o sol (día) */}
+      <div className="absolute" style={{ top: '26px', right: '30px' }}>
+        {esDeDia ? (
+          <IconSun size={54} color={LIMA} strokeWidth={2} />
+        ) : (
+          <div className="relative">
+            <IconMoon size={50} color={LIMA} strokeWidth={2} fill="rgba(196,233,56,0.12)" />
+            <IconCloud
+              size={30} color={LIMA} strokeWidth={2} fill="rgba(196,233,56,0.10)"
+              style={{ position: 'absolute', bottom: '-8px', right: '-16px' }}
+            />
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Banner fotográfico de módulo: foto real + degradado + CTA píldora.
 function BannerModulo({ href, titulo, metrica, foto, cta }) {
   const [error, setError] = useState(false);
 
@@ -181,23 +361,17 @@ function BannerModulo({ href, titulo, metrica, foto, cta }) {
       />
       <div className="absolute inset-0 p-5 flex flex-col justify-between">
         <div>
-          <div
-            className="text-[19px] font-extrabold tracking-tight"
-            style={{ color: error ? 'var(--text-primary)' : '#FFFFFF' }}
-          >
+          <div className="text-[19px] font-extrabold tracking-tight" style={{ color: error ? 'var(--text-primary)' : '#FFFFFF' }}>
             {titulo}
           </div>
-          <div
-            className="text-[13px] mt-1"
-            style={{ color: error ? 'var(--text-secondary)' : 'rgba(255,255,255,0.82)' }}
-          >
+          <div className="text-[13px] mt-1" style={{ color: error ? 'var(--text-secondary)' : 'rgba(255,255,255,0.82)' }}>
             {metrica}
           </div>
         </div>
         <div className="self-end">
           <span
             className="inline-flex items-center gap-1 pl-3.5 pr-3 py-2 rounded-full text-[12px] font-bold"
-            style={{ background: 'var(--accent)', color: '#000000' }}
+            style={{ background: LIMA, color: '#000000' }}
           >
             {cta}
             <IconArrowUpRight size={14} color="#000000" />
@@ -205,52 +379,6 @@ function BannerModulo({ href, titulo, metrica, foto, cta }) {
         </div>
       </div>
     </Link>
-  );
-}
-
-// Fila de métrica del bloque Resumen: etiqueta silenciosa arriba, número
-// grande abajo. El acento (lima) se reserva sólo para el dato principal.
-function MetricaResumen({ etiqueta, valor, extra, extraColor, destacado }) {
-  return (
-    <div className="flex flex-col">
-      <span className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>{etiqueta}</span>
-      <span
-        className="font-black tracking-tight mt-1"
-        style={{ color: destacado ? 'var(--accent)' : 'var(--text-primary)', fontSize: destacado ? '30px' : '20px' }}
-      >
-        {valor}
-      </span>
-      {extra && (
-        <span className="text-[11px] font-semibold mt-0.5" style={{ color: extraColor || 'var(--text-secondary)' }}>
-          {extra}
-        </span>
-      )}
-    </div>
-  );
-}
-
-// Encabezado de sección reutilizable: etiqueta uppercase tenue + enlace
-// discreto a la derecha. Mantiene la alineación y el ritmo entre bloques.
-function TituloSeccion({ children, href }) {
-  return (
-    <div className="flex justify-between items-center">
-      <span
-        className="text-[11px] font-bold uppercase"
-        style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}
-      >
-        {children}
-      </span>
-      {href && (
-        <Link
-          href={href}
-          className="flex items-center gap-0.5 text-[12px] font-semibold"
-          style={{ color: 'var(--text-secondary)' }}
-        >
-          Ver más
-          <IconChevronRight size={14} color="var(--text-secondary)" />
-        </Link>
-      )}
-    </div>
   );
 }
 
@@ -262,6 +390,7 @@ export default function DashboardInicio() {
   const [calendario, setCalendario] = useState([]);
   const [usuario, setUsuario] = useState(null);
   const [resumen, setResumen] = useState(null);
+  const [balanceData, setBalanceData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showProfile, setShowProfile] = useState(false);
 
@@ -273,8 +402,9 @@ export default function DashboardInicio() {
       fetch('/api/dashboard/notas').then((r) => r.json()),
       fetch('/api/dashboard/tareas').then((r) => r.json()),
       fetch('/api/dashboard/calendario').then((r) => r.json()),
+      fetch('/api/dashboard/balance').then((r) => r.json()),
     ])
-      .then(([gastosData, resumenData, ideasData, notasData, tareasData, calendarioData]) => {
+      .then(([gastosData, resumenData, ideasData, notasData, tareasData, calendarioData, balData]) => {
         setData(gastosData);
         setUsuario(resumenData.usuario);
         setResumen(resumenData.resumen);
@@ -282,6 +412,7 @@ export default function DashboardInicio() {
         setNotas(notasData.notas || []);
         setTareas(tareasData.tareas || []);
         setCalendario(calendarioData.eventos || []);
+        setBalanceData(balData || null);
         setLoading(false);
       })
       .catch((e) => {
@@ -299,6 +430,7 @@ export default function DashboardInicio() {
   const { contenedorRef, indiceActivo, onScroll } = useCarruselAuto(MODULOS_BANNER.length);
 
   const nombre = usuario?.como_llamar || usuario?.nombre || 'Duvan';
+  const fotoUrl = usuario?.foto_url || null;
 
   if (loading) {
     return (
@@ -310,9 +442,9 @@ export default function DashboardInicio() {
             <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           </div>
         </div>
-        <div className="mx-5 rounded-[24px] h-[150px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="mx-5 rounded-[24px] h-[168px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
         <div className="mx-5 rounded-3xl h-[176px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
-        <div className="mx-5 rounded-2xl h-[120px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="mx-5 rounded-2xl h-[150px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
   }
@@ -329,8 +461,7 @@ export default function DashboardInicio() {
     .filter((g) => new Date(g.fecha) >= hace7dias)
     .reduce((sum, g) => sum + Number(g.monto), 0);
 
-  // Saludo y fecha SIEMPRE en hora Colombia (UTC-5), sin importar el huso
-  // horario configurado en el dispositivo del usuario.
+  // Saludo y fecha SIEMPRE en hora Colombia (UTC-5).
   const horaColombia = parseInt(
     new Date().toLocaleString('en-US', { timeZone: ZONA_COLOMBIA, hour: 'numeric', hour12: false }),
     10
@@ -359,27 +490,33 @@ export default function DashboardInicio() {
     { ...MODULOS_BANNER[2], metrica: metricaEspacios },
   ];
 
-  // Resumen general: gastos del mes en curso vs. mes anterior (real, a partir
-  // de las fechas de los gastos ya cargados) y eventos de calendario desde
-  // hoy en adelante. Si no hay datos del mes anterior no se inventa un %.
-  const mesActual = hoyStrCO.slice(0, 7);
-  const fechaMesAnterior = new Date();
-  fechaMesAnterior.setMonth(fechaMesAnterior.getMonth() - 1);
-  const mesAnterior = fechaMesAnterior.toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA }).slice(0, 7);
+  // ===== Datos reales para las tarjetas de Resumen =====
+  // Balance general, tendencia mensual y variaciones vienen del endpoint
+  // /balance (histórico completo, ingresos - gastos acumulado por mes).
+  const balanceGeneral = balanceData?.balance ?? resumenSeguro.balance ?? 0;
+  const serieBalance = (balanceData?.serieMensual || []).map((s) => Number(s.total) || 0);
+  const varBalance = balanceData?.variacionBalance ?? null;
+  const gastosMesReal = balanceData?.gastosMes ?? gastosSemana;
+  const varGastos = balanceData?.variacionGastos ?? null;
 
-  const gastosMesActual = gastos
-    .filter((g) => g.fecha?.startsWith(mesActual))
-    .reduce((s, g) => s + Number(g.monto), 0);
-  const gastosMesAnterior = gastos
-    .filter((g) => g.fecha?.startsWith(mesAnterior))
-    .reduce((s, g) => s + Number(g.monto), 0);
-  const cambioGastosMes = gastosMesAnterior > 0
-    ? Math.round(((gastosMesActual - gastosMesAnterior) / gastosMesAnterior) * 100)
-    : null;
+  // Sparkline de gastos: suma diaria de los últimos 14 días (datos reales).
+  const serieGastos = Array.from({ length: 14 }).map((_, idx) => {
+    const d = new Date();
+    d.setDate(d.getDate() - (13 - idx));
+    const clave = d.toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA });
+    return gastos.filter((g) => g.fecha === clave).reduce((s, g) => s + Number(g.monto), 0);
+  });
 
+  // Calendario: eventos por día en los próximos 7 días (datos reales).
+  const barrasCalendario = Array.from({ length: 7 }).map((_, idx) => {
+    const d = new Date();
+    d.setDate(d.getDate() + idx);
+    const clave = d.toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA });
+    return calendario.filter((e) => e.fecha === clave).length;
+  });
   const eventosProximos = calendario.filter((e) => e.fecha >= hoyStrCO).length;
 
-  // Actividad reciente: solo gastos/notas/tareas/ideas, top 4.
+  // Actividad reciente: gastos/notas/tareas/ideas, top 4.
   const actividadReciente = [
     ...gastos.map((g) => ({
       id: `gasto-${g.id}`,
@@ -441,43 +578,28 @@ export default function DashboardInicio() {
             )}
           </button>
           <button type="button" onClick={() => setShowProfile(true)}>
-            <Avatar name={nombre} size="md" />
+            <Avatar name={nombre} size="md" fotoUrl={fotoUrl} />
           </button>
         </div>
       </div>
 
-      {/* Hero — la única superficie con color de marca de la pantalla: lima en
-          dark, oscura en light. El saludo es el protagonista tipográfico
-          (nombre en grande, grueso); el botón de WhatsApp es el CTA que
-          contrasta con la superficie. */}
+      {/* Hero — tarjeta de bienvenida con escena verde (luna/sol según la hora).
+          Sin botón; el nombre es el protagonista. */}
       <div
-        className="mx-5 rounded-[24px] p-6 flex flex-col justify-between"
-        style={{ background: 'var(--hero-bg)', height: '150px' }}
+        className="mx-5 relative rounded-[24px] overflow-hidden"
+        style={{
+          height: '168px',
+          background: 'radial-gradient(135% 125% at 78% 16%, #aebf3a 0%, #7c8f28 24%, #45521a 52%, #1f260d 82%, #141a09 100%)',
+          border: '1px solid rgba(196,233,56,0.22)',
+        }}
       >
-        <div className="flex items-start justify-between gap-3">
-          <div className="min-w-0">
-            <div className="text-[13px] font-medium" style={{ color: 'var(--hero-text-soft)' }}>{saludo},</div>
-            <div className="text-[27px] font-extrabold tracking-tight leading-none mt-0.5 truncate" style={{ color: 'var(--hero-text)' }}>
-              {nombre}
-            </div>
-            <div className="text-[12px] mt-2" style={{ color: 'var(--hero-text-soft)' }}>{fechaHoy}</div>
+        <HeroEscena esDeDia={esDeDia} />
+        <div className="relative z-10 p-6 flex flex-col justify-center h-full">
+          <div className="text-[14px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>{saludo},</div>
+          <div className="text-[34px] font-extrabold tracking-tight leading-none mt-1 truncate" style={{ color: '#FFFFFF', maxWidth: '62%' }}>
+            {nombre}
           </div>
-          <IconoClima esDeDia={esDeDia} color="var(--hero-text-soft)" />
-        </div>
-
-        <div className="flex justify-end">
-          <a
-            href={WHATSAPP_LINK}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 px-4 py-2.5 rounded-full"
-            style={{ background: 'var(--whatsapp-btn-bg)' }}
-          >
-            <IconBrandWhatsapp size={16} color="var(--whatsapp-btn-text)" />
-            <span className="text-[13px] font-bold whitespace-nowrap" style={{ color: 'var(--whatsapp-btn-text)' }}>
-              Hablar con Du
-            </span>
-          </a>
+          <div className="text-[14px] font-semibold mt-2.5" style={{ color: LIMA }}>{fechaHoy}</div>
         </div>
       </div>
 
@@ -509,33 +631,82 @@ export default function DashboardInicio() {
         </div>
       </div>
 
-      {/* Resumen general — cifras completas, monocromo, con el balance como
-          único acento en lima. */}
-      <section className="mx-5 flex flex-col gap-4">
-        <TituloSeccion href="/dashboard/balance">Resumen general</TituloSeccion>
+      {/* Resumen general — tarjetas con gráficos reales */}
+      <section className="mx-5 flex flex-col gap-3">
+        <div className="flex justify-between items-center mb-1">
+          <span className="text-[12px] font-black uppercase" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
+            Resumen general
+          </span>
+          <Link href="/dashboard/balance" className="flex items-center gap-0.5 text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            Ver más <IconChevronRight size={14} color="var(--text-secondary)" />
+          </Link>
+        </div>
 
-        <MetricaResumen etiqueta="Balance general" valor={formatCOP(resumenSeguro.balance)} destacado />
+        {/* Balance general (ancha) */}
+        <div className="rounded-3xl p-5 flex items-stretch gap-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+          <div className="flex flex-col justify-between flex-shrink-0" style={{ width: '50%' }}>
+            <div>
+              <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>Balance general</div>
+              <div
+                className="font-black tracking-tight leading-tight mt-1 truncate"
+                style={{ color: LIMA, fontSize: 'clamp(20px, 6.4vw, 28px)' }}
+              >
+                {formatCOP(balanceGeneral)}
+              </div>
+            </div>
+            <div className="mt-3"><BadgeVariacion pct={varBalance} /></div>
+          </div>
+          <div className="flex-1 min-w-0 flex items-center">
+            <GraficoAreaLinea valores={serieBalance} color={LIMA} alto={118} conEje />
+          </div>
+        </div>
 
-        <div className="h-px w-full" style={{ background: 'var(--border-color)' }} />
+        {/* Gastos + Calendario (mitad y mitad) */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-3xl p-4 flex flex-col justify-between" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '150px' }}>
+            <div>
+              <div className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Gastos del mes</div>
+              <div className="text-[20px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
+                {formatCOP(gastosMesReal)}
+              </div>
+              {varGastos !== null && (
+                <div className="mt-1.5">
+                  <span
+                    className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{ background: 'rgba(196,233,56,0.16)', color: LIMA }}
+                  >
+                    <IconArrowUpRight size={11} color={LIMA} style={{ transform: varGastos <= 0 ? 'scaleY(-1)' : 'none' }} />
+                    {Math.abs(varGastos)}%
+                  </span>
+                </div>
+              )}
+            </div>
+            <GraficoAreaLinea valores={serieGastos} color={MORADO} alto={44} />
+          </div>
 
-        <div className="grid grid-cols-2 gap-x-6">
-          <MetricaResumen
-            etiqueta="Gastos del mes"
-            valor={formatCOP(gastosMesActual)}
-            extra={cambioGastosMes !== null ? `${cambioGastosMes > 0 ? '+' : ''}${cambioGastosMes}% vs mes ant.` : null}
-            extraColor={cambioGastosMes !== null ? (cambioGastosMes <= 0 ? 'var(--accent-dark)' : '#F87171') : null}
-          />
-          <MetricaResumen
-            etiqueta="Calendario"
-            valor={eventosProximos}
-            extra="eventos próximos"
-          />
+          <div className="rounded-3xl p-4 flex flex-col justify-between" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '150px' }}>
+            <div>
+              <div className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Calendario</div>
+              <div className="text-[24px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
+                {eventosProximos}
+              </div>
+              <div className="text-[11px] font-semibold mt-0.5" style={{ color: MORADO }}>eventos próximos</div>
+            </div>
+            <GraficoBarras valores={barrasCalendario} color={MORADO} alto={44} />
+          </div>
         </div>
       </section>
 
-      {/* Actividad reciente — lista continua limpia, íconos monocromáticos. */}
+      {/* Actividad reciente */}
       <section className="mx-5 flex flex-col gap-4">
-        <TituloSeccion href="/dashboard/timeline">Actividad reciente</TituloSeccion>
+        <div className="flex justify-between items-center">
+          <span className="text-[12px] font-black uppercase" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
+            Actividad reciente
+          </span>
+          <Link href="/dashboard/timeline" className="flex items-center gap-0.5 text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
+            Ver más <IconChevronRight size={14} color="var(--text-secondary)" />
+          </Link>
+        </div>
 
         {actividadReciente.length === 0 ? (
           <div
@@ -543,12 +714,8 @@ export default function DashboardInicio() {
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
             <IconCalendarEvent size={26} strokeWidth={1.5} color="var(--text-secondary)" />
-            <div className="text-[13px] font-semibold mt-1" style={{ color: 'var(--text-primary)' }}>
-              Todo tranquilo por aquí
-            </div>
-            <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>
-              Cuéntale algo a Du Life por WhatsApp y aparecerá acá.
-            </div>
+            <div className="text-[13px] font-semibold mt-1" style={{ color: 'var(--text-primary)' }}>Todo tranquilo por aquí</div>
+            <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Cuéntale algo a Du Life por WhatsApp y aparecerá acá.</div>
           </div>
         ) : (
           <div>
@@ -588,7 +755,9 @@ export default function DashboardInicio() {
         nombre={nombre}
         telefono={usuario?.telefono}
         plan={usuario?.plan}
+        fotoUrl={fotoUrl}
         onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
+        onFotoActualizada={(nuevaFoto) => setUsuario((u) => ({ ...u, foto_url: nuevaFoto }))}
       />
 
     </div>

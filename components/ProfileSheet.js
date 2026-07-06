@@ -1,13 +1,40 @@
 'use client';
 
-import { useEffect, useCallback, useState } from 'react';
+import { useEffect, useCallback, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   IconUser, IconBell, IconDiamond, IconHelp, IconInfoCircle,
-  IconChevronRight, IconArrowLeft, IconCheck,
+  IconChevronRight, IconArrowLeft, IconCheck, IconCamera,
 } from '@tabler/icons-react';
 import Avatar from './Avatar';
 import { useTheme } from './ThemeProvider';
+
+// Comprime la imagen en el navegador antes de subirla: la reduce a máx 256px
+// y la exporta como JPEG (~15-30KB) para que quepa holgada en foto_url (TEXT)
+// sin necesidad de un bucket de Storage.
+function comprimirImagen(file, max = 256, calidad = 0.75) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const img = new Image();
+      img.onload = () => {
+        const escala = Math.min(1, max / Math.max(img.width, img.height));
+        const w = Math.max(1, Math.round(img.width * escala));
+        const h = Math.max(1, Math.round(img.height * escala));
+        const canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', calidad));
+      };
+      img.onerror = reject;
+      img.src = reader.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
 
 // "Apariencia" ya no es un stub genérico: tiene su propio row funcional con
 // el toggle de tema justo antes de "Cerrar sesión" (ver más abajo).
@@ -19,7 +46,7 @@ const MENU_ITEMS = [
   { key: 'acerca', icon: IconInfoCircle, label: 'Acerca de Du Life' },
 ];
 
-export default function ProfileSheet({ open, onClose, nombre, telefono, plan, onNombreActualizado }) {
+export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, onNombreActualizado, onFotoActualizada }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [vista, setVista] = useState('menu'); // 'menu' | 'editar-perfil'
@@ -27,6 +54,8 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, on
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
   const [toast, setToast] = useState('');
+  const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const fileRef = useRef(null);
 
   useEffect(() => {
     if (!open) return;
@@ -93,6 +122,36 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, on
     }
   }, [nombreEditado, onNombreActualizado, mostrarToast]);
 
+  const handleFoto = useCallback(async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = ''; // permite re-elegir la misma foto
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      mostrarToast('Elige una imagen válida');
+      return;
+    }
+    setSubiendoFoto(true);
+    try {
+      const dataUrl = await comprimirImagen(file);
+      const res = await fetch('/api/dashboard/actualizar_perfil', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ foto_url: dataUrl }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        mostrarToast(data.error || 'No se pudo subir');
+        return;
+      }
+      onFotoActualizada?.(data.usuario?.foto_url || dataUrl);
+      mostrarToast('Foto actualizada');
+    } catch (err) {
+      mostrarToast('Error al procesar la imagen');
+    } finally {
+      setSubiendoFoto(false);
+    }
+  }, [mostrarToast, onFotoActualizada]);
+
   const handleMenuClick = useCallback((key) => {
     if (key === 'perfil') {
       setVista('editar-perfil');
@@ -139,7 +198,35 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, on
         {vista === 'menu' ? (
           <>
             <div className="flex items-center gap-3 px-5 pb-4">
-              <Avatar name={nombre || ''} size="xl" />
+              <button
+                type="button"
+                onClick={() => !subiendoFoto && fileRef.current?.click()}
+                className="relative flex-shrink-0"
+                aria-label="Cambiar foto de perfil"
+              >
+                <Avatar name={nombre || ''} size="xl" fotoUrl={fotoUrl} />
+                <div
+                  className="absolute -bottom-0.5 -right-0.5 w-6 h-6 rounded-full flex items-center justify-center"
+                  style={{ background: 'var(--accent)', border: '2px solid var(--bg-card)' }}
+                >
+                  <IconCamera size={12} color="#000000" />
+                </div>
+                {subiendoFoto && (
+                  <div
+                    className="absolute inset-0 rounded-full flex items-center justify-center"
+                    style={{ background: 'rgba(0,0,0,0.5)' }}
+                  >
+                    <span className="text-[10px] font-bold text-white">...</span>
+                  </div>
+                )}
+              </button>
+              <input
+                ref={fileRef}
+                type="file"
+                accept="image/*"
+                onChange={handleFoto}
+                style={{ display: 'none' }}
+              />
               <div className="flex-1 min-w-0">
                 <div className="text-[17px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{nombre}</div>
                 {telefonoFormat && <div className="text-[13px] mt-0.5" style={{ color: 'var(--text-secondary)' }}>{telefonoFormat}</div>}
