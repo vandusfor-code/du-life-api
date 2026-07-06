@@ -60,7 +60,7 @@ export default function AiPanel() {
         </div>
         <div
           className="rounded-2xl p-4 text-[13px] leading-snug"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-primary)', boxShadow: 'var(--card-shadow)' }}
         >
           {insight || 'Aún no hay suficientes datos este mes para comparar.'}
         </div>
@@ -79,7 +79,7 @@ export default function AiPanel() {
               key={`t-${t.id}`}
               href="/dashboard/tareas"
               className="flex items-center gap-2 rounded-xl p-2.5 text-[12px]"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
             >
               <IconSquareCheck size={14} color="var(--text-secondary)" />
               <span className="flex-1 truncate font-medium" style={{ color: 'var(--text-primary)' }}>{t.titulo}</span>
@@ -93,7 +93,7 @@ export default function AiPanel() {
               key={`e-${e.id}`}
               href="/dashboard/espacios/calendario"
               className="flex items-center gap-2 rounded-xl p-2.5 text-[12px]"
-              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+              style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
             >
               <IconCalendarEvent size={14} color="var(--text-secondary)" />
               <span className="flex-1 truncate font-medium" style={{ color: 'var(--text-primary)' }}>{e.titulo}</span>

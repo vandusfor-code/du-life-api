@@ -44,7 +44,12 @@ export default function RootLayout({ children }) {
             __html: `
               (function() {
                 try {
-                  var t = localStorage.getItem('du-theme') || 'dark';
+                  var t = localStorage.getItem('du-theme');
+                  if (!t) {
+                    // Sin preferencia guardada: escritorio arranca en claro,
+                    // móvil se mantiene en oscuro (comportamiento actual).
+                    t = window.innerWidth >= 1024 ? 'light' : 'dark';
+                  }
                   document.documentElement.setAttribute('data-theme', t);
                 } catch (e) {}
               })();

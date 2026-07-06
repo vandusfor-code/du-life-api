@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -36,11 +37,11 @@ function ItemNav({ href, label, icon: Icon, activo }) {
       prefetch
       className="flex items-center gap-3 px-3 py-2 rounded-xl text-[14px] font-medium transition-colors"
       style={{
-        color: activo ? 'var(--accent)' : 'var(--text-secondary)',
-        background: activo ? 'rgba(196,233,56,0.12)' : 'transparent',
+        color: activo ? 'var(--nav-active-fg)' : 'var(--text-secondary)',
+        background: activo ? 'var(--nav-active-bg)' : 'transparent',
       }}
     >
-      <Icon size={18} color={activo ? 'var(--accent)' : 'var(--text-secondary)'} />
+      <Icon size={18} color={activo ? 'var(--nav-active-fg)' : 'var(--text-secondary)'} />
       {label}
     </Link>
   );
@@ -48,6 +49,14 @@ function ItemNav({ href, label, icon: Icon, activo }) {
 
 export default function Sidebar() {
   const pathname = usePathname();
+  const [nombre, setNombre] = useState('');
+
+  useEffect(() => {
+    fetch('/api/dashboard/resumen')
+      .then((r) => r.json())
+      .then((d) => setNombre(d?.usuario?.como_llamar || d?.usuario?.nombre || ''))
+      .catch(() => {});
+  }, []);
 
   return (
     <aside
@@ -55,9 +64,16 @@ export default function Sidebar() {
       style={{ width: '240px', borderRight: '1px solid var(--border-color)', background: 'var(--bg-primary)' }}
     >
       <div className="flex flex-col gap-6">
-        <div className="flex items-center px-3">
-          <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--accent)' }}>Du</span>
-          <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>&nbsp;Life</span>
+        <div className="px-3">
+          <div className="flex items-center">
+            <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--accent)' }}>Du</span>
+            <span className="text-lg font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>&nbsp;Life</span>
+          </div>
+          {nombre && (
+            <div className="text-[13px] mt-1" style={{ color: 'var(--text-secondary)' }}>
+              Hola, {nombre} 👋
+            </div>
+          )}
         </div>
 
         <nav className="flex flex-col gap-1">

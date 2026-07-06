@@ -57,7 +57,7 @@ function Tarjeta({ children, className = '' }) {
   return (
     <div
       className={`rounded-3xl p-5 ${className}`}
-      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', boxShadow: 'var(--card-shadow)' }}
     >
       {children}
     </div>

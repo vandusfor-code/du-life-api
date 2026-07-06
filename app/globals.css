@@ -44,6 +44,11 @@
   --whatsapp-btn-text: #FFFFFF;
   --nav-bg: #0D0D11;
   --icon-line-color: #333333;
+  /* Escritorio: pill de item activo en el sidebar y sombra de tarjetas.
+     En dark se mantiene el tinte lima ya usado, sin sombra (plano). */
+  --nav-active-bg: rgba(196, 233, 56, 0.12);
+  --nav-active-fg: #C4E938;
+  --card-shadow: none;
 }
 
 :root[data-theme="light"] {
@@ -64,6 +69,11 @@
   --whatsapp-btn-text: #000000;
   --nav-bg: #FFFFFF;
   --icon-line-color: #CCCCCC;
+  /* Escritorio: pill negro sólido para el item activo del sidebar (estilo
+     SaaS claro) y sombra suave en tarjetas sobre el fondo blanco. */
+  --nav-active-bg: #0A0A0A;
+  --nav-active-fg: #FFFFFF;
+  --card-shadow: 0 1px 2px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.06);
 }
 
 html, body {

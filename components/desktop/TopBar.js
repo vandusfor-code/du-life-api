@@ -1,13 +1,15 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { IconSearch } from '@tabler/icons-react';
+import { IconSearch, IconCalendar } from '@tabler/icons-react';
 import Avatar from '../Avatar';
 import ProfileMenu from './ProfileMenu';
 
+const ZONA_COLOMBIA = 'America/Bogota';
+
 // Barra superior de escritorio: búsqueda (solo visual en esta fase — no hay
 // backend de búsqueda global todavía, así que no se conecta a nada para no
-// prometer una función que no existe) + avatar/perfil.
+// prometer una función que no existe) + fecha real + avatar/perfil.
 export default function TopBar() {
   const [usuario, setUsuario] = useState(null);
   const [menuAbierto, setMenuAbierto] = useState(false);
@@ -20,6 +22,9 @@ export default function TopBar() {
   }, []);
 
   const nombre = usuario?.como_llamar || usuario?.nombre || '';
+  const fechaHoy = new Date().toLocaleDateString('es-CO', {
+    timeZone: ZONA_COLOMBIA, weekday: 'short', day: 'numeric', month: 'short',
+  });
 
   return (
     <header
@@ -33,8 +38,16 @@ export default function TopBar() {
           placeholder="Buscar cualquier cosa..."
           disabled
           className="w-full pl-9 pr-3 py-2 rounded-xl text-[13px] outline-none"
-          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+          style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', boxShadow: 'var(--card-shadow)' }}
         />
+      </div>
+
+      <div
+        className="hidden md:flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[12px] font-semibold flex-shrink-0"
+        style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', boxShadow: 'var(--card-shadow)' }}
+      >
+        <IconCalendar size={14} color="var(--text-secondary)" />
+        {fechaHoy}
       </div>
 
       <div className="relative">

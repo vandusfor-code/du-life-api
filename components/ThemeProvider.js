@@ -22,6 +22,12 @@ export function ThemeProvider({ children }) {
       return;
     }
 
+    // Sin preferencia guardada: mismo default que ya aplicó el script
+    // anti-flash (app/layout.js) — claro en escritorio, oscuro en móvil.
+    const porDefecto = window.innerWidth >= 1024 ? 'light' : 'dark';
+    setTheme(porDefecto);
+    document.documentElement.setAttribute('data-theme', porDefecto);
+
     fetch('/api/dashboard/resumen')
       .then((r) => r.json())
       .then((data) => {
