@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback, useRef } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import {
   IconBell, IconSparkles, IconSquareCheck, IconWallet, IconShoppingBag,
@@ -37,26 +37,6 @@ function obtenerFraseDelDia(zonaHorario) {
 
 const WHATSAPP_HABLAR_CON_DU = 'https://wa.me/573239117508';
 
-// Banners fotográficos del carousel: una foto real por módulo (con overlay
-// negro-a-transparente) en vez de ilustraciones planas. Si la foto no carga
-// (sin red, CDN caído), el banner cae a un fondo sólido en vez de romperse.
-const MODULOS_BANNER = [
-  {
-    slug: 'gastos',
-    href: '/dashboard/gastos',
-    titulo: 'Gastos',
-    cta: 'Ver más',
-    foto: 'https://images.unsplash.com/photo-1580519542036-c47de6196ba5?w=800&q=80&auto=format&fit=crop',
-  },
-  {
-    slug: 'espacios',
-    href: '/dashboard/espacios',
-    titulo: 'Espacios',
-    cta: 'Gestionar',
-    foto: 'https://images.unsplash.com/photo-1497366754035-f200968a6e72?w=800&q=80&auto=format&fit=crop',
-  },
-];
-
 export const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 const formatEjeCorto = (n) => {
   const abs = Math.abs(n);
@@ -73,15 +53,6 @@ function techoRedondo(v) {
   const n = v / pot;
   const mult = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
   return mult * pot;
-}
-
-function formatHora12(horaStr) {
-  if (!horaStr) return '';
-  const [hStr, m] = horaStr.split(':');
-  let h = parseInt(hStr, 10);
-  const ampm = h >= 12 ? 'PM' : 'AM';
-  h = h % 12 || 12;
-  return `${h}:${m} ${ampm}`;
 }
 
 function timeAgo(fechaISO) {
@@ -138,36 +109,6 @@ function useAncho() {
     return () => ro.disconnect();
   }, []);
   return [ref, ancho];
-}
-
-function useCarruselAuto(cantidad, intervaloMs = 4000) {
-  const contenedorRef = useRef(null);
-  const [indiceActivo, setIndiceActivo] = useState(0);
-
-  useEffect(() => {
-    const el = contenedorRef.current;
-    if (!el) return undefined;
-
-    const intervalo = setInterval(() => {
-      const anchoTarjeta = el.clientWidth;
-      if (!anchoTarjeta) return;
-      const indiceActual = Math.round(el.scrollLeft / anchoTarjeta);
-      const siguiente = (indiceActual + 1) % cantidad;
-      el.scrollTo({ left: siguiente * anchoTarjeta, behavior: 'smooth' });
-    }, intervaloMs);
-
-    return () => clearInterval(intervalo);
-  }, [cantidad, intervaloMs]);
-
-  const onScroll = useCallback(() => {
-    const el = contenedorRef.current;
-    if (!el) return;
-    const anchoTarjeta = el.clientWidth;
-    if (!anchoTarjeta) return;
-    setIndiceActivo(Math.round(el.scrollLeft / anchoTarjeta));
-  }, []);
-
-  return { contenedorRef, indiceActivo, onScroll };
 }
 
 // Gráfico de línea + área (SVG a mano, sin librerías). Con eje Y opcional
@@ -345,65 +286,12 @@ export function BadgeVariacion({ pct }) {
   );
 }
 
-// Banner fotográfico de módulo: foto real + degradado + CTA píldora.
-function BannerModulo({ href, titulo, metrica, foto, cta }) {
-  const [error, setError] = useState(false);
-
-  return (
-    <Link
-      href={href}
-      prefetch
-      className="relative flex-shrink-0 w-full h-[176px] rounded-3xl overflow-hidden"
-      style={{ scrollSnapAlign: 'start', background: 'var(--bg-card)' }}
-    >
-      {!error && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
-          src={foto}
-          alt=""
-          onError={() => setError(true)}
-          className="absolute inset-0 w-full h-full object-cover"
-        />
-      )}
-      <div
-        className="absolute inset-0"
-        style={{
-          background: error
-            ? 'transparent'
-            : 'linear-gradient(100deg, rgba(0,0,0,0.9) 0%, rgba(0,0,0,0.5) 50%, rgba(0,0,0,0.1) 100%)',
-        }}
-      />
-      <div className="absolute inset-0 p-5 flex flex-col justify-between">
-        <div>
-          <div className="text-[19px] font-extrabold tracking-tight" style={{ color: error ? 'var(--text-primary)' : '#FFFFFF' }}>
-            {titulo}
-          </div>
-          <div className="text-[13px] mt-1" style={{ color: error ? 'var(--text-secondary)' : 'rgba(255,255,255,0.82)' }}>
-            {metrica}
-          </div>
-        </div>
-        <div className="self-end">
-          <span
-            className="inline-flex items-center gap-1 pl-3.5 pr-3 py-2 rounded-full text-[12px] font-bold"
-            style={{ background: LIMA, color: '#000000' }}
-          >
-            {cta}
-            <IconArrowUpRight size={14} color="#000000" />
-          </span>
-        </div>
-      </div>
-    </Link>
-  );
-}
-
 export default function InicioMobile() {
   const {
-    data, ideas, notas, tareas, calendario, usuario, resumen, balanceData, loading, setUsuario,
+    data, ideas, notas, tareas, usuario, resumen, balanceData, loading, setUsuario,
   } = useInicioData();
   const [showProfile, setShowProfile] = useState(false);
   const [errorMascota, setErrorMascota] = useState(false);
-
-  const { contenedorRef, indiceActivo, onScroll } = useCarruselAuto(MODULOS_BANNER.length);
 
   const nombre = usuario?.como_llamar || usuario?.nombre || '';
   const fotoUrl = usuario?.foto_url || null;
@@ -438,20 +326,6 @@ export default function InicioMobile() {
     .reduce((sum, g) => sum + Number(g.monto), 0);
 
   const fraseDelDia = obtenerFraseDelDia(ZONA_COLOMBIA);
-  const hoyStrCO = new Date().toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA });
-
-  const eventoHoy = calendario
-    .filter((e) => e.fecha === hoyStrCO)
-    .sort((a, b) => (a.hora_inicio || '').localeCompare(b.hora_inicio || ''))[0];
-
-  const metricaEspacios = eventoHoy
-    ? `Hoy: ${eventoHoy.titulo} · ${formatHora12(eventoHoy.hora_inicio)}`
-    : `${notas.length + ideas.length} notas e ideas guardadas`;
-
-  const banners = [
-    { ...MODULOS_BANNER[0], metrica: `${formatCOP(gastosSemana)} esta semana` },
-    { ...MODULOS_BANNER[1], metrica: metricaEspacios },
-  ];
 
   // ===== Datos reales para las tarjetas de Ingresos / Gastos =====
   // Vienen del endpoint /balance (montos del mes actual + variación vs el
@@ -589,34 +463,6 @@ export default function InicioMobile() {
             style={{ right: '4px', bottom: '-14px', height: '148px', width: 'auto' }}
           />
         )}
-      </div>
-
-      {/* Carousel de banners fotográficos por módulo */}
-      <div className="mx-5">
-        <div
-          ref={contenedorRef}
-          onScroll={onScroll}
-          className="flex rounded-3xl scroll-x-hidden"
-          style={{ overflowX: 'auto', scrollSnapType: 'x mandatory', scrollBehavior: 'smooth' }}
-        >
-          {banners.map((b) => (
-            <BannerModulo key={b.slug} {...b} />
-          ))}
-        </div>
-
-        <div className="flex justify-center gap-1.5 mt-3.5">
-          {banners.map((b, i) => (
-            <span
-              key={b.slug}
-              className="rounded-full transition-all"
-              style={{
-                width: i === indiceActivo ? '18px' : '5px',
-                height: '5px',
-                background: i === indiceActivo ? 'var(--accent)' : 'var(--border-color)',
-              }}
-            />
-          ))}
-        </div>
       </div>
 
       {/* Resumen general — tarjetas con gráficos reales */}
