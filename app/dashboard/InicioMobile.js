@@ -4,7 +4,7 @@ import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
   IconBell, IconSparkles, IconSquareCheck, IconWallet,
-  IconNote, IconBulb, IconSun, IconMoon, IconCloud, IconArrowUpRight,
+  IconNote, IconBulb, IconArrowUpRight,
   IconChevronRight, IconCalendarEvent,
 } from '@tabler/icons-react';
 import Avatar from '../../components/Avatar';
@@ -15,6 +15,28 @@ const ZONA_COLOMBIA = 'America/Bogota';
 
 const LIMA = '#C4E938';
 const MORADO = '#A855F7';
+
+// Frase motivacional de la tarjeta de bienvenida: cambia una vez al día
+// (misma frase todo el día, rota automáticamente al día siguiente) según el
+// día del año — sin necesidad de guardar estado en ningún lado.
+const FRASES_DIA = [
+  { titulo: 'Hoy es un gran día para avanzar.', subtitulo: 'Un paso pequeño hoy construye tu mejor versión mañana.' },
+  { titulo: 'Tu energía crea tu día.', subtitulo: 'Empieza con intención y deja que las cosas fluyan.' },
+  { titulo: 'Cada día es una nueva oportunidad.', subtitulo: 'No se trata de ser perfecto, se trata de avanzar.' },
+  { titulo: 'Conquista tu día, un paso a la vez.', subtitulo: 'Lo que hagas hoy construye tu futuro.' },
+  { titulo: 'Cree en tu progreso.', subtitulo: 'Los grandes cambios empiezan con pequeñas decisiones.' },
+  { titulo: 'Hoy puedes más de lo que crees.', subtitulo: 'Confía en el proceso y sigue adelante.' },
+  { titulo: 'Tu mejor versión empieza hoy.', subtitulo: 'Cada día suma, cada esfuerzo cuenta.' },
+];
+
+function obtenerFraseDelDia(zonaHorario) {
+  const inicioAno = new Date(new Date().toLocaleString('en-US', { timeZone: zonaHorario })).setMonth(0, 1);
+  const hoy = new Date(new Date().toLocaleString('en-US', { timeZone: zonaHorario }));
+  const diaDelAno = Math.floor((hoy - inicioAno) / 86400000);
+  return FRASES_DIA[diaDelAno % FRASES_DIA.length];
+}
+
+const WHATSAPP_HABLAR_CON_DU = 'https://wa.me/573239117508';
 
 // Banners fotográficos del carousel: una foto real por módulo (con overlay
 // negro-a-transparente) en vez de ilustraciones planas. Si la foto no carga
@@ -59,11 +81,6 @@ function techoRedondo(v) {
   const n = v / pot;
   const mult = n <= 1 ? 1 : n <= 2 ? 2 : n <= 5 ? 5 : 10;
   return mult * pot;
-}
-
-function capitalizar(str) {
-  if (!str) return '';
-  return str.charAt(0).toUpperCase() + str.slice(1);
 }
 
 function formatHora12(horaStr) {
@@ -288,48 +305,6 @@ export function BadgeVariacion({ pct }) {
   );
 }
 
-// Escena decorativa del hero: colinas al fondo, estrellas y luna (noche) o
-// sol (día) según la hora real de Colombia. Todo en lima sobre el degradado
-// verde. Puramente decorativo (pointer-events: none).
-function HeroEscena({ esDeDia }) {
-  return (
-    <div className="absolute inset-0 overflow-hidden rounded-[24px]" style={{ pointerEvents: 'none' }}>
-      <svg viewBox="0 0 400 168" preserveAspectRatio="xMidYMax slice" className="absolute inset-0 w-full h-full">
-        {/* Colinas */}
-        <path d="M0 150 Q 90 118 190 140 T 400 128 L400 168 L0 168 Z" fill="rgba(150,180,40,0.30)" />
-        <path d="M0 162 Q 130 134 250 154 T 400 150 L400 168 L0 168 Z" fill="rgba(90,115,20,0.55)" />
-
-        {/* Estrellas / destellos (solo de noche) */}
-        {!esDeDia && (
-          <g fill={LIMA}>
-            <circle cx="238" cy="58" r="1.6" opacity="0.9" />
-            <circle cx="300" cy="42" r="1.1" opacity="0.7" />
-            <circle cx="332" cy="92" r="1.3" opacity="0.8" />
-            <circle cx="268" cy="100" r="1" opacity="0.6" />
-            <path d="M258 40 l1.4 3.4 3.4 1.4 -3.4 1.4 -1.4 3.4 -1.4 -3.4 -3.4 -1.4 3.4 -1.4 z" opacity="0.9" />
-            <path d="M352 60 l1 2.4 2.4 1 -2.4 1 -1 2.4 -1 -2.4 -2.4 -1 2.4 -1 z" opacity="0.8" />
-          </g>
-        )}
-      </svg>
-
-      {/* Luna + nube (noche) o sol (día) */}
-      <div className="absolute" style={{ top: '26px', right: '30px' }}>
-        {esDeDia ? (
-          <IconSun size={54} color={LIMA} strokeWidth={2} />
-        ) : (
-          <div className="relative">
-            <IconMoon size={50} color={LIMA} strokeWidth={2} fill="rgba(196,233,56,0.12)" />
-            <IconCloud
-              size={30} color={LIMA} strokeWidth={2} fill="rgba(196,233,56,0.10)"
-              style={{ position: 'absolute', bottom: '-8px', right: '-16px' }}
-            />
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
 // Banner fotográfico de módulo: foto real + degradado + CTA píldora.
 function BannerModulo({ href, titulo, metrica, foto, cta }) {
   const [error, setError] = useState(false);
@@ -386,6 +361,7 @@ export default function InicioMobile() {
     data, ideas, notas, tareas, calendario, usuario, resumen, balanceData, loading, setUsuario,
   } = useInicioData();
   const [showProfile, setShowProfile] = useState(false);
+  const [errorMascota, setErrorMascota] = useState(false);
 
   const { contenedorRef, indiceActivo, onScroll } = useCarruselAuto(MODULOS_BANNER.length);
 
@@ -421,16 +397,7 @@ export default function InicioMobile() {
     .filter((g) => new Date(g.fecha) >= hace7dias)
     .reduce((sum, g) => sum + Number(g.monto), 0);
 
-  // Saludo y fecha SIEMPRE en hora Colombia (UTC-5).
-  const horaColombia = parseInt(
-    new Date().toLocaleString('en-US', { timeZone: ZONA_COLOMBIA, hour: 'numeric', hour12: false }),
-    10
-  );
-  const saludo = horaColombia < 12 ? 'Buenos días' : horaColombia < 19 ? 'Buenas tardes' : 'Buenas noches';
-  const esDeDia = horaColombia >= 6 && horaColombia < 19;
-  const fechaHoy = capitalizar(
-    new Date().toLocaleDateString('es-CO', { timeZone: ZONA_COLOMBIA, weekday: 'long', day: 'numeric', month: 'long' })
-  );
+  const fraseDelDia = obtenerFraseDelDia(ZONA_COLOMBIA);
   const hoyStrCO = new Date().toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA });
 
   const eventoHoy = calendario
@@ -450,31 +417,28 @@ export default function InicioMobile() {
     { ...MODULOS_BANNER[2], metrica: metricaEspacios },
   ];
 
-  // ===== Datos reales para las tarjetas de Resumen =====
-  // Balance general, tendencia mensual y variaciones vienen del endpoint
-  // /balance (histórico completo, ingresos - gastos acumulado por mes).
-  const balanceGeneral = balanceData?.balance ?? resumenSeguro.balance ?? 0;
-  const serieBalance = (balanceData?.serieMensual || []).map((s) => Number(s.total) || 0);
-  const varBalance = balanceData?.variacionBalance ?? null;
+  // ===== Datos reales para las tarjetas de Ingresos / Gastos =====
+  // Vienen del endpoint /balance (montos del mes actual + variación vs el
+  // mes anterior + últimos movimientos, para las mini-gráficas).
   const gastosMesReal = balanceData?.gastosMes ?? gastosSemana;
   const varGastos = balanceData?.variacionGastos ?? null;
+  const ingresosMesReal = balanceData?.ingresosMes ?? 0;
+  const varIngresos = balanceData?.variacionIngresos ?? null;
 
-  // Sparkline de gastos: suma diaria de los últimos 14 días (datos reales).
+  // Sparkline de gastos/ingresos: suma diaria de los últimos 14 días (datos reales).
   const serieGastos = Array.from({ length: 14 }).map((_, idx) => {
     const d = new Date();
     d.setDate(d.getDate() - (13 - idx));
     const clave = d.toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA });
     return gastos.filter((g) => g.fecha === clave).reduce((s, g) => s + Number(g.monto), 0);
   });
-
-  // Calendario: eventos por día en los próximos 7 días (datos reales).
-  const barrasCalendario = Array.from({ length: 7 }).map((_, idx) => {
+  const ingresosRecientes = balanceData?.ingresosRecientes || [];
+  const serieIngresos = Array.from({ length: 14 }).map((_, idx) => {
     const d = new Date();
-    d.setDate(d.getDate() + idx);
+    d.setDate(d.getDate() - (13 - idx));
     const clave = d.toLocaleDateString('en-CA', { timeZone: ZONA_COLOMBIA });
-    return calendario.filter((e) => e.fecha === clave).length;
+    return ingresosRecientes.filter((i) => i.fecha === clave).reduce((s, i) => s + Number(i.monto), 0);
   });
-  const eventosProximos = calendario.filter((e) => e.fecha >= hoyStrCO).length;
 
   // Actividad reciente: gastos/notas/tareas/ideas, top 4.
   const actividadReciente = [
@@ -533,24 +497,42 @@ export default function InicioMobile() {
         </div>
       </div>
 
-      {/* Hero — tarjeta de bienvenida con escena verde (luna/sol según la hora).
-          Sin botón; el nombre es el protagonista. */}
-      <div
-        className="mx-5 relative rounded-[24px] overflow-hidden"
-        style={{
-          height: '168px',
-          background: 'radial-gradient(135% 125% at 78% 16%, #aebf3a 0%, #7c8f28 24%, #45521a 52%, #1f260d 82%, #141a09 100%)',
-          border: '1px solid rgba(196,233,56,0.22)',
-        }}
-      >
-        <HeroEscena esDeDia={esDeDia} />
-        <div className="relative z-10 p-6 flex flex-col justify-center h-full">
-          <div className="text-[14px] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>{saludo},</div>
-          <div className="text-[34px] font-extrabold tracking-tight leading-none mt-1 truncate" style={{ color: '#FFFFFF', maxWidth: '62%' }}>
-            {nombre}
-          </div>
-          <div className="text-[14px] font-semibold mt-2.5" style={{ color: LIMA }}>{fechaHoy}</div>
+      {/* Saludo simple */}
+      <div className="mx-5">
+        <div className="text-[26px] font-extrabold leading-snug tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          Hola, <span style={{ color: LIMA }}>{nombre}</span>,<br />Bienvenido
         </div>
+      </div>
+
+      {/* Tarjeta motivacional — frase del día + CTA a WhatsApp + mascota */}
+      <div className="mx-5 relative rounded-3xl overflow-hidden p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+        <div className="relative z-10" style={{ maxWidth: '60%' }}>
+          <div className="text-[19px] font-extrabold leading-tight" style={{ color: 'var(--text-primary)' }}>
+            {fraseDelDia.titulo}
+          </div>
+          <div className="text-[13px] mt-2 leading-snug" style={{ color: 'var(--text-secondary)' }}>
+            {fraseDelDia.subtitulo}
+          </div>
+          <a
+            href={WHATSAPP_HABLAR_CON_DU}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center mt-4 px-5 py-2.5 rounded-full text-[13px] font-bold"
+            style={{ background: LIMA, color: '#000000' }}
+          >
+            Habla con Du
+          </a>
+        </div>
+        {!errorMascota && (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src="/astronauta.png"
+            alt=""
+            onError={() => setErrorMascota(true)}
+            className="absolute pointer-events-none select-none"
+            style={{ right: '-14px', bottom: '-10px', width: '136px', height: 'auto' }}
+          />
+        )}
       </div>
 
       {/* Carousel de banners fotográficos por módulo */}
@@ -592,30 +574,32 @@ export default function InicioMobile() {
           </Link>
         </div>
 
-        {/* Balance general (ancha) */}
-        <div className="rounded-3xl p-5 flex items-stretch gap-3" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-          <div className="flex flex-col justify-between flex-shrink-0" style={{ width: '50%' }}>
-            <div>
-              <div className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>Balance general</div>
-              <div
-                className="font-black tracking-tight leading-tight mt-1 truncate"
-                style={{ color: LIMA, fontSize: 'clamp(20px, 6.4vw, 28px)' }}
-              >
-                {formatCOP(balanceGeneral)}
-              </div>
-            </div>
-            <div className="mt-3"><BadgeVariacion pct={varBalance} /></div>
-          </div>
-          <div className="flex-1 min-w-0 flex items-center">
-            <GraficoAreaLinea valores={serieBalance} color={LIMA} alto={118} conEje />
-          </div>
-        </div>
-
-        {/* Gastos + Calendario (mitad y mitad) */}
+        {/* Ingresos + Gastos (mitad y mitad) */}
         <div className="grid grid-cols-2 gap-3">
           <div className="rounded-3xl p-4 flex flex-col justify-between" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '150px' }}>
             <div>
-              <div className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Gastos del mes</div>
+              <div className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Ingresos</div>
+              <div className="text-[20px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
+                {formatCOP(ingresosMesReal)}
+              </div>
+              {varIngresos !== null && (
+                <div className="mt-1.5">
+                  <span
+                    className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold"
+                    style={{ background: 'rgba(196,233,56,0.16)', color: LIMA }}
+                  >
+                    <IconArrowUpRight size={11} color={LIMA} style={{ transform: varIngresos <= 0 ? 'scaleY(-1)' : 'none' }} />
+                    {Math.abs(varIngresos)}%
+                  </span>
+                </div>
+              )}
+            </div>
+            <GraficoAreaLinea valores={serieIngresos} color={LIMA} alto={44} />
+          </div>
+
+          <div className="rounded-3xl p-4 flex flex-col justify-between" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '150px' }}>
+            <div>
+              <div className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Gastos</div>
               <div className="text-[20px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
                 {formatCOP(gastosMesReal)}
               </div>
@@ -633,25 +617,14 @@ export default function InicioMobile() {
             </div>
             <GraficoAreaLinea valores={serieGastos} color={MORADO} alto={44} />
           </div>
-
-          <div className="rounded-3xl p-4 flex flex-col justify-between" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '150px' }}>
-            <div>
-              <div className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Calendario</div>
-              <div className="text-[24px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
-                {eventosProximos}
-              </div>
-              <div className="text-[11px] font-semibold mt-0.5" style={{ color: MORADO }}>eventos próximos</div>
-            </div>
-            <GraficoBarras valores={barrasCalendario} color={MORADO} alto={44} />
-          </div>
         </div>
       </section>
 
-      {/* Actividad reciente */}
+      {/* Actividades recientes */}
       <section className="mx-5 flex flex-col gap-4">
         <div className="flex justify-between items-center">
           <span className="text-[12px] font-black uppercase" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
-            Actividad reciente
+            Actividades recientes
           </span>
           <Link href="/dashboard/timeline" className="flex items-center gap-0.5 text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>
             Ver más <IconChevronRight size={14} color="var(--text-secondary)" />
