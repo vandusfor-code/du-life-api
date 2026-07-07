@@ -9,6 +9,7 @@ import {
 import { useInicioData } from './useInicioData';
 import { useTheme } from '../../components/ThemeProvider';
 import { GraficoAreaLinea, GraficoBarras, formatCOP } from './InicioMobile';
+import LogoComercio from '../../components/LogoComercio';
 
 const ZONA_COLOMBIA = 'America/Bogota';
 const MORADO = '#A855F7';
@@ -193,6 +194,7 @@ export default function InicioDesktop() {
       tipo: 'gasto',
       titulo: g.descripcion || 'Gasto',
       subtitulo: g.categoria || g.lugar || '',
+      lugarTexto: g.lugar || g.descripcion || '',
       fechaHora: new Date(`${g.fecha}T${g.hora || '00:00:00'}`),
     })),
     ...ideas.map((i) => ({
@@ -224,7 +226,7 @@ export default function InicioDesktop() {
     <div className="p-8 flex flex-col gap-6 w-full">
       <div>
         <h1 className="text-[28px] font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
-          {saludo}, {nombre} 👋
+          {saludo}, {nombre}
         </h1>
         {resumenTexto && (
           <p className="text-[13px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
@@ -373,12 +375,21 @@ export default function InicioDesktop() {
                   key={item.id}
                   className="flex items-center gap-3 px-3 py-3"
                 >
-                  <div
-                    className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
-                  >
-                    <Icon size={16} strokeWidth={1.6} color="var(--text-primary)" />
-                  </div>
+                  {item.tipo === 'gasto' ? (
+                    <LogoComercio
+                      texto={item.lugarTexto}
+                      tamano={36}
+                      radio="11px"
+                      iconoFallback={<Icon size={16} strokeWidth={1.6} color="var(--text-primary)" />}
+                    />
+                  ) : (
+                    <div
+                      className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
+                    >
+                      <Icon size={16} strokeWidth={1.6} color="var(--text-primary)" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{item.titulo}</div>
                     {item.subtitulo && (

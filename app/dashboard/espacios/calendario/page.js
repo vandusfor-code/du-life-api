@@ -251,7 +251,7 @@ export default function CalendarioPage() {
       {/* Timeline de eventos */}
       {eventosDia.length === 0 ? (
         <div className="rounded-2xl p-6 text-center text-muted text-[13px] bg-surface border border-hairline">
-          No tienes eventos este día. ¡Agenda algo! 📅
+          No tienes eventos este día. ¡Agenda algo!
         </div>
       ) : (
         <div className="flex">

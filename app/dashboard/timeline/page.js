@@ -7,6 +7,7 @@ import {
   IconNote, IconShoppingCart, IconUsers, IconBulb, IconSquareCheck, IconWallet,
 } from '@tabler/icons-react';
 import { useAutoRefresh } from '../../../components/useAutoRefresh';
+import LogoComercio from '../../../components/LogoComercio';
 
 const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 
@@ -90,6 +91,7 @@ export default function TimelinePage() {
         tipo: 'gasto',
         titulo: g.descripcion || 'Gasto',
         subtitulo: [g.categoria, g.metodo_pago].filter(Boolean).join(' · '),
+        lugarTexto: g.lugar || g.descripcion || '',
         monto: Number(g.monto),
         fechaHora: new Date(`${g.fecha}T${g.hora || '00:00:00'}`),
       })),
@@ -269,7 +271,11 @@ export default function TimelinePage() {
                       className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                       style={{ background: '#0A0A0A', border: `1.5px solid ${cfg.color}` }}
                     >
-                      <Icon size={16} color={cfg.color} />
+                      {item.tipo === 'gasto' ? (
+                        <LogoComercio texto={item.lugarTexto} tamano={28} iconoFallback={<Icon size={14} color={cfg.color} />} />
+                      ) : (
+                        <Icon size={16} color={cfg.color} />
+                      )}
                     </div>
                     {i < grupo.items.length - 1 && (
                       <div className="flex-1 w-px mt-1" style={{ background: 'var(--border-color)', minHeight: '20px' }} />

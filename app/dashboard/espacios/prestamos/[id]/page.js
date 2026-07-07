@@ -4,6 +4,8 @@ import { useState, useEffect, useCallback, useMemo, useRef, memo } from 'react';
 import Link from 'next/link';
 import {
   IconArrowLeft, IconWallet, IconClock, IconChartBar,
+  IconCoin, IconPlus, IconPlayerTrackNext, IconPencil, IconGift,
+  IconHourglass, IconCircleCheck, IconCalendarEvent,
 } from '@tabler/icons-react';
 import Avatar from '../../../../../components/Avatar';
 import { useAutoRefresh } from '../../../../../components/useAutoRefresh';
@@ -17,11 +19,11 @@ const ESTADO_CONFIG = {
 };
 
 const TIPO_MOVIMIENTO_CONFIG = {
-  pago_completo: { emoji: '💰', color: '#4ADE80', label: 'Pago completo' },
-  abono: { emoji: '➕', color: '#EAB308', label: 'Abono' },
-  pago_adelantado: { emoji: '⏩', color: '#3B82F6', label: 'Pago adelantado' },
-  ajuste: { emoji: '✏️', color: 'var(--text-secondary)', label: 'Ajuste' },
-  condonacion: { emoji: '🎁', color: '#A78BFA', label: 'Condonación' },
+  pago_completo: { icon: IconCoin, color: '#4ADE80', label: 'Pago completo' },
+  abono: { icon: IconPlus, color: '#EAB308', label: 'Abono' },
+  pago_adelantado: { icon: IconPlayerTrackNext, color: '#3B82F6', label: 'Pago adelantado' },
+  ajuste: { icon: IconPencil, color: 'var(--text-secondary)', label: 'Ajuste' },
+  condonacion: { icon: IconGift, color: '#A78BFA', label: 'Condonación' },
 };
 
 function formatFechaHora(fechaISO) {
@@ -224,19 +226,19 @@ export default function PrestamoDetallePage({ params }) {
 
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mt-4">
           <div>
-            <div className="text-[11px] text-muted">💰 Recuperado</div>
+            <div className="text-[11px] text-muted flex items-center gap-1"><IconCoin size={13} />Recuperado</div>
             <div className="text-[15px] font-bold text-ink mt-0.5">{formatCOP(recuperado)}</div>
           </div>
           <div>
-            <div className="text-[11px] text-muted">⏳ Saldo pendiente</div>
+            <div className="text-[11px] text-muted flex items-center gap-1"><IconHourglass size={13} />Saldo pendiente</div>
             <div className="text-[15px] font-bold text-ink mt-0.5">{formatCOP(saldoPendiente)}</div>
           </div>
           <div>
-            <div className="text-[11px] text-muted">✅ Cuotas pagadas</div>
+            <div className="text-[11px] text-muted flex items-center gap-1"><IconCircleCheck size={13} />Cuotas pagadas</div>
             <div className="text-[15px] font-bold text-ink mt-0.5">{prestamo.cuotas_pagadas}</div>
           </div>
           <div>
-            <div className="text-[11px] text-muted">📅 Cuotas restantes</div>
+            <div className="text-[11px] text-muted flex items-center gap-1"><IconCalendarEvent size={13} />Cuotas restantes</div>
             <div className="text-[15px] font-bold text-ink mt-0.5">{cuotasRestantes}</div>
           </div>
         </div>
@@ -291,16 +293,17 @@ export default function PrestamoDetallePage({ params }) {
               <div className="rounded-2xl px-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
                 {movs.map((mov, i) => {
                   const tcfg = TIPO_MOVIMIENTO_CONFIG[mov.tipo] || TIPO_MOVIMIENTO_CONFIG.ajuste;
+                  const TipoIcon = tcfg.icon;
                   return (
                     <div
                       key={mov.id}
                       className="flex items-center gap-3 py-3.5"
                     >
                       <div
-                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[15px]"
+                        className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0"
                         style={{ background: `${tcfg.color}26` }}
                       >
-                        {tcfg.emoji}
+                        <TipoIcon size={16} color={tcfg.color} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <div className="text-[14px] font-bold text-ink truncate">{tcfg.label}</div>

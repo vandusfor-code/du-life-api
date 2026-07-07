@@ -8,6 +8,7 @@ import {
 } from '@tabler/icons-react';
 import Avatar from '../../../components/Avatar';
 import ProfileSheet from '../../../components/ProfileSheet';
+import LogoComercio from '../../../components/LogoComercio';
 import { useAutoRefresh } from '../../../components/useAutoRefresh';
 
 
@@ -352,7 +353,16 @@ export default function BalancePage() {
                 key={`${m.tipo}-${m.id}`}
                 className="flex items-center gap-3 py-3.5"
               >
-                <Avatar name={nombreItem} size="md" />
+                <LogoComercio
+                  texto={m.lugar || m.fuente || m.descripcion}
+                  tamano={36}
+                  radio="11px"
+                  iconoFallback={
+                    esIngreso
+                      ? <IconArrowUp size={16} color="#C4E938" />
+                      : <IconWallet size={16} color="var(--text-primary)" />
+                  }
+                />
                 <div className="flex-1 min-w-0">
                   <div className="text-[14px] font-bold text-ink truncate">{nombreItem}</div>
                   <div className="text-[12px] text-soft mt-0.5 truncate">

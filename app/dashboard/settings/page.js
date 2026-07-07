@@ -108,7 +108,7 @@ export default function SettingsPage() {
         className="rounded-card px-4 mb-6"
         style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
       >
-        <div className="flex items-center gap-3 py-3.5" style={{ borderBottom: '1px solid #242424' }}>
+        <div className="flex items-center gap-3 py-3.5">
           <div className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: '#242424' }}>
             <IconUser size={16} color="var(--text-secondary)" />
           </div>

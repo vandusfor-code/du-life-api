@@ -108,7 +108,7 @@ export default function IdeasPage() {
           className="rounded-card p-8 mt-6 text-center"
           style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
         >
-          <div className="text-[36px] mb-2">💡</div>
+          <div className="flex justify-center mb-2"><IconBulb size={32} strokeWidth={1.5} color="var(--text-secondary)" /></div>
           <div className="text-[14px] font-bold text-ink mb-2">Sin ideas aún</div>
           <div className="text-[13px] text-muted leading-relaxed">
             Cuéntale a Du Life por WhatsApp "tengo una idea..." y aparecerá aquí.
