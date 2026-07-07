@@ -819,6 +819,530 @@ const TABLAS_HIJAS_USUARIO = [
 
 const ROLES_VALIDOS = ['owner', 'admin', 'developer', 'support', 'user'];
 
+// Bandeja de conversaciones: últimos mensajes reales agrupados por usuario
+// (uno por usuario, el más reciente), y el hilo completo al entrar al
+// detalle. No hay GROUP BY vía PostgREST, así que se arma en memoria sobre
+// una ventana de los últimos 300 mensajes — suficiente para "conversaciones
+// recientes", no es un historial exhaustivo de todos los usuarios.
+async function handleAdminConversaciones(usuarioId, req) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const { id } = req.query;
+
+  if (id) {
+    const { data: usuario } = await supabase
+      .from('usuarios')
+      .select('id, nombre, como_llamar, telefono')
+      .eq('id', id)
+      .single();
+    if (!usuario) return { status: 404, body: { error: 'Usuario no encontrado' } };
+
+    const { data: mensajes, count, error } = await supabase
+      .from('mensajes')
+      .select('id, role, mensaje, tipo_mensaje, intencion_detectada, modelo_ai, creado_en', { count: 'exact' })
+      .eq('usuario_id', id)
+      .order('creado_en', { ascending: false })
+      .limit(200);
+
+    if (error) return { status: 500, body: { error: 'No se pudo cargar el historial' } };
+
+    return { status: 200, body: { usuario, mensajes: (mensajes || []).reverse(), total: count || 0 } };
+  }
+
+  const { data: recientes, error } = await supabase
+    .from('mensajes')
+    .select('usuario_id, role, mensaje, creado_en')
+    .order('creado_en', { ascending: false })
+    .limit(300);
+
+  if (error) return { status: 500, body: { error: 'No se pudo cargar la lista' } };
+
+  const vistos = new Set();
+  const ultimoPorUsuario = [];
+  for (const m of recientes || []) {
+    if (vistos.has(m.usuario_id)) continue;
+    vistos.add(m.usuario_id);
+    ultimoPorUsuario.push(m);
+  }
+
+  const ids = ultimoPorUsuario.map((m) => m.usuario_id);
+  const { data: usuarios } = ids.length
+    ? await supabase.from('usuarios').select('id, nombre, como_llamar, telefono').in('id', ids)
+    : { data: [] };
+  const usuarioPorId = Object.fromEntries((usuarios || []).map((u) => [u.id, u]));
+
+  const conversaciones = ultimoPorUsuario
+    .map((m) => ({
+      usuario: usuarioPorId[m.usuario_id] || null,
+      usuario_id: m.usuario_id,
+      ultimo_mensaje: m.mensaje,
+      ultimo_role: m.role,
+      ultima_fecha: m.creado_en,
+    }))
+    .filter((c) => c.usuario);
+
+  return { status: 200, body: { conversaciones } };
+}
+
+// Memoria real (entidades + hechos activos) por usuario. Igual que
+// conversaciones, sin GROUP BY vía PostgREST: se agrega en memoria sobre
+// hasta 5000 filas de cada tabla — de sobra para el volumen actual.
+async function handleAdminMemoria(usuarioId, req) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const { id } = req.query;
+
+  if (id) {
+    const { data: usuario } = await supabase
+      .from('usuarios')
+      .select('id, nombre, como_llamar, telefono')
+      .eq('id', id)
+      .single();
+    if (!usuario) return { status: 404, body: { error: 'Usuario no encontrado' } };
+
+    const [entidadesRes, hechosRes] = await Promise.all([
+      supabase
+        .from('entidades')
+        .select('id, tipo_entidad, nombre, descripcion, importancia, veces_mencionada, ultima_mencion')
+        .eq('usuario_id', id)
+        .eq('activo', true)
+        .order('importancia', { ascending: false }),
+      supabase
+        .from('hechos')
+        .select('id, hecho, categoria, confianza, verificado, creado_en')
+        .eq('usuario_id', id)
+        .eq('activo', true)
+        .order('creado_en', { ascending: false }),
+    ]);
+
+    return {
+      status: 200,
+      body: { usuario, entidades: entidadesRes.data || [], hechos: hechosRes.data || [] },
+    };
+  }
+
+  const [entidadesRes, hechosRes] = await Promise.all([
+    supabase.from('entidades').select('usuario_id').eq('activo', true).limit(5000),
+    supabase.from('hechos').select('usuario_id').eq('activo', true).limit(5000),
+  ]);
+
+  const conteo = {};
+  for (const e of entidadesRes.data || []) {
+    conteo[e.usuario_id] = conteo[e.usuario_id] || { entidades: 0, hechos: 0 };
+    conteo[e.usuario_id].entidades += 1;
+  }
+  for (const h of hechosRes.data || []) {
+    conteo[h.usuario_id] = conteo[h.usuario_id] || { entidades: 0, hechos: 0 };
+    conteo[h.usuario_id].hechos += 1;
+  }
+
+  const ids = Object.keys(conteo);
+  const { data: usuarios } = ids.length
+    ? await supabase.from('usuarios').select('id, nombre, como_llamar, telefono').in('id', ids)
+    : { data: [] };
+
+  const lista = (usuarios || [])
+    .map((u) => ({ usuario: u, ...conteo[u.id] }))
+    .sort((a, b) => (b.entidades + b.hechos) - (a.entidades + a.hechos));
+
+  return { status: 200, body: { usuarios: lista } };
+}
+
+// Uso real de IA: se agrega sobre los últimos 2000 mensajes del asistente
+// que ya tienen modelo_ai/tokens_usados/duracion_ms guardados (ver
+// lib/asistente.js). Nota: Gemini (búsqueda web, redacción, vision, PDFs)
+// no queda registrado con su propio modelo aquí — el campo modelo_ai
+// siempre refleja el modelo de Claude que clasificó el mensaje, no la
+// herramienta táctica que terminó respondiendo. La distribución por
+// intención sí muestra cuánto se usan esas intenciones (busqueda_web,
+// redactar_mensaje, etc.), que es la señal real de uso de Gemini hoy.
+async function handleAdminIA(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const { data: mensajes, error } = await supabase
+    .from('mensajes')
+    .select('modelo_ai, tokens_usados, intencion_detectada, metadata, creado_en')
+    .eq('role', 'assistant')
+    .not('modelo_ai', 'is', null)
+    .order('creado_en', { ascending: false })
+    .limit(2000);
+
+  if (error) return { status: 500, body: { error: 'No se pudo cargar el uso de IA' } };
+
+  const hace7dias = Date.now() - 7 * 86400000;
+  const porModelo = {};
+  const porIntencion = {};
+  let tokensTotal = 0;
+  let llamadas7dias = 0;
+
+  for (const m of mensajes || []) {
+    const modelo = m.modelo_ai || 'desconocido';
+    if (!porModelo[modelo]) porModelo[modelo] = { llamadas: 0, tokens: 0, sumaDuracion: 0, conDuracion: 0 };
+    porModelo[modelo].llamadas += 1;
+    porModelo[modelo].tokens += m.tokens_usados || 0;
+    if (m.metadata?.duracion_ms != null) {
+      porModelo[modelo].sumaDuracion += m.metadata.duracion_ms;
+      porModelo[modelo].conDuracion += 1;
+    }
+
+    const intencion = m.intencion_detectada || 'sin_clasificar';
+    porIntencion[intencion] = (porIntencion[intencion] || 0) + 1;
+
+    tokensTotal += m.tokens_usados || 0;
+    if (new Date(m.creado_en).getTime() >= hace7dias) llamadas7dias += 1;
+  }
+
+  const modelos = Object.entries(porModelo).map(([modelo, d]) => ({
+    modelo,
+    llamadas: d.llamadas,
+    tokens: d.tokens,
+    duracion_promedio_ms: d.conDuracion ? Math.round(d.sumaDuracion / d.conDuracion) : null,
+  })).sort((a, b) => b.llamadas - a.llamadas);
+
+  const intenciones = Object.entries(porIntencion)
+    .map(([intencion, llamadas]) => ({ intencion, llamadas }))
+    .sort((a, b) => b.llamadas - a.llamadas)
+    .slice(0, 12);
+
+  return {
+    status: 200,
+    body: {
+      total_llamadas: (mensajes || []).length,
+      llamadas_ultimos_7_dias: llamadas7dias,
+      tokens_total: tokensTotal,
+      modelos,
+      intenciones,
+    },
+  };
+}
+
+// Todas las tablas del proyecto (según grep sobre api/**/*.js y lib/*.js),
+// no solo las que cuelgan de usuario_id — para tener el panorama completo.
+const TABLAS_TODAS = [
+  'usuarios', 'mensajes', 'entidades', 'hechos', 'gastos', 'ingresos',
+  'notas', 'tareas', 'ideas', 'calendario_eventos', 'prestamos',
+  'prestamos_movimientos', 'patrones', 'arbol_vida', 'documentos',
+  'push_subscriptions', 'emociones', 'archivos_multimedia', 'relaciones',
+  'onboarding_estado', 'usuario_perfil_estado', 'resumen_semanal',
+  'registro_animo', 'codigos_otp',
+];
+
+async function handleAdminBaseDeDatos(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const resultados = await Promise.all(
+    TABLAS_TODAS.map(async (tabla) => {
+      const { count, error } = await supabase.from(tabla).select('id', { count: 'exact', head: true });
+      return { tabla, filas: error ? null : (count || 0), error: error ? error.message : null };
+    })
+  );
+
+  return { status: 200, body: { tablas: resultados } };
+}
+
+// Tendencias de los últimos 14 días: usuarios nuevos, mensajes de usuarios
+// reales (no cuenta las respuestas del asistente) y gastos registrados.
+async function handleAdminAnalytics(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const hace14dias = new Date();
+  hace14dias.setDate(hace14dias.getDate() - 13);
+  hace14dias.setHours(0, 0, 0, 0);
+  const desdeISO = hace14dias.toISOString();
+  const desdeFecha = hace14dias.toISOString().split('T')[0];
+
+  const [usuariosRes, mensajesRes, gastosRes] = await Promise.all([
+    supabase.from('usuarios').select('creado_en').gte('creado_en', desdeISO),
+    supabase.from('mensajes').select('creado_en').eq('role', 'user').gte('creado_en', desdeISO),
+    supabase.from('gastos').select('fecha').gte('fecha', desdeFecha),
+  ]);
+
+  const dias = Array.from({ length: 14 }).map((_, i) => {
+    const d = new Date(hace14dias);
+    d.setDate(d.getDate() + i);
+    return d.toISOString().split('T')[0];
+  });
+
+  const contarPorDia = (filas, campo) => {
+    const conteo = Object.fromEntries(dias.map((d) => [d, 0]));
+    for (const f of filas || []) {
+      const clave = String(f[campo]).split('T')[0];
+      if (clave in conteo) conteo[clave] += 1;
+    }
+    return dias.map((d) => conteo[d]);
+  };
+
+  return {
+    status: 200,
+    body: {
+      dias,
+      usuarios_nuevos: contarPorDia(usuariosRes.data, 'creado_en'),
+      mensajes: contarPorDia(mensajesRes.data, 'creado_en'),
+      gastos: contarPorDia(gastosRes.data, 'fecha'),
+    },
+  };
+}
+
+// Estado de integraciones externas: solo confirma si la variable de entorno
+// está configurada (booleano) — nunca expone el valor. La "última
+// actividad" real de Claude/Meta ya se calcula en handleAdminDashboard, se
+// recalcula acá con la misma lógica para no acoplar los dos handlers.
+const SERVICIOS_EXTERNOS = [
+  { id: 'whatsapp', nombre: 'WhatsApp Cloud API (Meta)', vars: ['WA_ACCESS_TOKEN', 'WA_PHONE_NUMBER_ID'] },
+  { id: 'claude', nombre: 'Anthropic Claude', vars: ['CLAUDE_API_KEY'] },
+  { id: 'gemini', nombre: 'Google Gemini', vars: ['GEMINI_API_KEY'] },
+  { id: 'openai', nombre: 'OpenAI (Whisper + embeddings)', vars: ['OPENAI_API_KEY'] },
+  { id: 'supabase', nombre: 'Supabase', vars: ['SUPABASE_URL', 'SUPABASE_KEY'] },
+  { id: 'qstash', nombre: 'QStash (Upstash)', vars: ['QSTASH_TOKEN'] },
+  { id: 'auth', nombre: 'Autenticación (JWT)', vars: ['JWT_SECRET'] },
+];
+
+async function handleAdminApis(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const servicios = SERVICIOS_EXTERNOS.map((s) => ({
+    id: s.id,
+    nombre: s.nombre,
+    configurado: s.vars.every((v) => !!process.env[v]),
+    variables: s.vars.map((v) => ({ nombre: v, configurada: !!process.env[v] })),
+  }));
+
+  const [ultimoClaudeRes, ultimoMetaRes] = await Promise.all([
+    supabase.from('mensajes').select('creado_en').eq('role', 'assistant').not('metadata->duracion_ms', 'is', null).order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('mensajes').select('creado_en').eq('role', 'user').order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+  ]);
+
+  return {
+    status: 200,
+    body: {
+      servicios,
+      ultima_actividad: {
+        claude: ultimoClaudeRes.data?.creado_en || null,
+        meta: ultimoMetaRes.data?.creado_en || null,
+      },
+    },
+  };
+}
+
+// Documentación de los jobs reales del sistema (ver programarJob() en
+// api/webhook.js, lib/asistente.js y api/cron-daily.js). No todos tienen
+// una columna dedicada para saber "cuándo corrió por última vez" — donde
+// no la hay, se dice explícitamente en vez de inventar un dato.
+const CRON_JOBS = [
+  {
+    id: 'procesar-webhook',
+    nombre: 'Procesar mensaje de WhatsApp',
+    disparador: 'Cada mensaje entrante (QStash, encolado desde api/webhook.js)',
+    descripcion: 'Job principal: decide qué hacer con el mensaje (texto/imagen/audio/documento) y genera la respuesta.',
+  },
+  {
+    id: 'recordatorio-tarea',
+    nombre: 'Recordatorio de tarea',
+    disparador: 'Programado por api/cron-daily.js (6am) y al crear una tarea con fecha',
+    descripcion: 'Envía el recordatorio de WhatsApp a la hora programada de una tarea.',
+  },
+  {
+    id: 'recordatorio-calendario',
+    nombre: 'Recordatorio de evento',
+    disparador: 'Programado al crear un evento de calendario con fecha futura',
+    descripcion: 'Envía el recordatorio de WhatsApp 5 minutos antes de un evento.',
+  },
+  {
+    id: 'resumen-semanal',
+    nombre: 'Resumen semanal',
+    disparador: 'Programado por api/cron-daily.js los domingos',
+    descripcion: 'Genera y envía el resumen semanal de gastos/ingresos/actividad.',
+  },
+  {
+    id: 'ritual-cierre',
+    nombre: 'Ritual de cierre del día',
+    disparador: 'Programado por api/cron-daily.js (todos los días)',
+    descripcion: 'Mensaje de cierre de día para reflexión/balance.',
+  },
+  {
+    id: 'chequeo-semana',
+    nombre: 'Chequeo de fin de semana',
+    disparador: 'Programado por api/cron-daily.js (sábados)',
+    descripcion: 'Mensaje de chequeo para el fin de semana.',
+  },
+  {
+    id: 'reactivacion',
+    nombre: 'Reactivación de usuario inactivo',
+    disparador: 'Programado por api/cron-daily.js según inactividad',
+    descripcion: 'Mensaje para reactivar a un usuario que dejó de escribir.',
+  },
+];
+
+async function handleAdminCronJobs(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const [ultimoMensajeRes, ultimaTareaRes, ultimoResumenRes] = await Promise.all([
+    supabase.from('mensajes').select('creado_en').order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('tareas').select('recordatorio_enviado_en').not('recordatorio_enviado_en', 'is', null).order('recordatorio_enviado_en', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('resumen_semanal').select('creado_en').order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+  ]);
+
+  const ultimaEjecucionPorId = {
+    'procesar-webhook': ultimoMensajeRes.data?.creado_en || null,
+    'recordatorio-tarea': ultimaTareaRes.data?.recordatorio_enviado_en || null,
+    'resumen-semanal': ultimoResumenRes.data?.creado_en || null,
+  };
+
+  const jobs = CRON_JOBS.map((j) => ({ ...j, ultima_ejecucion: ultimaEjecucionPorId[j.id] ?? null }));
+
+  return { status: 200, body: { jobs } };
+}
+
+// "Logs" honesto: el proyecto no tiene una tabla de errores de servidor —
+// esos viven en el dashboard de Vercel. Lo que sí hay es un feed real y
+// más amplio de eventos de negocio (mensajes, altas, préstamos,
+// recordatorios, gastos), útil para ver actividad reciente sin necesitar
+// Vercel. Mismo patrón que handleAdminActividad, con más volumen y una
+// fuente más (gastos).
+async function handleAdminLogs(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const [mensajesRes, usuariosRes, prestamosRes, tareasRes, gastosRes] = await Promise.all([
+    supabase.from('mensajes').select('usuario_id, role, intencion_detectada, creado_en').order('creado_en', { ascending: false }).limit(30),
+    supabase.from('usuarios').select('id, nombre, como_llamar, creado_en').order('creado_en', { ascending: false }).limit(10),
+    supabase.from('prestamos').select('usuario_id, nombre_deudor, created_at').order('created_at', { ascending: false }).limit(10),
+    supabase.from('tareas').select('usuario_id, titulo, recordatorio_enviado_en').not('recordatorio_enviado_en', 'is', null).order('recordatorio_enviado_en', { ascending: false }).limit(10),
+    supabase.from('gastos').select('usuario_id, monto, categoria, fecha').order('fecha', { ascending: false }).limit(10),
+  ]);
+
+  const idsUsuarios = [
+    ...(mensajesRes.data || []).map((m) => m.usuario_id),
+    ...(prestamosRes.data || []).map((p) => p.usuario_id),
+    ...(tareasRes.data || []).map((t) => t.usuario_id),
+    ...(gastosRes.data || []).map((g) => g.usuario_id),
+  ];
+  const { data: nombresRes } = idsUsuarios.length
+    ? await supabase.from('usuarios').select('id, nombre, como_llamar').in('id', [...new Set(idsUsuarios)])
+    : { data: [] };
+  const nombrePorId = Object.fromEntries((nombresRes || []).map((u) => [u.id, u.como_llamar || u.nombre || 'Usuario']));
+
+  const eventos = [
+    ...(mensajesRes.data || []).map((m) => ({
+      tipo: m.role === 'user' ? 'mensaje_entrante' : 'mensaje_saliente',
+      texto: m.role === 'user'
+        ? `${nombrePorId[m.usuario_id] || 'Usuario'} escribió por WhatsApp`
+        : `Du Life respondió a ${nombrePorId[m.usuario_id] || 'Usuario'}${m.intencion_detectada ? ` (${m.intencion_detectada})` : ''}`,
+      fecha: m.creado_en,
+    })),
+    ...(usuariosRes.data || []).map((u) => ({
+      tipo: 'usuario_nuevo',
+      texto: `Nuevo usuario registrado: ${u.como_llamar || u.nombre}`,
+      fecha: u.creado_en,
+    })),
+    ...(prestamosRes.data || []).map((p) => ({
+      tipo: 'prestamo',
+      texto: `${nombrePorId[p.usuario_id] || 'Usuario'} creó un préstamo a ${p.nombre_deudor}`,
+      fecha: p.created_at,
+    })),
+    ...(tareasRes.data || []).map((t) => ({
+      tipo: 'recordatorio',
+      texto: `Recordatorio enviado a ${nombrePorId[t.usuario_id] || 'Usuario'}: ${t.titulo}`,
+      fecha: t.recordatorio_enviado_en,
+    })),
+    ...(gastosRes.data || []).map((g) => ({
+      tipo: 'gasto',
+      texto: `${nombrePorId[g.usuario_id] || 'Usuario'} registró un gasto en ${g.categoria || 'otros'}`,
+      fecha: g.fecha,
+    })),
+  ]
+    .filter((e) => e.fecha)
+    .sort((a, b) => new Date(b.fecha) - new Date(a.fecha))
+    .slice(0, 40);
+
+  return { status: 200, body: { eventos } };
+}
+
+// Catálogo de los módulos reales de Du Life (los que el usuario final usa
+// por WhatsApp/dashboard), con conteo real de uso — a diferencia de "Base
+// de datos" (que lista TODAS las tablas técnicas), esto agrupa por
+// funcionalidad de producto.
+const MODULOS_PRODUCTO = [
+  { id: 'gastos', nombre: 'Gastos', tabla: 'gastos' },
+  { id: 'ingresos', nombre: 'Ingresos', tabla: 'ingresos' },
+  { id: 'tareas', nombre: 'Tareas', tabla: 'tareas' },
+  { id: 'notas', nombre: 'Notas', tabla: 'notas' },
+  { id: 'ideas', nombre: 'Ideas', tabla: 'ideas' },
+  { id: 'calendario', nombre: 'Calendario', tabla: 'calendario_eventos' },
+  { id: 'prestamos', nombre: 'Préstamos', tabla: 'prestamos' },
+  { id: 'arbol', nombre: 'Árbol de Vida', tabla: 'arbol_vida' },
+  { id: 'documentos', nombre: 'Documentos', tabla: 'documentos' },
+  { id: 'emociones', nombre: 'Estado de ánimo', tabla: 'emociones' },
+];
+
+async function handleAdminModulos(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const conteos = await Promise.all(
+    MODULOS_PRODUCTO.map((m) => supabase.from(m.tabla).select('id', { count: 'exact', head: true }))
+  );
+
+  const modulos = MODULOS_PRODUCTO.map((m, i) => ({
+    id: m.id,
+    nombre: m.nombre,
+    usos: conteos[i].count || 0,
+  })).sort((a, b) => b.usos - a.usos);
+
+  return { status: 200, body: { modulos } };
+}
+
+// Config a nivel de app (distinto de admin_apis, que es integraciones
+// externas): valores no-secretos se muestran tal cual (modelo, huso
+// horario, versión de API), las variables sensibles solo como booleano.
+const CONFIG_VISIBLE = [
+  { var: 'CLAUDE_MODEL', label: 'Modelo Claude', default: 'claude-sonnet-4-6' },
+  { var: 'GEMINI_MODEL', label: 'Modelo Gemini', default: 'gemini-2.5-flash' },
+  { var: 'TIMEZONE', label: 'Zona horaria', default: 'America/Bogota' },
+  { var: 'WA_API_VERSION', label: 'Versión WhatsApp Cloud API', default: null },
+];
+
+const CONFIG_SENSIBLE = [
+  'CLAUDE_API_KEY', 'GEMINI_API_KEY', 'OPENAI_API_KEY', 'JWT_SECRET',
+  'CRON_SECRET', 'QSTASH_TOKEN', 'SUPABASE_URL', 'SUPABASE_KEY',
+  'WA_ACCESS_TOKEN', 'WA_PHONE_NUMBER_ID', 'WA_VERIFY_TOKEN',
+  'VAPID_PUBLIC_KEY', 'VAPID_PRIVATE_KEY', 'VAPID_SUBJECT', 'OWNER_PHONE',
+];
+
+async function handleAdminConfiguracion(usuarioId) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const visibles = CONFIG_VISIBLE.map((c) => ({
+    label: c.label,
+    valor: process.env[c.var] || c.default,
+  }));
+
+  const sensibles = CONFIG_SENSIBLE.map((v) => ({
+    nombre: v,
+    configurada: !!process.env[v],
+  }));
+
+  return { status: 200, body: { visibles, sensibles, entorno: process.env.VERCEL_ENV || 'development' } };
+}
+
 // Gestión completa de usuarios (owner/admin): listar+buscar, ver detalle
 // con conteos reales de cuánto hay que borrar, editar campos y eliminar en
 // cascada por las tablas de arriba. Un solo "módulo" que rama por
@@ -960,6 +1484,16 @@ const HANDLERS = {
   admin_actividad: handleAdminActividad,
   admin_arquitectura: handleAdminArquitectura,
   admin_usuarios: handleAdminUsuarios,
+  admin_conversaciones: handleAdminConversaciones,
+  admin_memoria: handleAdminMemoria,
+  admin_ia: handleAdminIA,
+  admin_base_de_datos: handleAdminBaseDeDatos,
+  admin_analytics: handleAdminAnalytics,
+  admin_apis: handleAdminApis,
+  admin_cron_jobs: handleAdminCronJobs,
+  admin_logs: handleAdminLogs,
+  admin_modulos: handleAdminModulos,
+  admin_configuracion: handleAdminConfiguracion,
 };
 
 export default async function handler(req, res) {
