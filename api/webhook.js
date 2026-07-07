@@ -47,6 +47,55 @@ export default async function handler(req, res) {
       console.log("====================================");
       // ===== FIN DEBUG =====
 
+      // ─────────────────────────────────────────────────────────────────
+      // RESPUESTA DIRECTA DESDE VERCEL PARA AUDITORÍAS (Número 311)
+      // ─────────────────────────────────────────────────────────────────
+      if (phoneNumberId === "1239327509257364") {
+        console.log("🔀 Mensaje detectado en canal 311. Respondiendo aviso directamente desde Vercel...");
+
+        // Verificamos que contenga un mensaje válido antes de intentar responder
+        if (value.messages && value.messages[0]) {
+          const mensajeIn = value.messages[0];
+          const telefonoCliente = mensajeIn.from;
+
+          const textoRespuesta = "⚠️ *Aviso Importante:* Este canal es únicamente informativo y automático para el envío de auditorías y notificaciones de Du Academy. No se reciben mensajes de texto ni consultas por este medio. ¡Muchas gracias! 😊";
+
+          const urlMeta = `https://graph.facebook.com/${process.env.WA_API_VERSION || 'v20.0'}/${phoneNumberId}/messages`;
+
+          const payloadData = {
+            messaging_product: "whatsapp",
+            recipient_type: "individual",
+            to: telefonoCliente,
+            type: "text",
+            text: {
+              preview_url: false,
+              body: textoRespuesta
+            }
+          };
+
+          try {
+            // Disparamos la respuesta hacia Meta utilizando de forma transparente tu token de Vercel
+            const responseMeta = await fetch(urlMeta, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.WA_ACCESS_TOKEN}`
+              },
+              body: JSON.stringify(payloadData)
+            });
+
+            const dataMeta = await responseMeta.json();
+            console.log("📤 Respuesta de API Meta al despachar advertencia:", JSON.stringify(dataMeta));
+          } catch (metaErr) {
+            console.error("❌ Error crítico despachando mensaje desde Vercel hacia Meta:", metaErr.message);
+          }
+        }
+
+        // Retornamos un 200 OK absoluto a Meta de inmediato. Sanitiza los logs al instante.
+        return res.status(200).json({ status: 'responded_directly_from_vercel' });
+      }
+      // ─────────────────────────────────────────────────────────────────
+
       if (!value || !value.messages) return res.status(200).json({ status: 'ok' });
 
       const mensaje = value.messages[0];
