@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useRef } from 'react';
 import Link from 'next/link';
 import {
-  IconBell, IconSparkles, IconSquareCheck, IconWallet,
+  IconBell, IconSparkles, IconSquareCheck, IconWallet, IconShoppingBag,
   IconNote, IconBulb, IconArrowUpRight,
   IconChevronRight, IconCalendarEvent,
 } from '@tabler/icons-react';
@@ -14,7 +14,6 @@ import { useInicioData } from './useInicioData';
 const ZONA_COLOMBIA = 'America/Bogota';
 
 const LIMA = '#C4E938';
-const MORADO = '#A855F7';
 
 // Frase motivacional de la tarjeta de bienvenida: cambia una vez al día
 // (misma frase todo el día, rota automáticamente al día siguiente) según el
@@ -42,13 +41,6 @@ const WHATSAPP_HABLAR_CON_DU = 'https://wa.me/573239117508';
 // negro-a-transparente) en vez de ilustraciones planas. Si la foto no carga
 // (sin red, CDN caído), el banner cae a un fondo sólido en vez de romperse.
 const MODULOS_BANNER = [
-  {
-    slug: 'tareas',
-    href: '/dashboard/tareas',
-    titulo: 'Tareas',
-    cta: 'Ver más',
-    foto: 'https://images.unsplash.com/photo-1517842645767-c639042777db?w=800&q=80&auto=format&fit=crop',
-  },
   {
     slug: 'gastos',
     href: '/dashboard/gastos',
@@ -282,6 +274,54 @@ export function GraficoBarras({ valores, color, alto = 56 }) {
   );
 }
 
+// Mini-gráficas decorativas de tamaño fijo (no ocupan el ancho de la
+// tarjeta): una línea de tendencia simple sin relleno y unas barritas
+// pequeñas — pensadas para ir junto al monto, no como protagonistas.
+function MiniTendenciaLinea({ valores, color, ancho = 60, alto = 30 }) {
+  const vals = valores && valores.length ? valores : [0, 0];
+  const max = Math.max(...vals, 1);
+  const min = Math.min(...vals, 0);
+  const rango = max - min || 1;
+  const pad = 3;
+  const innerW = ancho - pad * 2;
+  const innerH = alto - pad * 2;
+  const xAt = (i) => pad + (vals.length === 1 ? innerW / 2 : (i / (vals.length - 1)) * innerW);
+  const yAt = (v) => pad + innerH - ((v - min) / rango) * innerH;
+  const puntos = vals.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
+
+  return (
+    <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} style={{ flexShrink: 0 }}>
+      <polyline points={puntos} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+      <circle cx={xAt(vals.length - 1)} cy={yAt(vals[vals.length - 1])} r="2.5" fill={color} />
+    </svg>
+  );
+}
+
+function MiniTendenciaBarras({ valores, color, ancho = 60, alto = 30 }) {
+  const vals = valores && valores.length ? valores : [0];
+  const max = Math.max(1, ...vals);
+  const gap = 3;
+  const bw = Math.max(2, (ancho - gap * (vals.length - 1)) / vals.length);
+
+  return (
+    <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} style={{ flexShrink: 0 }}>
+      {vals.map((v, i) => {
+        const bh = Math.max(2, (v / max) * (alto - 4));
+        const x = i * (bw + gap);
+        const esUltima = i === vals.length - 1;
+        return (
+          <rect
+            key={i}
+            x={x} y={alto - bh} width={bw} height={bh} rx={Math.min(2, bw / 2)}
+            fill={color}
+            opacity={esUltima ? 1 : 0.45}
+          />
+        );
+      })}
+    </svg>
+  );
+}
+
 // Badge de variación tipo píldora (fondo lima tenue, texto lima) con flecha
 // según el signo — igual al mockup para balance y gastos.
 export function BadgeVariacion({ pct }) {
@@ -409,12 +449,8 @@ export default function InicioMobile() {
     : `${notas.length + ideas.length} notas e ideas guardadas`;
 
   const banners = [
-    {
-      ...MODULOS_BANNER[0],
-      metrica: `${resumenSeguro.tareas_pendientes} pendientes · ${resumenSeguro.recordatorios_hoy} recordatorios hoy`,
-    },
-    { ...MODULOS_BANNER[1], metrica: `${formatCOP(gastosSemana)} esta semana` },
-    { ...MODULOS_BANNER[2], metrica: metricaEspacios },
+    { ...MODULOS_BANNER[0], metrica: `${formatCOP(gastosSemana)} esta semana` },
+    { ...MODULOS_BANNER[1], metrica: metricaEspacios },
   ];
 
   // ===== Datos reales para las tarjetas de Ingresos / Gastos =====
@@ -505,8 +541,28 @@ export default function InicioMobile() {
       </div>
 
       {/* Tarjeta motivacional — frase del día + CTA a WhatsApp + mascota */}
-      <div className="mx-5 relative rounded-3xl overflow-hidden p-6" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
-        <div className="relative z-10" style={{ maxWidth: '60%' }}>
+      <div
+        className="mx-5 relative rounded-3xl overflow-hidden p-6"
+        style={{
+          background: 'radial-gradient(120% 140% at 88% 30%, rgba(196,233,56,0.10) 0%, var(--bg-card) 55%)',
+          border: '1px solid var(--border-color)',
+        }}
+      >
+        {/* Resplandor lima detrás de la mascota */}
+        <div
+          className="absolute pointer-events-none"
+          style={{
+            right: '-30px',
+            top: '10px',
+            width: '150px',
+            height: '150px',
+            borderRadius: '50%',
+            background: 'radial-gradient(circle, rgba(196,233,56,0.35) 0%, rgba(196,233,56,0) 70%)',
+            filter: 'blur(4px)',
+          }}
+        />
+
+        <div className="relative z-10" style={{ maxWidth: '58%' }}>
           <div className="text-[19px] font-extrabold leading-tight" style={{ color: 'var(--text-primary)' }}>
             {fraseDelDia.titulo}
           </div>
@@ -529,8 +585,8 @@ export default function InicioMobile() {
             src="/astronauta.png"
             alt=""
             onError={() => setErrorMascota(true)}
-            className="absolute pointer-events-none select-none"
-            style={{ right: '-14px', bottom: '-10px', width: '136px', height: 'auto' }}
+            className="absolute z-10 pointer-events-none select-none"
+            style={{ right: '-16px', bottom: '-12px', width: '158px', height: 'auto' }}
           />
         )}
       </div>
@@ -576,46 +632,56 @@ export default function InicioMobile() {
 
         {/* Ingresos + Gastos (mitad y mitad) */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="rounded-3xl p-4 flex flex-col justify-between" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '150px' }}>
-            <div>
-              <div className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Ingresos</div>
-              <div className="text-[20px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
-                {formatCOP(ingresosMesReal)}
+          <div className="rounded-3xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '128px' }}>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,233,56,0.14)' }}>
+                <IconWallet size={16} color={LIMA} strokeWidth={1.8} />
               </div>
-              {varIngresos !== null && (
-                <div className="mt-1.5">
+              <span className="text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>Ingresos</span>
+            </div>
+            <div className="flex items-end justify-between mt-3">
+              <div className="min-w-0">
+                <div className="text-[18px] font-black tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                  {formatCOP(ingresosMesReal)}
+                </div>
+                {varIngresos !== null && (
                   <span
-                    className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ background: 'rgba(196,233,56,0.16)', color: LIMA }}
+                    className="inline-flex items-center gap-0.5 mt-1 text-[10px] font-bold"
+                    style={{ color: LIMA }}
                   >
                     <IconArrowUpRight size={11} color={LIMA} style={{ transform: varIngresos <= 0 ? 'scaleY(-1)' : 'none' }} />
                     {Math.abs(varIngresos)}%
                   </span>
-                </div>
-              )}
+                )}
+              </div>
+              <MiniTendenciaLinea valores={serieIngresos} color={LIMA} />
             </div>
-            <GraficoAreaLinea valores={serieIngresos} color={LIMA} alto={44} />
           </div>
 
-          <div className="rounded-3xl p-4 flex flex-col justify-between" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '150px' }}>
-            <div>
-              <div className="text-[12px] font-medium" style={{ color: 'var(--text-secondary)' }}>Gastos</div>
-              <div className="text-[20px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
-                {formatCOP(gastosMesReal)}
+          <div className="rounded-3xl p-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)', minHeight: '128px' }}>
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,233,56,0.14)' }}>
+                <IconShoppingBag size={16} color={LIMA} strokeWidth={1.8} />
               </div>
-              {varGastos !== null && (
-                <div className="mt-1.5">
+              <span className="text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>Gastos</span>
+            </div>
+            <div className="flex items-end justify-between mt-3">
+              <div className="min-w-0">
+                <div className="text-[18px] font-black tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
+                  {formatCOP(gastosMesReal)}
+                </div>
+                {varGastos !== null && (
                   <span
-                    className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold"
-                    style={{ background: 'rgba(196,233,56,0.16)', color: LIMA }}
+                    className="inline-flex items-center gap-0.5 mt-1 text-[10px] font-bold"
+                    style={{ color: LIMA }}
                   >
                     <IconArrowUpRight size={11} color={LIMA} style={{ transform: varGastos <= 0 ? 'scaleY(-1)' : 'none' }} />
                     {Math.abs(varGastos)}%
                   </span>
-                </div>
-              )}
+                )}
+              </div>
+              <MiniTendenciaBarras valores={serieGastos.slice(-6)} color={LIMA} />
             </div>
-            <GraficoAreaLinea valores={serieGastos} color={MORADO} alto={44} />
           </div>
         </div>
       </section>
