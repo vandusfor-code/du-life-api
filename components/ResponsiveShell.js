@@ -35,9 +35,9 @@ export default function ResponsiveShell({ children }) {
   // desplazándose con el contenido en vez de quedarse pegada abajo.
   if (!mounted || !isDesktop) {
     return (
-      <div className="fixed inset-0 flex flex-col max-w-app mx-auto" style={{ background: 'var(--bg-primary)' }}>
+      <div className="fixed inset-0 flex flex-col max-w-app mx-auto overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
         <EnableNotifications />
-        <div className="flex-1 min-h-0 overflow-y-auto">
+        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           {children}
         </div>
         <BottomNav />

@@ -371,7 +371,7 @@ export default function InicioMobile() {
     .slice(0, 4);
 
   return (
-    <div className="relative min-h-screen pb-32 flex flex-col gap-7" style={{ background: 'var(--bg-primary)' }}>
+    <div className="relative min-h-screen pb-32 flex flex-col gap-7 overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
       {/* Degradado lima-a-negro, decorativo. Empieza DESPUÉS del header/saludo
           (nunca toca el status bar) y queda cargado hacia la derecha, no
           centrado ni de lado a lado — se desvanece al negro por todos lados. */}
