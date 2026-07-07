@@ -586,7 +586,7 @@ export default function InicioMobile() {
             alt=""
             onError={() => setErrorMascota(true)}
             className="absolute z-10 pointer-events-none select-none"
-            style={{ right: '-16px', bottom: '-12px', width: '158px', height: 'auto' }}
+            style={{ right: '4px', bottom: '-14px', height: '148px', width: 'auto' }}
           />
         )}
       </div>
