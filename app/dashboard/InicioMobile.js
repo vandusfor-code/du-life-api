@@ -299,16 +299,16 @@ export default function InicioMobile() {
   if (loading) {
     return (
       <div className="min-h-screen pb-32 flex flex-col gap-7" style={{ background: 'var(--bg-primary)' }}>
-        <div className="mx-5 pt-6 flex justify-between items-center">
+        <div className="mx-3 pt-6 flex justify-between items-center">
           <div className="h-7 w-28 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
             <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
           </div>
         </div>
-        <div className="mx-5 rounded-[24px] h-[168px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
-        <div className="mx-5 rounded-3xl h-[176px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
-        <div className="mx-5 rounded-2xl h-[150px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="mx-3 rounded-[24px] h-[168px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="mx-3 rounded-3xl h-[176px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
+        <div className="mx-3 rounded-2xl h-[150px] animate-pulse" style={{ background: 'var(--bg-card)' }} />
       </div>
     );
   }
@@ -385,10 +385,18 @@ export default function InicioMobile() {
     .slice(0, 4);
 
   return (
-    <div className="min-h-screen pb-32 flex flex-col gap-7" style={{ background: 'var(--bg-primary)' }}>
+    <div className="relative min-h-screen pb-32 flex flex-col gap-7" style={{ background: 'var(--bg-primary)' }}>
+      {/* Degradado lima-a-negro, decorativo, detrás del header y el saludo */}
+      <div
+        className="absolute inset-x-0 top-0 pointer-events-none"
+        style={{
+          height: '260px',
+          background: 'radial-gradient(120% 100% at 50% 0%, rgba(196,233,56,0.16) 0%, rgba(196,233,56,0) 70%)',
+        }}
+      />
 
       {/* Header */}
-      <div className="mx-5 pt-6 flex justify-between items-center">
+      <div className="relative mx-3 pt-6 flex justify-between items-center">
         <div className="relative flex items-center">
           <span className="text-xl font-bold tracking-tight" style={{ color: 'var(--accent)' }}>Du</span>
           <span className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>&nbsp;Life</span>
@@ -408,7 +416,7 @@ export default function InicioMobile() {
       </div>
 
       {/* Saludo simple */}
-      <div className="mx-5">
+      <div className="mx-3">
         <div className="text-[26px] font-extrabold leading-snug tracking-tight" style={{ color: 'var(--text-primary)' }}>
           Hola, <span style={{ color: LIMA }}>{nombre}</span>,<br />Bienvenido
         </div>
@@ -416,7 +424,7 @@ export default function InicioMobile() {
 
       {/* Tarjeta motivacional — frase del día + CTA a WhatsApp + mascota */}
       <div
-        className="mx-5 relative rounded-3xl overflow-hidden p-6"
+        className="mx-3 relative rounded-3xl overflow-hidden p-6"
         style={{
           background: 'radial-gradient(120% 140% at 88% 30%, rgba(196,233,56,0.10) 0%, var(--bg-card) 55%)',
           border: '1px solid var(--border-color)',
@@ -466,7 +474,7 @@ export default function InicioMobile() {
       </div>
 
       {/* Resumen general — tarjetas con gráficos reales */}
-      <section className="mx-5 flex flex-col gap-3">
+      <section className="mx-3 flex flex-col gap-3">
         <div className="flex justify-between items-center mb-1">
           <span className="text-[12px] font-black uppercase" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
             Resumen general
@@ -533,7 +541,7 @@ export default function InicioMobile() {
       </section>
 
       {/* Actividades recientes */}
-      <section className="mx-5 flex flex-col gap-4">
+      <section className="mx-3 flex flex-col gap-4">
         <div className="flex justify-between items-center">
           <span className="text-[12px] font-black uppercase" style={{ color: 'var(--text-secondary)', letterSpacing: '0.08em' }}>
             Actividades recientes
