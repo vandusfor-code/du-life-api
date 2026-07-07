@@ -284,7 +284,7 @@ export default function InicioMobile() {
   if (loading) {
     return (
       <div className="min-h-screen pb-32 flex flex-col gap-7" style={{ background: 'var(--bg-primary)' }}>
-        <div className="mx-3 pt-6 flex justify-between items-center">
+        <div className="mx-3 flex justify-between items-center" style={{ paddingTop: 'calc(1.5rem + env(safe-area-inset-top))' }}>
           <div className="h-7 w-28 rounded animate-pulse" style={{ background: 'var(--bg-card)' }} />
           <div className="flex items-center gap-2">
             <div className="w-10 h-10 rounded-full animate-pulse" style={{ background: 'var(--bg-card)' }} />
@@ -387,7 +387,7 @@ export default function InicioMobile() {
       />
 
       {/* Header */}
-      <div className="relative mx-3 pt-6 flex justify-between items-center">
+      <div className="relative mx-3 flex justify-between items-center" style={{ paddingTop: 'calc(1.5rem + env(safe-area-inset-top))' }}>
         <div className="relative flex items-center">
           <span className="text-xl font-bold tracking-tight" style={{ color: 'var(--accent)' }}>Du</span>
           <span className="text-xl font-bold tracking-tight" style={{ color: 'var(--text-primary)' }}>&nbsp;Life</span>

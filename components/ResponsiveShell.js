@@ -25,21 +25,18 @@ export default function ResponsiveShell({ children }) {
   // Antes de montar (o en móvil) se renderiza exactamente lo mismo que había
   // en layout.js antes de este cambio — cero regresión visual en móvil.
   //
-  // El shell mide h-dvh (dynamic viewport height) en vez de fixed inset-0.
-  // "fixed" depende de que el navegador calcule bien la altura real del
-  // viewport visible, y en el navegador embebido de WhatsApp esa cuenta
-  // salía mal (quedaba un hueco vacío debajo del nav, como si el shell
-  // fuera más chico que la pantalla real). dvh SÍ refleja el viewport
-  // visible de verdad en navegadores modernos, sin depender de cómo ese
-  // navegador resuelve "fixed". Adentro hay un único scroll (el div de
-  // contenido); BottomNav no usa position:fixed en sí mismo — es
-  // simplemente el último hijo del flex-col, pegado abajo porque el shell
-  // ya mide exactamente el alto real de la pantalla.
+  // Vuelto a la estructura original (BottomNav en position:fixed) por
+  // pedido explícito del usuario: los intentos de "arreglar" el fixed en
+  // el navegador embebido de WhatsApp rompieron otras cosas (header
+  // pegado arriba, el nav moviéndose con el scroll). Se prioriza que se
+  // vea bien visualmente, aunque en ese navegador en particular pueda
+  // verse contenido asomando por debajo del nav en algún momento.
+  // overflow-x-hidden sí se mantiene (arregla el arrastre horizontal).
   if (!mounted || !isDesktop) {
     return (
-      <div className="h-dvh flex flex-col max-w-app mx-auto overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
+      <div className="min-h-screen flex flex-col max-w-app mx-auto overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
         <EnableNotifications />
-        <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
+        <div className="flex-1 overflow-y-auto overflow-x-hidden pb-[calc(64px+env(safe-area-inset-bottom))]">
           {children}
         </div>
         <BottomNav />

@@ -50,15 +50,9 @@ export default function BottomNav() {
   const itemCuarto = MODULOS_FIJABLES[moduloFijado] || MODULOS_FIJABLES.arbol;
   const items = [...ITEMS_BASE, itemCuarto, ITEM_ESPACIOS];
 
-  // Ya NO usa position:fixed acá: en el navegador embebido de WhatsApp
-  // (y otros in-app browsers) el fixed se rompe y la barra termina
-  // desplazándose con el contenido. En vez de eso, ResponsiveShell.js hace
-  // fixed una sola vez en todo el shell de la app (fixed inset-0) y este
-  // nav es simplemente el último hijo de ese flex-col — se queda "abajo"
-  // porque el shell entero ya está pegado a los bordes del viewport.
   return (
     <nav
-      className="flex justify-center flex-shrink-0"
+      className="fixed bottom-0 left-0 right-0 z-50 flex justify-center"
       style={{ paddingBottom: 'env(safe-area-inset-bottom)' }}
     >
       <div
