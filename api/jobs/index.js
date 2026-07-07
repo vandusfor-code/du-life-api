@@ -15,7 +15,7 @@ import {
 } from '../../lib/whatsapp.js';
 import { procesarMensaje } from '../../lib/asistente.js';
 import { esperarPushesPendientes } from '../../lib/push.js';
-import { procesarImagen, procesarAudio } from '../../lib/multimedia.js';
+import { procesarImagen, procesarAudio, procesarDocumento } from '../../lib/multimedia.js';
 import {
   obtenerPreguntaPendiente, marcarPreguntado, guardarRespuestaPerfil,
   detectarDatosPasivos, detectarRecordatorio,
@@ -228,6 +228,22 @@ async function jobProcesarWebhook(body, res) {
       }
     }
 
+  } else if (mensaje.type === 'document') {
+    console.log(`📄 Documento recibido de ${telefono}`);
+
+    const usuario = await obtenerOCrearUsuario(telefono, nombre);
+
+    if (!usuario) {
+      respuesta = 'Disculpa, hubo un error.';
+    } else if (!usuario.onboarding_completo) {
+      respuesta = 'Primero termina tu registro escribiéndome por texto. 😊';
+    } else {
+      const doc = mensaje.document;
+      const caption = doc.caption || null;
+      const result = await procesarDocumento(usuario, doc.id, doc.mime_type, doc.filename, caption);
+      respuesta = result.mensaje;
+    }
+
   } else if (mensaje.type === 'interactive') {
     // Respuesta a un botón o a una lista (préstamos: confirmar/editar/
     // cancelar creación, resolver ambigüedad pago vs ingreso, elegir a cuál
@@ -240,7 +256,7 @@ async function jobProcesarWebhook(body, res) {
 
   } else {
     console.log(`⏭️ Tipo ignorado: ${mensaje.type}`);
-    respuesta = `Por ahora solo entiendo texto, imágenes y audios. 😊`;
+    respuesta = `Por ahora solo entiendo texto, imágenes, audios y documentos PDF. 😊`;
   }
 
   // Enviar respuesta para Du Life
