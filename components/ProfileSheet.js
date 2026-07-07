@@ -3,7 +3,7 @@
 import { useEffect, useCallback, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
-  IconUser, IconBell, IconDiamond, IconHelp, IconInfoCircle,
+  IconUser, IconBell, IconDiamond, IconHelp, IconInfoCircle, IconPalette,
   IconChevronRight, IconArrowLeft, IconCheck, IconCamera,
 } from '@tabler/icons-react';
 import Avatar from './Avatar';
@@ -254,20 +254,19 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
               ))}
             </div>
 
-            <div
-              className="flex items-center justify-between px-5 py-3"
-              style={{ borderBottom: '1px solid var(--border-color)' }}
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="w-full flex items-center gap-3 px-5"
+              style={{ height: '48px', borderBottom: '1px solid var(--border-color)' }}
             >
-              <span className="text-[14px]" style={{ color: 'var(--text-secondary)' }}>🎨 Apariencia</span>
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[12px] font-bold"
-                style={{ background: 'var(--bg-card-hover)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
-              >
-                {theme === 'dark' ? '☀️ Claro' : '🌙 Oscuro'}
-              </button>
-            </div>
+              <IconPalette size={18} color="var(--text-secondary)" />
+              <span className="flex-1 text-left text-[14px]" style={{ color: 'var(--text-primary)' }}>Apariencia</span>
+              <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>
+                {theme === 'dark' ? 'Oscuro' : 'Claro'}
+              </span>
+              <IconChevronRight size={16} color="var(--text-secondary)" />
+            </button>
 
             <button
               type="button"

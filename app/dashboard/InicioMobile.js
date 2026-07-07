@@ -215,51 +215,61 @@ export function GraficoBarras({ valores, color, alto = 56 }) {
   );
 }
 
-// Mini-gráficas decorativas de tamaño fijo (no ocupan el ancho de la
-// tarjeta): una línea de tendencia simple sin relleno y unas barritas
-// pequeñas — pensadas para ir junto al monto, no como protagonistas.
-function MiniTendenciaLinea({ valores, color, ancho = 60, alto = 30 }) {
+// Mini-gráficas decorativas: llenan el ancho disponible que les deja el
+// contenedor flex (no un ancho fijo) — una línea de tendencia simple sin
+// relleno y unas barritas pequeñas, pensadas para ir junto al monto.
+function MiniTendenciaLinea({ valores, color, alto = 30 }) {
+  const [ref, ancho] = useAncho();
   const vals = valores && valores.length ? valores : [0, 0];
   const max = Math.max(...vals, 1);
   const min = Math.min(...vals, 0);
   const rango = max - min || 1;
   const pad = 3;
-  const innerW = ancho - pad * 2;
+  const innerW = Math.max(0, ancho - pad * 2);
   const innerH = alto - pad * 2;
   const xAt = (i) => pad + (vals.length === 1 ? innerW / 2 : (i / (vals.length - 1)) * innerW);
   const yAt = (v) => pad + innerH - ((v - min) / rango) * innerH;
   const puntos = vals.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
 
   return (
-    <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} style={{ flexShrink: 0 }}>
-      <polyline points={puntos} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
-      <circle cx={xAt(vals.length - 1)} cy={yAt(vals[vals.length - 1])} r="2.5" fill={color} />
-    </svg>
+    <div ref={ref} className="flex-1 min-w-0" style={{ height: alto }}>
+      {ancho > 0 && (
+        <svg width={ancho} height={alto}>
+          <polyline points={puntos} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
+          <circle cx={xAt(vals.length - 1)} cy={yAt(vals[vals.length - 1])} r="2.5" fill={color} />
+        </svg>
+      )}
+    </div>
   );
 }
 
-function MiniTendenciaBarras({ valores, color, ancho = 60, alto = 30 }) {
+function MiniTendenciaBarras({ valores, color, alto = 30 }) {
+  const [ref, ancho] = useAncho();
   const vals = valores && valores.length ? valores : [0];
   const max = Math.max(1, ...vals);
   const gap = 3;
-  const bw = Math.max(2, (ancho - gap * (vals.length - 1)) / vals.length);
+  const bw = ancho > 0 ? Math.max(2, (ancho - gap * (vals.length - 1)) / vals.length) : 0;
 
   return (
-    <svg width={ancho} height={alto} viewBox={`0 0 ${ancho} ${alto}`} style={{ flexShrink: 0 }}>
-      {vals.map((v, i) => {
-        const bh = Math.max(2, (v / max) * (alto - 4));
-        const x = i * (bw + gap);
-        const esUltima = i === vals.length - 1;
-        return (
-          <rect
-            key={i}
-            x={x} y={alto - bh} width={bw} height={bh} rx={Math.min(2, bw / 2)}
-            fill={color}
-            opacity={esUltima ? 1 : 0.45}
-          />
-        );
-      })}
-    </svg>
+    <div ref={ref} className="flex-1 min-w-0" style={{ height: alto }}>
+      {ancho > 0 && (
+        <svg width={ancho} height={alto}>
+          {vals.map((v, i) => {
+            const bh = Math.max(2, (v / max) * (alto - 4));
+            const x = i * (bw + gap);
+            const esUltima = i === vals.length - 1;
+            return (
+              <rect
+                key={i}
+                x={x} y={alto - bh} width={bw} height={bh} rx={Math.min(2, bw / 2)}
+                fill={color}
+                opacity={esUltima ? 1 : 0.45}
+              />
+            );
+          })}
+        </svg>
+      )}
+    </div>
   );
 }
 
@@ -386,12 +396,17 @@ export default function InicioMobile() {
 
   return (
     <div className="relative min-h-screen pb-32 flex flex-col gap-7" style={{ background: 'var(--bg-primary)' }}>
-      {/* Degradado lima-a-negro, decorativo, detrás del header y el saludo */}
+      {/* Degradado lima-a-negro, decorativo. Empieza DESPUÉS del header/saludo
+          (nunca toca el status bar) y queda cargado hacia la derecha, no
+          centrado ni de lado a lado — se desvanece al negro por todos lados. */}
       <div
-        className="absolute inset-x-0 top-0 pointer-events-none"
+        className="absolute pointer-events-none"
         style={{
-          height: '260px',
-          background: 'radial-gradient(120% 100% at 50% 0%, rgba(196,233,56,0.16) 0%, rgba(196,233,56,0) 70%)',
+          top: '130px',
+          right: '-40px',
+          left: '30%',
+          height: '300px',
+          background: 'radial-gradient(closest-side, rgba(196,233,56,0.20) 0%, rgba(196,233,56,0) 100%)',
         }}
       />
 
@@ -493,9 +508,9 @@ export default function InicioMobile() {
               </div>
               <span className="text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>Ingresos</span>
             </div>
-            <div className="flex items-end justify-between mt-3">
-              <div className="min-w-0">
-                <div className="text-[18px] font-black tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
+            <div className="flex items-end mt-3 gap-2">
+              <div className="flex-shrink-0">
+                <div className="text-[18px] font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
                   {formatCOP(ingresosMesReal)}
                 </div>
                 {varIngresos !== null && (
@@ -519,9 +534,9 @@ export default function InicioMobile() {
               </div>
               <span className="text-[12px] font-semibold" style={{ color: 'var(--text-secondary)' }}>Gastos</span>
             </div>
-            <div className="flex items-end justify-between mt-3">
-              <div className="min-w-0">
-                <div className="text-[18px] font-black tracking-tight truncate" style={{ color: 'var(--text-primary)' }}>
+            <div className="flex items-end mt-3 gap-2">
+              <div className="flex-shrink-0">
+                <div className="text-[18px] font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
                   {formatCOP(gastosMesReal)}
                 </div>
                 {varGastos !== null && (
