@@ -214,9 +214,6 @@ function SeccionTareas({ titulo, tareas, onCompletar }) {
             <div
               key={t.id}
               className="flex items-center gap-3 py-3.5"
-              style={{
-                borderBottom: i < tareas.length - 1 ? '1px solid #242424' : 'none',
-              }}
             >
               <button
                 onClick={() => onCompletar(t.id)}

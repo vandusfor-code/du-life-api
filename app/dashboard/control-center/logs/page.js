@@ -61,7 +61,7 @@ export default function LogsPage() {
           eventos.map((e, i) => {
             const Icon = ICONO_EVENTO[e.tipo] || IconMessageCircle;
             return (
-              <div key={`${e.tipo}-${e.fecha}-${i}`} className="flex items-center gap-3 px-4 py-3" style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}>
+              <div key={`${e.tipo}-${e.fecha}-${i}`} className="flex items-center gap-3 px-4 py-3">
                 <Icon size={16} color="var(--accent)" />
                 <span className="flex-1 text-[13px]" style={{ color: 'var(--text-primary)' }}>{e.texto}</span>
                 <span className="text-[11px] flex-shrink-0" style={{ color: 'var(--text-muted)' }}>{timeAgo(e.fecha)}</span>

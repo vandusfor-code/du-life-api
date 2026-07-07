@@ -104,7 +104,6 @@ export default function UsuariosPage() {
                   key={u.id}
                   onClick={() => setSeleccionado(u.id)}
                   className="cursor-pointer"
-                  style={{ borderBottom: '1px solid var(--border-color)' }}
                 >
                   <td className="px-4 py-3 text-[13px] font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                     <IconUserCircle size={18} color="var(--text-secondary)" />

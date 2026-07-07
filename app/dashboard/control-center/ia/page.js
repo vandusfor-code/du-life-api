@@ -68,7 +68,7 @@ export default function IAPage() {
             <div className="px-4 py-6 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>Sin datos todavía.</div>
           ) : (
             datos.modelos.map((m, i) => (
-              <div key={m.modelo} className="flex items-center justify-between px-4 py-3" style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}>
+              <div key={m.modelo} className="flex items-center justify-between px-4 py-3">
                 <span className="text-[13px] font-semibold" style={{ color: 'var(--text-primary)' }}>{m.modelo}</span>
                 <div className="flex items-center gap-6 text-[12px]" style={{ color: 'var(--text-secondary)' }}>
                   <span>{m.llamadas} llamadas</span>

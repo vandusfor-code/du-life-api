@@ -447,7 +447,6 @@ export default function GastosPage() {
                 <div
                   key={m.id}
                   className="flex items-center justify-between py-4"
-                  style={{ borderBottom: i < movimientosDia.length - 1 ? '1px solid #1F1F1F' : 'none' }}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <LogoComercio

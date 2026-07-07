@@ -48,7 +48,7 @@ export default function ConfiguracionPage() {
         </div>
         <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
           {datos.visibles.map((v, i) => (
-            <div key={v.label} className="flex items-center justify-between px-4 py-3" style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}>
+            <div key={v.label} className="flex items-center justify-between px-4 py-3">
               <span className="text-[13px]" style={{ color: 'var(--text-secondary)' }}>{v.label}</span>
               <span className="text-[13px] font-mono font-semibold" style={{ color: 'var(--text-primary)' }}>{v.valor || 'no configurado'}</span>
             </div>
@@ -62,7 +62,7 @@ export default function ConfiguracionPage() {
         </div>
         <div className="rounded-2xl overflow-hidden grid grid-cols-2" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
           {datos.sensibles.map((s) => (
-            <div key={s.nombre} className="flex items-center gap-2 px-4 py-2.5" style={{ borderTop: '1px solid var(--border-color)' }}>
+            <div key={s.nombre} className="flex items-center gap-2 px-4 py-2.5">
               {s.configurada ? <IconCircleCheck size={14} color="var(--cc-success)" /> : <IconCircleX size={14} color="var(--cc-danger)" />}
               <span className="text-[12px] font-mono" style={{ color: 'var(--text-primary)' }}>{s.nombre}</span>
             </div>

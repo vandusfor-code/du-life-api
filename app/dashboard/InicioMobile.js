@@ -559,7 +559,6 @@ export default function InicioMobile() {
                 <div
                   key={item.id}
                   className="flex items-start gap-3 py-3.5"
-                  style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}
                 >
                   {item.tipo === 'gasto' ? (
                     <LogoComercio

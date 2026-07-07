@@ -42,7 +42,7 @@ export default function CronJobsPage() {
           <div className="px-4 py-8 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>Cargando...</div>
         ) : (
           jobs.map((j, i) => (
-            <div key={j.id} className="flex items-start gap-3 px-4 py-4" style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}>
+            <div key={j.id} className="flex items-start gap-3 px-4 py-4">
               <IconClock size={16} color="var(--accent)" style={{ marginTop: '2px' }} />
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between">

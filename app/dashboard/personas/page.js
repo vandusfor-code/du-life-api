@@ -222,9 +222,6 @@ export default function PersonasPage() {
                     <div
                       key={p.id}
                       className="flex items-center gap-3 py-3"
-                      style={{
-                        borderBottom: i < sinContactar.length - 1 ? '1px solid #242424' : 'none',
-                      }}
                     >
                       <Avatar name={p.nombre} size="lg" />
                       <div className="flex-1">
@@ -301,9 +298,6 @@ export default function PersonasPage() {
                   <button
                     key={p.id}
                     className="w-full flex items-center gap-3 py-3 text-left"
-                    style={{
-                      borderBottom: i < todas.length - 1 ? '1px solid #242424' : 'none',
-                    }}
                   >
                     <Avatar name={p.nombre} size="md" />
                     <div className="flex-1">

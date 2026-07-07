@@ -56,7 +56,6 @@ export default function ConversacionesPage() {
               key={c.usuario_id}
               onClick={() => setSeleccionado(c.usuario_id)}
               className="flex items-center gap-3 px-4 py-3.5 cursor-pointer"
-              style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}
             >
               <IconUserCircle size={28} color="var(--text-secondary)" />
               <div className="flex-1 min-w-0">

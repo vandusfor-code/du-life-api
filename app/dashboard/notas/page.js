@@ -171,7 +171,6 @@ function SeccionNotas({ titulo, icon, notas }) {
           <div
             key={n.id}
             className="flex items-center gap-3 py-3.5"
-            style={{ borderBottom: i < notas.length - 1 ? '1px solid #242424' : 'none' }}
           >
             <div className="flex-1 min-w-0">
               <div className="text-[14px] font-bold text-ink truncate">

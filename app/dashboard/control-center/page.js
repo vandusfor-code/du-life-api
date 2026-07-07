@@ -205,7 +205,6 @@ export default function ControlCenterDashboard() {
                 <div
                   key={`${e.tipo}-${e.fecha}-${i}`}
                   className="flex items-center gap-3 px-4 py-3"
-                  style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}
                 >
                   <Icon size={16} color="var(--accent)" />
                   <span className="flex-1 text-[13px]" style={{ color: 'var(--text-primary)' }}>{e.texto}</span>

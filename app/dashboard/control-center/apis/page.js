@@ -50,7 +50,7 @@ export default function ApisPage() {
 
       <div className="rounded-2xl overflow-hidden" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
         {datos.servicios.map((s, i) => (
-          <div key={s.id} className="flex items-center justify-between px-4 py-3.5" style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}>
+          <div key={s.id} className="flex items-center justify-between px-4 py-3.5">
             <div className="flex items-center gap-3">
               {s.configurado ? <IconCircleCheck size={18} color="var(--cc-success)" /> : <IconCircleX size={18} color="var(--cc-danger)" />}
               <div>

@@ -54,7 +54,7 @@ export default function MemoriaPage() {
               <tr><td colSpan={4} className="px-4 py-8 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>Sin memoria guardada todavía.</td></tr>
             ) : (
               usuarios.map((u) => (
-                <tr key={u.usuario.id} onClick={() => setSeleccionado(u.usuario.id)} className="cursor-pointer" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                <tr key={u.usuario.id} onClick={() => setSeleccionado(u.usuario.id)} className="cursor-pointer">
                   <td className="px-4 py-3 text-[13px] font-semibold flex items-center gap-2" style={{ color: 'var(--text-primary)' }}>
                     <IconUserCircle size={18} color="var(--text-secondary)" />
                     {u.usuario.como_llamar || u.usuario.nombre || 'Usuario'}

@@ -295,7 +295,6 @@ export default function PrestamoDetallePage({ params }) {
                     <div
                       key={mov.id}
                       className="flex items-center gap-3 py-3.5"
-                      style={{ borderBottom: i < movs.length - 1 ? '1px solid #242424' : 'none' }}
                     >
                       <div
                         className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[15px]"

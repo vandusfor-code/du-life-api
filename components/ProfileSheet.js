@@ -238,14 +238,14 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
               </div>
             </div>
 
-            <div style={{ borderTop: '1px solid var(--border-color)' }}>
-              {MENU_ITEMS.map((item, i) => (
+            <div>
+              {MENU_ITEMS.map((item) => (
                 <button
                   key={item.key}
                   type="button"
                   onClick={() => handleMenuClick(item.key)}
                   className="w-full flex items-center gap-3 px-5"
-                  style={{ height: '48px', borderBottom: i < MENU_ITEMS.length - 1 ? '1px solid var(--border-color)' : 'none' }}
+                  style={{ height: '48px' }}
                 >
                   <item.icon size={18} color="var(--text-secondary)" />
                   <span className="flex-1 text-left text-[14px]" style={{ color: 'var(--text-primary)' }}>{item.label}</span>
@@ -258,7 +258,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
               type="button"
               onClick={toggleTheme}
               className="w-full flex items-center gap-3 px-5"
-              style={{ height: '48px', borderBottom: '1px solid var(--border-color)' }}
+              style={{ height: '48px' }}
             >
               <IconPalette size={18} color="var(--text-secondary)" />
               <span className="flex-1 text-left text-[14px]" style={{ color: 'var(--text-primary)' }}>Apariencia</span>

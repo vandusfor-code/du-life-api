@@ -372,7 +372,6 @@ export default function InicioDesktop() {
                 <div
                   key={item.id}
                   className="flex items-center gap-3 px-3 py-3"
-                  style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}
                 >
                   <div
                     className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"

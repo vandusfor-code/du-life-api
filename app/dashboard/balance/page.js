@@ -351,7 +351,6 @@ export default function BalancePage() {
               <div
                 key={`${m.tipo}-${m.id}`}
                 className="flex items-center gap-3 py-3.5"
-                style={{ borderBottom: i < d.actividadReciente.length - 1 ? '1px solid #242424' : 'none' }}
               >
                 <Avatar name={nombreItem} size="md" />
                 <div className="flex-1 min-w-0">

@@ -24,11 +24,18 @@ export default function ResponsiveShell({ children }) {
 
   // Antes de montar (o en móvil) se renderiza exactamente lo mismo que había
   // en layout.js antes de este cambio — cero regresión visual en móvil.
+  //
+  // Importante: el scroll es de la PÁGINA completa (sin div interno con
+  // overflow-y-auto). Un contenedor interno con su propio scroll, combinado
+  // con BottomNav en position:fixed, rompe el fixed dentro del navegador
+  // embebido de WhatsApp (y otros in-app browsers) — la barra terminaba
+  // desplazándose con el contenido en vez de quedarse pegada abajo. Con un
+  // solo contexto de scroll (el documento) el fixed se comporta bien.
   if (!mounted || !isDesktop) {
     return (
       <div className="min-h-screen flex flex-col max-w-app mx-auto" style={{ background: 'var(--bg-primary)' }}>
         <EnableNotifications />
-        <div className="flex-1 overflow-y-auto pb-[calc(64px+env(safe-area-inset-bottom))]">
+        <div className="pb-[calc(64px+env(safe-area-inset-bottom))]">
           {children}
         </div>
         <BottomNav />

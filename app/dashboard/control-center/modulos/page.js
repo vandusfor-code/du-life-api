@@ -33,7 +33,7 @@ export default function ModulosPage() {
           <div className="px-4 py-8 text-center text-[13px]" style={{ color: 'var(--text-secondary)' }}>Cargando...</div>
         ) : (
           modulos.map((m, i) => (
-            <div key={m.id} className="flex items-center gap-4 px-4 py-3.5" style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}>
+            <div key={m.id} className="flex items-center gap-4 px-4 py-3.5">
               <IconApps size={16} color="var(--text-secondary)" />
               <span className="text-[13px] font-semibold w-32 flex-shrink-0" style={{ color: 'var(--text-primary)' }}>{m.nombre}</span>
               <div className="flex-1 h-2 rounded-full" style={{ background: 'var(--border-color)' }}>
