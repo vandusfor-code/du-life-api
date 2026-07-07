@@ -11,7 +11,6 @@ import Avatar from '../../components/Avatar';
 import ProfileSheet from '../../components/ProfileSheet';
 import { useInicioData } from './useInicioData';
 
-const NOTIFICACIONES_MOCK = 3;
 const ZONA_COLOMBIA = 'America/Bogota';
 
 const LIMA = '#C4E938';
@@ -527,16 +526,6 @@ export default function InicioMobile() {
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
             <IconBell size={18} color="var(--text-primary)" />
-            {NOTIFICACIONES_MOCK > 0 && (
-              <div
-                className="absolute flex items-center justify-center rounded-full"
-                style={{ width: '16px', height: '16px', background: 'var(--accent)', top: '-2px', right: '-2px' }}
-              >
-                <span className="font-bold" style={{ fontSize: '9px', color: '#000000' }}>
-                  {NOTIFICACIONES_MOCK}
-                </span>
-              </div>
-            )}
           </button>
           <button type="button" onClick={() => setShowProfile(true)}>
             <Avatar name={nombre} size="md" fotoUrl={fotoUrl} />

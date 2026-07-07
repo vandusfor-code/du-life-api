@@ -9,7 +9,6 @@ import Avatar from '../../../../components/Avatar';
 import ProfileSheet from '../../../../components/ProfileSheet';
 import { useAutoRefresh } from '../../../../components/useAutoRefresh';
 
-const NOTIFICACIONES_MOCK = 3;
 const WHATSAPP_NUEVO_PRESTAMO = 'https://wa.me/573239117508?text=Quiero%20registrar%20un%20pr%C3%A9stamo';
 
 // Mismos tonos que el gradiente "to" de components/Avatar.js, para que el
@@ -293,16 +292,6 @@ export default function PrestamosPage() {
         <div className="flex items-center gap-2">
           <button className="relative w-10 h-10 rounded-full flex items-center justify-center bg-surface border border-hairline">
             <IconBell size={18} color="var(--text-primary)" />
-            {NOTIFICACIONES_MOCK > 0 && (
-              <div
-                className="absolute flex items-center justify-center rounded-full"
-                style={{ width: '16px', height: '16px', background: '#C4E938', top: '-2px', right: '-2px' }}
-              >
-                <span className="font-bold" style={{ fontSize: '9px', color: '#0A0A0A' }}>
-                  {NOTIFICACIONES_MOCK}
-                </span>
-              </div>
-            )}
           </button>
           <button type="button" onClick={() => setShowProfile(true)}>
             <Avatar name={nombre} size="md" />

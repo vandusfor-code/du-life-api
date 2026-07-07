@@ -10,7 +10,6 @@ import Avatar from '../../../components/Avatar';
 import ProfileSheet from '../../../components/ProfileSheet';
 import { useAutoRefresh } from '../../../components/useAutoRefresh';
 
-const NOTIFICACIONES_MOCK = 3;
 
 const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 const formatCOPCorto = (n) => {
@@ -193,16 +192,6 @@ export default function BalancePage() {
             style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
           >
             <IconBell size={18} color="var(--text-primary)" />
-            {NOTIFICACIONES_MOCK > 0 && (
-              <div
-                className="absolute flex items-center justify-center rounded-full"
-                style={{ width: '16px', height: '16px', background: '#C4E938', top: '-2px', right: '-2px' }}
-              >
-                <span className="font-bold" style={{ fontSize: '9px', color: '#0A0A0A' }}>
-                  {NOTIFICACIONES_MOCK}
-                </span>
-              </div>
-            )}
           </button>
           <div className="relative">
             <button type="button" onClick={() => setShowProfile(true)}>
