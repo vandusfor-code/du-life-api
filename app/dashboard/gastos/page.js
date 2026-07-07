@@ -3,9 +3,10 @@
 import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
 import {
-  IconArrowLeft, IconArrowUp, IconArrowDown, IconChevronRight,
+  IconArrowLeft, IconArrowUp, IconArrowDown, IconChevronRight, IconWallet,
 } from '@tabler/icons-react';
 import { useAutoRefresh } from '../../../components/useAutoRefresh';
+import LogoComercio from '../../../components/LogoComercio';
 
 const formatCOP = (n) => '$' + Math.round(n).toLocaleString('es-CO');
 const formatCOPCorto = (n) => {
@@ -448,12 +449,22 @@ export default function GastosPage() {
                   className="flex items-center justify-between py-4"
                   style={{ borderBottom: i < movimientosDia.length - 1 ? '1px solid #1F1F1F' : 'none' }}
                 >
-                  <div className="min-w-0">
-                    <div className="text-[15px] font-bold text-ink truncate">
-                      {m.descripcion || (esIngreso ? 'Ingreso' : 'Gasto')}
-                    </div>
-                    <div className="text-[12px] text-muted mt-0.5">
-                      {m.lugar || m.fuente || (esIngreso ? 'Ingreso' : 'Efectivo')}
+                  <div className="flex items-center gap-3 min-w-0">
+                    <LogoComercio
+                      texto={m.lugar || m.fuente || m.descripcion}
+                      iconoFallback={
+                        esIngreso
+                          ? <IconArrowUp size={16} color="#C4E938" />
+                          : <IconWallet size={16} color="var(--text-secondary)" />
+                      }
+                    />
+                    <div className="min-w-0">
+                      <div className="text-[15px] font-bold text-ink truncate">
+                        {m.descripcion || (esIngreso ? 'Ingreso' : 'Gasto')}
+                      </div>
+                      <div className="text-[12px] text-muted mt-0.5">
+                        {m.lugar || m.fuente || (esIngreso ? 'Ingreso' : 'Efectivo')}
+                      </div>
                     </div>
                   </div>
                   <div

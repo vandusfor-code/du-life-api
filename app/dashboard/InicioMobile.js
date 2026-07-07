@@ -9,6 +9,7 @@ import {
 } from '@tabler/icons-react';
 import Avatar from '../../components/Avatar';
 import ProfileSheet from '../../components/ProfileSheet';
+import LogoComercio from '../../components/LogoComercio';
 import { useInicioData } from './useInicioData';
 
 const ZONA_COLOMBIA = 'America/Bogota';
@@ -341,6 +342,7 @@ export default function InicioMobile() {
       tipo: 'gasto',
       titulo: g.descripcion || 'Gasto',
       subtitulo: g.categoria || g.lugar || '',
+      lugarTexto: g.lugar || g.descripcion || '',
       fechaHora: new Date(`${g.fecha}T${g.hora || '00:00:00'}`),
     })),
     ...ideas.map((i) => ({
@@ -559,12 +561,21 @@ export default function InicioMobile() {
                   className="flex items-start gap-3 py-3.5"
                   style={{ borderTop: i > 0 ? '1px solid var(--border-color)' : 'none' }}
                 >
-                  <div
-                    className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"
-                    style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
-                  >
-                    <Icon size={16} strokeWidth={1.6} color="var(--text-primary)" />
-                  </div>
+                  {item.tipo === 'gasto' ? (
+                    <LogoComercio
+                      texto={item.lugarTexto}
+                      tamano={36}
+                      radio="11px"
+                      iconoFallback={<Icon size={16} strokeWidth={1.6} color="var(--text-primary)" />}
+                    />
+                  ) : (
+                    <div
+                      className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"
+                      style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}
+                    >
+                      <Icon size={16} strokeWidth={1.6} color="var(--text-primary)" />
+                    </div>
+                  )}
                   <div className="flex-1 min-w-0 pt-0.5">
                     <div className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{item.titulo}</div>
                     {item.subtitulo && (
