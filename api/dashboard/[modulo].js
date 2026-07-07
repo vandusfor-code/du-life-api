@@ -790,6 +790,152 @@ async function handleAdminArquitectura(usuarioId) {
   return { status: 200, body: { nodos: ARQUITECTURA_NODOS } };
 }
 
+// Todas las tablas con usuario_id apuntando a usuarios.id (según grep sobre
+// lib/*.js) — mismo listado usado para el borrado manual por script.
+// 'relaciones' va antes que 'entidades' porque relaciones.entidad_origen_id/
+// destino_id apuntan a entidades.
+const TABLAS_HIJAS_USUARIO = [
+  'mensajes',
+  'relaciones',
+  'entidades',
+  'hechos',
+  'gastos',
+  'ingresos',
+  'notas',
+  'tareas',
+  'ideas',
+  'calendario_eventos',
+  'prestamos_movimientos',
+  'prestamos',
+  'patrones',
+  'arbol_vida',
+  'documentos',
+  'push_subscriptions',
+  'emociones',
+  'archivos_multimedia',
+  'onboarding_estado',
+  'usuario_perfil_estado',
+];
+
+const ROLES_VALIDOS = ['owner', 'admin', 'developer', 'support', 'user'];
+
+// Gestión completa de usuarios (owner/admin): listar+buscar, ver detalle
+// con conteos reales de cuánto hay que borrar, editar campos y eliminar en
+// cascada por las tablas de arriba. Un solo "módulo" que rama por
+// req.method, igual que actualizar_perfil rama por presencia de campos.
+async function handleAdminUsuarios(usuarioId, req) {
+  if (!(await verificarRolAdmin(usuarioId))) {
+    return { status: 403, body: { error: 'No autorizado' } };
+  }
+
+  const { id, q } = req.query;
+  const metodo = req.method;
+
+  // Detalle de un usuario puntual (incluye conteos por tabla).
+  if (metodo === 'GET' && id) {
+    const { data: usuario, error } = await supabase
+      .from('usuarios')
+      .select('id, nombre, como_llamar, telefono, pais, plan, activo, metadata, creado_en')
+      .eq('id', id)
+      .single();
+
+    if (error || !usuario) return { status: 404, body: { error: 'Usuario no encontrado' } };
+
+    const conteos = await Promise.all(
+      TABLAS_HIJAS_USUARIO.map((tabla) =>
+        supabase.from(tabla).select('id', { count: 'exact', head: true }).eq('usuario_id', id)
+      )
+    );
+    const conteoPorTabla = Object.fromEntries(
+      TABLAS_HIJAS_USUARIO.map((tabla, i) => [tabla, conteos[i].count || 0])
+    );
+
+    return { status: 200, body: { usuario, conteo_por_tabla: conteoPorTabla } };
+  }
+
+  // Lista con búsqueda opcional por nombre/apodo/teléfono.
+  if (metodo === 'GET') {
+    let query = supabase
+      .from('usuarios')
+      .select('id, nombre, como_llamar, telefono, pais, plan, activo, metadata, creado_en')
+      .order('creado_en', { ascending: false })
+      .limit(200);
+
+    if (q && q.trim()) {
+      const termino = q.trim();
+      query = query.or(`nombre.ilike.%${termino}%,como_llamar.ilike.%${termino}%,telefono.ilike.%${termino}%`);
+    }
+
+    const { data, error } = await query;
+    if (error) return { status: 500, body: { error: 'No se pudo listar usuarios' } };
+    return { status: 200, body: { usuarios: data || [] } };
+  }
+
+  // Editar campos de un usuario.
+  if (metodo === 'PATCH' && id) {
+    const body = req.body || {};
+    const updates = {};
+
+    if (body.nombre !== undefined) updates.nombre = String(body.nombre).trim() || null;
+    if (body.como_llamar !== undefined) updates.como_llamar = String(body.como_llamar).trim() || null;
+    if (body.telefono !== undefined) updates.telefono = String(body.telefono).trim();
+    if (body.pais !== undefined) updates.pais = String(body.pais).trim() || null;
+    if (body.plan !== undefined) updates.plan = String(body.plan).trim() || null;
+    if (body.activo !== undefined) updates.activo = !!body.activo;
+
+    if (body.rol !== undefined) {
+      // '' / null = "user, sin rol especial" (se guarda sin la clave rol).
+      if (body.rol && !ROLES_VALIDOS.includes(body.rol)) {
+        return { status: 400, body: { error: 'Rol inválido' } };
+      }
+      const { data: actual } = await supabase.from('usuarios').select('metadata').eq('id', id).single();
+      const metadataNueva = { ...(actual?.metadata || {}) };
+      if (body.rol) {
+        metadataNueva.rol = body.rol;
+      } else {
+        delete metadataNueva.rol;
+      }
+      updates.metadata = metadataNueva;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return { status: 400, body: { error: 'Nada que actualizar' } };
+    }
+
+    const { data, error } = await supabase
+      .from('usuarios')
+      .update(updates)
+      .eq('id', id)
+      .select('id, nombre, como_llamar, telefono, pais, plan, activo, metadata, creado_en')
+      .single();
+
+    if (error) return { status: 500, body: { error: 'No se pudo actualizar' } };
+    return { status: 200, body: { usuario: data } };
+  }
+
+  // Borrar un usuario y todo su rastro en cascada.
+  if (metodo === 'DELETE' && id) {
+    if (id === usuarioId) {
+      return { status: 400, body: { error: 'No puedes eliminar tu propia cuenta desde el Control Center' } };
+    }
+
+    const { data: existe } = await supabase.from('usuarios').select('id').eq('id', id).maybeSingle();
+    if (!existe) return { status: 404, body: { error: 'Usuario no encontrado' } };
+
+    for (const tabla of TABLAS_HIJAS_USUARIO) {
+      const { error: errTabla } = await supabase.from(tabla).delete().eq('usuario_id', id);
+      if (errTabla) console.error(`Error borrando de ${tabla} (admin_usuarios):`, errTabla.message);
+    }
+
+    const { error: errFinal } = await supabase.from('usuarios').delete().eq('id', id);
+    if (errFinal) return { status: 500, body: { error: 'No se pudo eliminar el usuario' } };
+
+    return { status: 200, body: { ok: true } };
+  }
+
+  return { status: 400, body: { error: 'Solicitud inválida' } };
+}
+
 // ===== ROUTER =====
 
 const HANDLERS = {
@@ -813,6 +959,7 @@ const HANDLERS = {
   admin_dashboard: handleAdminDashboard,
   admin_actividad: handleAdminActividad,
   admin_arquitectura: handleAdminArquitectura,
+  admin_usuarios: handleAdminUsuarios,
 };
 
 export default async function handler(req, res) {
