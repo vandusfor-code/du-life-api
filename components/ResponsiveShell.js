@@ -25,17 +25,19 @@ export default function ResponsiveShell({ children }) {
   // Antes de montar (o en móvil) se renderiza exactamente lo mismo que había
   // en layout.js antes de este cambio — cero regresión visual en móvil.
   //
-  // El shell entero es el elemento fijo (fixed inset-0), UNA sola vez, y
-  // adentro hay un único scroll (el div de contenido). BottomNav ya NO usa
-  // position:fixed en sí mismo — es simplemente el último hijo del
-  // flex-col, así que queda pegado abajo porque el shell ya está pegado a
-  // los bordes del viewport. Esto evita depender de que "position: fixed"
-  // en un elemento suelto funcione bien: en el navegador embebido de
-  // WhatsApp (y otros in-app browsers) eso se rompe y la barra terminaba
-  // desplazándose con el contenido en vez de quedarse pegada abajo.
+  // El shell mide h-dvh (dynamic viewport height) en vez de fixed inset-0.
+  // "fixed" depende de que el navegador calcule bien la altura real del
+  // viewport visible, y en el navegador embebido de WhatsApp esa cuenta
+  // salía mal (quedaba un hueco vacío debajo del nav, como si el shell
+  // fuera más chico que la pantalla real). dvh SÍ refleja el viewport
+  // visible de verdad en navegadores modernos, sin depender de cómo ese
+  // navegador resuelve "fixed". Adentro hay un único scroll (el div de
+  // contenido); BottomNav no usa position:fixed en sí mismo — es
+  // simplemente el último hijo del flex-col, pegado abajo porque el shell
+  // ya mide exactamente el alto real de la pantalla.
   if (!mounted || !isDesktop) {
     return (
-      <div className="fixed inset-0 flex flex-col max-w-app mx-auto overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
+      <div className="h-dvh flex flex-col max-w-app mx-auto overflow-x-hidden" style={{ background: 'var(--bg-primary)' }}>
         <EnableNotifications />
         <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden">
           {children}
