@@ -215,34 +215,8 @@ export function GraficoBarras({ valores, color, alto = 56 }) {
   );
 }
 
-// Mini-gráficas decorativas: llenan el ancho disponible que les deja el
-// contenedor flex (no un ancho fijo) — una línea de tendencia simple sin
-// relleno y unas barritas pequeñas, pensadas para ir junto al monto.
-function MiniTendenciaLinea({ valores, color, alto = 30 }) {
-  const [ref, ancho] = useAncho();
-  const vals = valores && valores.length ? valores : [0, 0];
-  const max = Math.max(...vals, 1);
-  const min = Math.min(...vals, 0);
-  const rango = max - min || 1;
-  const pad = 3;
-  const innerW = Math.max(0, ancho - pad * 2);
-  const innerH = alto - pad * 2;
-  const xAt = (i) => pad + (vals.length === 1 ? innerW / 2 : (i / (vals.length - 1)) * innerW);
-  const yAt = (v) => pad + innerH - ((v - min) / rango) * innerH;
-  const puntos = vals.map((v, i) => `${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(' ');
-
-  return (
-    <div ref={ref} className="flex-1 min-w-0" style={{ height: alto }}>
-      {ancho > 0 && (
-        <svg width={ancho} height={alto}>
-          <polyline points={puntos} fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" opacity="0.9" />
-          <circle cx={xAt(vals.length - 1)} cy={yAt(vals[vals.length - 1])} r="2.5" fill={color} />
-        </svg>
-      )}
-    </div>
-  );
-}
-
+// Mini-gráfica decorativa: llena el ancho disponible que le deja el
+// contenedor flex (no un ancho fijo) — barritas pequeñas junto al monto.
 function MiniTendenciaBarras({ valores, color, alto = 30 }) {
   const [ref, ancho] = useAncho();
   const vals = valores && valores.length ? valores : [0];
@@ -523,7 +497,7 @@ export default function InicioMobile() {
                   </span>
                 )}
               </div>
-              <MiniTendenciaLinea valores={serieIngresos} color={LIMA} />
+              <MiniTendenciaBarras valores={serieIngresos.slice(-6)} color={LIMA} />
             </div>
           </div>
 

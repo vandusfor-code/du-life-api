@@ -74,7 +74,17 @@ export default function BottomNav() {
               className="flex-1 flex flex-col items-center gap-1 py-1"
               style={{ transition: 'all 0.15s ease' }}
             >
-              <Icon size={22} color={active ? '#C4E938' : colorInactivo} />
+              <div
+                className="flex items-center justify-center rounded-2xl"
+                style={{
+                  width: '44px',
+                  height: '30px',
+                  background: active ? 'rgba(196,233,56,0.14)' : 'transparent',
+                  transition: 'background 0.15s ease',
+                }}
+              >
+                <Icon size={22} color={active ? '#C4E938' : colorInactivo} />
+              </div>
               <span
                 className={`text-[11px] ${active ? 'font-bold' : ''}`}
                 style={{ color: active ? '#C4E938' : colorInactivo }}
