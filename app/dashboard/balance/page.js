@@ -344,7 +344,7 @@ export default function BalancePage() {
           Aún no hay movimientos registrados.
         </div>
       ) : (
-        <div className="rounded-card px-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+        <div>
           {d.actividadReciente.map((m, i) => {
             const esIngreso = m.tipo === 'ingreso';
             const nombreItem = m.descripcion || m.lugar || m.fuente || (esIngreso ? 'Ingreso' : 'Gasto');
