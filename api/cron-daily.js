@@ -2,7 +2,7 @@
 //  Du Life - Cron Diario 6AM Colombia
 //  api/cron-daily.js
 //  Corre patrones/envejecimiento y programa en QStash los jobs
-//  del resto del día (ritual de cierre, fin de semana, etc).
+//  del resto del día (reflexión nocturna, fin de semana, etc).
 // ============================================================
 
 import { supabase } from '../lib/supabase.js';
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
   const { data: usuarios } = await supabase
     .from('usuarios')
-    .select('id, telefono, nombre, como_llamar, hora_preferida_insight, onboarding_completo, activo')
+    .select('id, telefono, nombre, como_llamar, onboarding_completo, activo')
     .eq('activo', true);
 
   if (!usuarios?.length) {
@@ -103,16 +103,15 @@ export default async function handler(req, res) {
         continue;
       }
 
-      // ── Ritual de cierre — programar para hora preferida del usuario ──
-      const horaPreferida = usuario.hora_preferida_insight || '21:00';
-      const [horaLocal, min] = horaPreferida.split(':').map(Number);
-      // Colombia es UTC-5 todo el año (sin horario de verano)
-      const horaUTC = (horaLocal + 5) % 24;
-      const ritualHoy = new Date(ahora);
-      ritualHoy.setUTCHours(horaUTC, min || 0, 0, 0);
-
-      if (ritualHoy > ahora) {
-        await programarJob('ritual-cierre', payload, ritualHoy.toISOString());
+      // ── Reflexión nocturna — lunes, miércoles y viernes, 8PM Colombia ──
+      // Fija para todos los usuarios registrados (no depende de hora_preferida_insight).
+      // Colombia es UTC-5 todo el año: 20:00 local = 01:00 UTC del día siguiente.
+      const diaSemanaUTC = ahora.getUTCDay(); // 1=lunes, 3=miércoles, 5=viernes
+      if (diaSemanaUTC === 1 || diaSemanaUTC === 3 || diaSemanaUTC === 5) {
+        const reflexionHoy = new Date(ahora);
+        reflexionHoy.setUTCDate(reflexionHoy.getUTCDate() + 1);
+        reflexionHoy.setUTCHours(1, 0, 0, 0);
+        await programarJob('reflexion-nocturna', payload, reflexionHoy.toISOString());
         jobsProgramados++;
       }
 

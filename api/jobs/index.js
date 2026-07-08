@@ -2,7 +2,7 @@
 //  Du Life - Dispatcher consolidado de Jobs (QStash)
 //  api/jobs/index.js
 //  El plan Hobby de Vercel permite máximo 12 Serverless Functions
-//  por deployment. Antes cada job (recordatorio-tarea, ritual-cierre,
+//  por deployment. Antes cada job (recordatorio-tarea, reflexion-nocturna,
 //  chequeo-semana, resumen-semanal, reactivacion, procesar-webhook)
 //  era su propio archivo/función; se consolidan todos acá bajo un
 //  único endpoint que despacha por el campo "tipo" del body.
@@ -56,8 +56,8 @@ export default async function handler(req, res) {
         return await jobProcesarWebhook(body, res);
       case 'recordatorio-tarea':
         return await jobRecordatorioTarea(body, res);
-      case 'ritual-cierre':
-        return await jobRitualCierre(body, res);
+      case 'reflexion-nocturna':
+        return await jobReflexionNocturna(body, res);
       case 'chequeo-semana':
         return await jobChequeoSemana(body, res);
       case 'resumen-semanal':
@@ -370,19 +370,19 @@ async function jobRecordatorioTarea(body, res) {
 }
 
 // ─────────────────────────────────────────
-// RITUAL DE CIERRE DEL DÍA
+// REFLEXIÓN NOCTURNA (lunes, miércoles, viernes 8PM)
 // ─────────────────────────────────────────
 
-async function jobRitualCierre(body, res) {
+async function jobReflexionNocturna(body, res) {
   const { telefono, nombre } = body;
-  console.log('Body parseado (ritual-cierre):', { telefono, nombre });
+  console.log('Body parseado (reflexion-nocturna):', { telefono, nombre });
 
   if (!telefono || !nombre) {
     return res.status(400).json({ error: 'Faltan datos' });
   }
 
-  const resultado = await enviarPlantilla(telefono, 'ritual_cierre_dia', { nombre });
-  console.log(`✅ Ritual cierre enviado a ${nombre}:`, JSON.stringify(resultado));
+  const resultado = await enviarPlantilla(telefono, 'reflexion_nocturna', { nombre });
+  console.log(`✅ Reflexión nocturna enviada a ${nombre}:`, JSON.stringify(resultado));
 
   return res.status(200).json({ ok: true });
 }

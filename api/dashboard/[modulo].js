@@ -1166,9 +1166,9 @@ const CRON_JOBS = [
     descripcion: 'Genera y envía el resumen semanal de gastos/ingresos/actividad.',
   },
   {
-    id: 'ritual-cierre',
-    nombre: 'Ritual de cierre del día',
-    disparador: 'Programado por api/cron-daily.js (todos los días)',
+    id: 'reflexion-nocturna',
+    nombre: 'Reflexión nocturna',
+    disparador: 'Programado por api/cron-daily.js (lunes, miércoles y viernes, 8PM)',
     descripcion: 'Mensaje de cierre de día para reflexión/balance.',
   },
   {
