@@ -640,6 +640,7 @@ async function handleAdminDashboard(usuarioId) {
 
   const hoyISO = new Date().toISOString().split('T')[0];
   const inicioHoy = `${hoyISO}T00:00:00.000Z`;
+  const hace7Dias = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
 
   const inicioMedicion = Date.now();
   const [
@@ -653,6 +654,9 @@ async function handleAdminDashboard(usuarioId) {
     ultimoMensajeMetaRes,
     ultimaTareaRecordatorioRes,
     ultimoResumenSemanalRes,
+    mensajes7DiasRes,
+    intencionesHoyRes,
+    usuariosRecientesRes,
   ] = await Promise.all([
     supabase.from('usuarios').select('id', { count: 'exact', head: true }),
     supabase.from('usuarios').select('id', { count: 'exact', head: true }).eq('activo', true),
@@ -664,8 +668,40 @@ async function handleAdminDashboard(usuarioId) {
     supabase.from('mensajes').select('creado_en').eq('role', 'user').order('creado_en', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('tareas').select('recordatorio_enviado_en').not('recordatorio_enviado_en', 'is', null).order('recordatorio_enviado_en', { ascending: false }).limit(1).maybeSingle(),
     supabase.from('resumen_semanal').select('creado_en').order('creado_en', { ascending: false }).limit(1).maybeSingle(),
+    supabase.from('mensajes').select('creado_en').gte('creado_en', hace7Dias),
+    supabase.from('mensajes').select('intencion_detectada').eq('role', 'assistant').gte('creado_en', inicioHoy).not('intencion_detectada', 'is', null),
+    supabase.from('usuarios').select('id, nombre, como_llamar, telefono, plan, creado_en').order('creado_en', { ascending: false }).limit(5),
   ]);
   const latenciaSupabaseMs = Date.now() - inicioMedicion;
+
+  // Tendencia de mensajes: un balde por día (zona horaria Colombia, UTC-5
+  // fijo) para los últimos 7 días, incluyendo los días sin mensajes en 0.
+  const tendenciaMensajes = [];
+  {
+    const porDia = {};
+    for (const m of (mensajes7DiasRes.data || [])) {
+      const fechaLocal = new Date(new Date(m.creado_en).getTime() - 5 * 60 * 60 * 1000).toISOString().split('T')[0];
+      porDia[fechaLocal] = (porDia[fechaLocal] || 0) + 1;
+    }
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 24 * 60 * 60 * 1000 - 5 * 60 * 60 * 1000);
+      const fecha = d.toISOString().split('T')[0];
+      tendenciaMensajes.push({ fecha, total: porDia[fecha] || 0 });
+    }
+  }
+
+  // Distribución de intenciones detectadas hoy (solo mensajes del asistente,
+  // que son los que llevan intencion_detectada ya clasificada por Claude).
+  const distribucionIntenciones = (() => {
+    const conteo = {};
+    for (const m of (intencionesHoyRes.data || [])) {
+      const i = m.intencion_detectada;
+      conteo[i] = (conteo[i] || 0) + 1;
+    }
+    return Object.entries(conteo)
+      .map(([intencion, total]) => ({ intencion, total }))
+      .sort((a, b) => b.total - a.total);
+  })();
 
   const mensajesHoy = mensajesHoyRes.data || [];
   const conversacionesHoy = new Set(mensajesHoy.map((m) => m.usuario_id)).size;
@@ -711,6 +747,15 @@ async function handleAdminDashboard(usuarioId) {
           online: true,
         },
       },
+      tendencia_mensajes: tendenciaMensajes,
+      distribucion_intenciones: distribucionIntenciones,
+      usuarios_recientes: (usuariosRecientesRes.data || []).map((u) => ({
+        id: u.id,
+        nombre: u.como_llamar || u.nombre,
+        telefono: u.telefono,
+        plan: u.plan || 'free',
+        creado_en: u.creado_en,
+      })),
     },
   };
 }
