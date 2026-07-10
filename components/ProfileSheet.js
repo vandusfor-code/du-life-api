@@ -49,7 +49,7 @@ const MENU_ITEMS = [
 export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, onNombreActualizado, onFotoActualizada }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const [vista, setVista] = useState('menu'); // 'menu' | 'editar-perfil'
+  const [vista, setVista] = useState('menu'); // 'menu' | 'editar-perfil' | 'acerca'
   const [nombreEditado, setNombreEditado] = useState(nombre || '');
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
@@ -155,6 +155,10 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
   const handleMenuClick = useCallback((key) => {
     if (key === 'perfil') {
       setVista('editar-perfil');
+      return;
+    }
+    if (key === 'acerca') {
+      setVista('acerca');
       return;
     }
     mostrarToast('Próximamente');
@@ -309,6 +313,43 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
             >
               {guardando ? 'Guardando...' : <>Guardar <IconCheck size={16} /></>}
             </button>
+          </div>
+        )}
+
+        {vista === 'acerca' && (
+          <div className="px-5 pb-6 max-h-[70vh] overflow-y-auto">
+            <div className="flex items-center gap-3 mb-5">
+              <button type="button" onClick={() => setVista('menu')} className="p-1 -ml-1">
+                <IconArrowLeft size={20} color="var(--text-primary)" />
+              </button>
+              <div className="text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>Acerca de Du Life</div>
+            </div>
+
+            <div className="text-[14px] leading-relaxed space-y-4" style={{ color: 'var(--text-secondary)' }}>
+              <p>
+                Entre el trabajo, las ocupaciones y el día a día, se me olvidaban cosas simples:
+                pagar la factura del internet, la del teléfono. Vivía siempre conectado por el
+                trabajo, pero paradójicamente se me pasaban esos pequeños pendientes que terminaban
+                convirtiéndose en problemas grandes — cortes de servicio, recargos por reconexión,
+                solo por no recordar a tiempo.
+              </p>
+              <p>Ahí nació Du Life: una forma sencilla de no volver a olvidar esas cosas.</p>
+              <p>
+                Con el tiempo decidí ir más allá. No solo facturas pendientes, sino todo lo que
+                importa en la vida diaria: un recuerdo, una idea, una tarea, la fecha de cumpleaños
+                de alguien especial. Todo en el lugar donde ya vives conectado — WhatsApp — para que
+                nunca se pierda ni tengas que recordar dónde lo guardaste.
+              </p>
+              <p>
+                Aquí siempre sabrás dónde preguntar, y tu memoria estará disponible cuando la
+                necesites, las 24 horas del día, los 7 días de la semana.
+              </p>
+            </div>
+
+            <div className="mt-6 pt-4" style={{ borderTop: '1px solid var(--border-color)' }}>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Fundador</div>
+              <div className="text-[14px] font-bold mt-0.5" style={{ color: 'var(--text-primary)' }}>Duvan Ramos Padilla</div>
+            </div>
           </div>
         )}
       </div>
