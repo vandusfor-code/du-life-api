@@ -203,7 +203,7 @@ async function jobProcesarWebhook(body, res) {
       respuesta = 'Primero termina tu registro escribiéndome por texto. 😊';
     } else {
       const caption = mensaje.image.caption || null;
-      const result = await procesarImagen(usuario.id, mensaje.image.id, caption);
+      const result = await procesarImagen(usuario, mensaje.image.id, caption);
       respuesta = result.mensaje;
     }
 
