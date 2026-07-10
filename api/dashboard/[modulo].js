@@ -1189,6 +1189,12 @@ const CRON_JOBS = [
     disparador: 'Enviado directo por api/cron-daily.js, una sola vez por usuario',
     descripcion: 'Pregunta cómo le ha ido a usuarios que casi no han usado Du Life en sus primeros 3 días.',
   },
+  {
+    id: 'recordatorio-onboarding',
+    nombre: 'Recordatorio de registro incompleto',
+    disparador: 'Programado por lib/onboarding.js, 3 horas después del último paso respondido',
+    descripcion: 'Mensaje libre (sin plantilla) para quien dejó el registro a medias, invitándolo a continuar.',
+  },
 ];
 
 async function handleAdminCronJobs(usuarioId) {

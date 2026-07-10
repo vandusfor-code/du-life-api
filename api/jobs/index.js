@@ -23,7 +23,7 @@ import {
 import {
   supabase, obtenerOCrearUsuario, crearTarea,
   obtenerTareaConRecordatorioPendiente, completarTarea,
-  registrarIngreso, obtenerPrestamo,
+  registrarIngreso, obtenerPrestamo, actualizarUsuario,
 } from '../../lib/supabase.js';
 import {
   confirmarCreacionPrestamo, reiniciarCreacionPrestamo, cancelarCreacionPrestamo,
@@ -58,6 +58,8 @@ export default async function handler(req, res) {
         return await jobRecordatorioTarea(body, res);
       case 'reflexion-nocturna':
         return await jobReflexionNocturna(body, res);
+      case 'recordatorio-onboarding':
+        return await jobRecordatorioOnboarding(body, res);
       case 'chequeo-semana':
         return await jobChequeoSemana(body, res);
       case 'resumen-semanal':
@@ -384,6 +386,46 @@ async function jobReflexionNocturna(body, res) {
   const resultado = await enviarPlantilla(telefono, 'reflexion_nocturna', { nombre });
   console.log(`✅ Reflexión nocturna enviada a ${nombre}:`, JSON.stringify(resultado));
 
+  return res.status(200).json({ ok: true });
+}
+
+// ─────────────────────────────────────────
+// RECORDATORIO DE ONBOARDING INCOMPLETO
+// Mensaje libre (sin plantilla): se programa para pocas horas después del
+// último mensaje del usuario, así que sigue dentro de la ventana de 24h de
+// servicio al cliente. Se re-consulta el usuario en este momento (no se
+// confía en el payload programado hace horas) para no molestar a alguien
+// que ya terminó su registro o que ya recibió este mismo recordatorio antes.
+// ─────────────────────────────────────────
+
+async function jobRecordatorioOnboarding(body, res) {
+  const { usuario_id, telefono, nombre } = body;
+  console.log('Body parseado (recordatorio-onboarding):', { usuario_id, telefono });
+
+  if (!usuario_id || !telefono) {
+    return res.status(400).json({ error: 'Faltan datos' });
+  }
+
+  const { data: usuario } = await supabase
+    .from('usuarios')
+    .select('onboarding_completo, metadata')
+    .eq('id', usuario_id)
+    .maybeSingle();
+
+  if (!usuario || usuario.onboarding_completo || usuario.metadata?.recordatorio_onboarding_enviado) {
+    return res.status(200).json({ ok: true, omitido: true });
+  }
+
+  const mensaje = `Hola${nombre ? ' ' + nombre : ''} 👋 Vi que quedamos a medias con tu registro — no hay afán.\n\n` +
+    'Cuando quieras seguir, solo escríbeme lo que te pregunté y retomamos justo ahí. 😊';
+
+  await enviarMensaje(telefono, mensaje);
+
+  await actualizarUsuario(usuario_id, {
+    metadata: { ...(usuario.metadata || {}), recordatorio_onboarding_enviado: true },
+  });
+
+  console.log(`✅ Recordatorio de onboarding enviado a ${telefono}`);
   return res.status(200).json({ ok: true });
 }
 
