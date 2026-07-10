@@ -199,7 +199,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
           <div style={{ width: '40px', height: '4px', borderRadius: '2px', background: 'var(--border-color)' }} />
         </div>
 
-        {vista === 'menu' ? (
+        {vista === 'menu' && (
           <>
             <div className="flex items-center gap-3 px-5 pb-4">
               <button
@@ -281,7 +281,9 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
               Cerrar sesión
             </button>
           </>
-        ) : (
+        )}
+
+        {vista === 'editar-perfil' && (
           <div className="px-5 pb-6">
             <div className="flex items-center gap-3 mb-5">
               <button type="button" onClick={() => setVista('menu')} className="p-1 -ml-1">
