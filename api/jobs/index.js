@@ -555,19 +555,29 @@ async function jobRecordatorioCalendario(body, res) {
     return res.status(400).json({ error: 'Faltan datos' });
   }
 
+  // Se reclama el evento ANTES de enviar, con un update condicionado a que
+  // todavía no se haya enviado: si jobRevisarCalendario (la red de seguridad)
+  // ya lo reclamó primero en la misma ventana de tiempo, este update no
+  // afecta ninguna fila y se omite el envío — evita el duplicado que se
+  // veía cuando ambos jobs coincidían sobre el mismo evento.
+  if (evento_id) {
+    const { data: reclamado } = await supabase
+      .from('calendario_eventos')
+      .update({ recordatorio_enviado: true })
+      .eq('id', evento_id)
+      .eq('recordatorio_enviado', false)
+      .select('id')
+      .maybeSingle();
+    if (!reclamado) {
+      console.log(`⏭️ Recordatorio de evento ${evento_id} ya enviado por otro job, se omite.`);
+      return res.status(200).json({ ok: true, omitido: true });
+    }
+  }
+
   // El header "EN 5 MINUTOS" y el footer de esta plantilla son texto fijo:
   // solo se envía el componente body con {{nombre}} y {{evento}}.
   const resultado = await enviarPlantilla(telefono, 'recordatorio_evento_calendario', { nombre, evento });
   console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
-
-  // Se marca por id (no por texto/título) para no depender de un match
-  // frágil que se rompe si el título tiene variaciones o caracteres raros.
-  if (evento_id) {
-    await supabase
-      .from('calendario_eventos')
-      .update({ recordatorio_enviado: true })
-      .eq('id', evento_id);
-  }
 
   return res.status(200).json({ ok: true });
 }
@@ -603,13 +613,20 @@ async function jobRevisarCalendario(body, res) {
     const telefono = evento.usuarios?.telefono;
     if (!telefono) continue;
 
-    const textoEvento = `${evento.titulo} a las ${evento.hora_inicio.slice(0, 5)}`;
-    await enviarPlantilla(telefono, 'recordatorio_evento_calendario', { nombre, evento: textoEvento });
-
-    await supabase
+    // Mismo patrón de reclamo atómico que jobRecordatorioCalendario: si el
+    // job puntual programado desde el chat ya lo marcó como enviado, este
+    // update no afecta ninguna fila y se omite (evita el duplicado).
+    const { data: reclamado } = await supabase
       .from('calendario_eventos')
       .update({ recordatorio_enviado: true })
-      .eq('id', evento.id);
+      .eq('id', evento.id)
+      .eq('recordatorio_enviado', false)
+      .select('id')
+      .maybeSingle();
+    if (!reclamado) continue;
+
+    const textoEvento = `${evento.titulo} a las ${evento.hora_inicio.slice(0, 5)}`;
+    await enviarPlantilla(telefono, 'recordatorio_evento_calendario', { nombre, evento: textoEvento });
 
     console.log(`✅ Recordatorio enviado: ${textoEvento} a ${nombre}`);
   }
