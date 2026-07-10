@@ -1183,6 +1183,12 @@ const CRON_JOBS = [
     disparador: 'Programado por api/cron-daily.js según inactividad',
     descripcion: 'Mensaje para reactivar a un usuario que dejó de escribir.',
   },
+  {
+    id: 'seguimiento-temprano',
+    nombre: 'Seguimiento temprano (3 días post-onboarding)',
+    disparador: 'Enviado directo por api/cron-daily.js, una sola vez por usuario',
+    descripcion: 'Pregunta cómo le ha ido a usuarios que casi no han usado Du Life en sus primeros 3 días.',
+  },
 ];
 
 async function handleAdminCronJobs(usuarioId) {

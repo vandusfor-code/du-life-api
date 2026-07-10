@@ -5,7 +5,7 @@
 //  del resto del día (reflexión nocturna, fin de semana, etc).
 // ============================================================
 
-import { supabase } from '../lib/supabase.js';
+import { supabase, actualizarUsuario } from '../lib/supabase.js';
 import { analizarPatronesUsuario } from '../lib/patronesEngine.js';
 import { ejecutarRevisionEnvejecimiento } from '../lib/envejecimiento.js';
 import { programarJob } from '../lib/qstash.js';
@@ -21,7 +21,7 @@ export default async function handler(req, res) {
 
   const { data: usuarios } = await supabase
     .from('usuarios')
-    .select('id, telefono, nombre, como_llamar, onboarding_completo, activo')
+    .select('id, telefono, nombre, como_llamar, onboarding_completo, activo, metadata')
     .eq('activo', true);
 
   if (!usuarios?.length) {
@@ -148,6 +148,39 @@ export default async function handler(req, res) {
         if (reactivacionEn > ahora && reactivacionEn < new Date(ahora.getTime() + 24 * 60 * 60 * 1000)) {
           await programarJob('reactivacion', payload, reactivacionEn.toISOString());
           jobsProgramados++;
+        }
+      }
+
+      // ── Seguimiento temprano — a los 3 días de terminar el onboarding,
+      // si el usuario casi no ha usado Du Life desde entonces. Se evalúa
+      // una sola vez por usuario (metadata.seguimiento_temprano_enviado).
+      if (!usuario.metadata?.seguimiento_temprano_enviado) {
+        const { data: estadoOnboarding } = await supabase
+          .from('onboarding_estado')
+          .select('fecha_completado')
+          .eq('usuario_id', usuario.id)
+          .maybeSingle();
+
+        if (estadoOnboarding?.fecha_completado) {
+          const diasDesdeOnboarding = (ahora - new Date(estadoOnboarding.fecha_completado)) / (1000 * 60 * 60 * 24);
+
+          if (diasDesdeOnboarding >= 3) {
+            const { count: mensajesDelUsuario } = await supabase
+              .from('mensajes')
+              .select('id', { count: 'exact', head: true })
+              .eq('usuario_id', usuario.id)
+              .eq('role', 'user')
+              .gte('creado_en', estadoOnboarding.fecha_completado);
+
+            if ((mensajesDelUsuario || 0) < 5) {
+              await enviarPlantilla(usuario.telefono, 'seguimiento_temprano', { nombre });
+              jobsProgramados++;
+            }
+
+            await actualizarUsuario(usuario.id, {
+              metadata: { ...(usuario.metadata || {}), seguimiento_temprano_enviado: true },
+            });
+          }
         }
       }
 
