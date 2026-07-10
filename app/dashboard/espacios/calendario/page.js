@@ -121,7 +121,7 @@ export default function CalendarioPage() {
 
   useAutoRefresh(cargarDatos);
 
-  const nombre = usuario?.como_llamar || usuario?.nombre || 'Duvan';
+  const nombre = usuario?.como_llamar || usuario?.nombre || '';
   const semana = useMemo(() => construirSemana(), []);
   const diaActivo = diaSeleccionado ?? semana.find((d) => d.esHoy)?.fechaStr;
 

@@ -209,7 +209,7 @@ export default function ArbolPage() {
 
   useAutoRefresh(cargarDatos);
 
-  const nombre = usuario?.como_llamar || usuario?.nombre || 'Duvan';
+  const nombre = usuario?.como_llamar || usuario?.nombre || '';
   const inicial = nombre.charAt(0).toUpperCase();
 
   if (loading) {

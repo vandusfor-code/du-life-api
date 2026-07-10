@@ -1,14 +1,21 @@
 import { NextResponse } from 'next/server';
 
-// Protege /dashboard/control-center/** con un 403 real. Corre en Edge
-// runtime (no tiene el módulo `crypto` de Node), así que la verificación
-// HMAC del mismo token dulife_token se reimplementa con Web Crypto — es
-// la misma lógica que api/dashboard/[modulo].js, solo con
-// crypto.subtle.verify en vez de crypto.createHmac. El rol se lee siempre
-// fresco desde Supabase (REST directo, sin el SDK completo), nunca desde
-// el JWT: el login (api/auth/verify-code.js) no se toca para nada.
+// Protege TODO /dashboard/**. Corre en Edge runtime (no tiene el módulo
+// `crypto` de Node), así que la verificación HMAC del mismo token
+// dulife_token se reimplementa con Web Crypto — es la misma lógica que
+// api/dashboard/[modulo].js, solo con crypto.subtle.verify en vez de
+// crypto.createHmac.
+//
+// - Sin sesión válida → redirect a /login. Antes las páginas del dashboard
+//   (estáticas, sin guard) se renderizaban igual para visitantes sin cookie
+//   — la PWA arranca en /dashboard (start_url del manifest) y un usuario
+//   nuevo veía el esqueleto con el nombre de relleno, como si hubiera una
+//   sesión abierta.
+// - /dashboard/control-center/** mantiene además su chequeo de rol con 403,
+//   leyendo el rol siempre fresco desde Supabase (REST directo), nunca del
+//   JWT: el login (api/auth/verify-code.js) no se toca para nada.
 export const config = {
-  matcher: ['/dashboard/control-center/:path*'],
+  matcher: ['/dashboard/:path*'],
 };
 
 function base64urlToUint8Array(base64url) {
@@ -87,13 +94,25 @@ export async function middleware(req) {
   const token = req.cookies.get('dulife_token')?.value;
   const secret = process.env.JWT_SECRET || 'dulife_secret_change_in_production';
   const sesion = await verificarTokenEdge(token, secret);
+  const esControlCenter = req.nextUrl.pathname.startsWith('/dashboard/control-center');
+
   if (!sesion || !sesion.usuario_id) {
-    return new NextResponse('No autorizado', { status: 403 });
+    // Control Center responde 403 seco (no debe ni insinuar que existe);
+    // el resto del dashboard manda al login, limpiando una cookie inválida
+    // o vencida si la había.
+    if (esControlCenter) {
+      return new NextResponse('No autorizado', { status: 403 });
+    }
+    const res = NextResponse.redirect(new URL('/login', req.url));
+    if (token) res.cookies.delete('dulife_token');
+    return res;
   }
 
-  const rol = await obtenerRol(sesion.usuario_id);
-  if (rol !== 'owner' && rol !== 'admin') {
-    return new NextResponse('Forbidden', { status: 403 });
+  if (esControlCenter) {
+    const rol = await obtenerRol(sesion.usuario_id);
+    if (rol !== 'owner' && rol !== 'admin') {
+      return new NextResponse('Forbidden', { status: 403 });
+    }
   }
 
   return NextResponse.next();

@@ -221,7 +221,7 @@ export default function PrestamosPage() {
 
   useAutoRefresh(cargarDatos);
 
-  const nombre = usuario?.como_llamar || usuario?.nombre || 'Duvan';
+  const nombre = usuario?.como_llamar || usuario?.nombre || '';
 
   const resumen = useMemo(() => {
     let totalPrestado = 0;

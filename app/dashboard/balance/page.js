@@ -142,7 +142,7 @@ export default function BalancePage() {
 
   useAutoRefresh(cargarDatos);
 
-  const nombre = usuario?.como_llamar || usuario?.nombre || 'Duvan';
+  const nombre = usuario?.como_llamar || usuario?.nombre || '';
 
   const mesActual = useMemo(() => {
     const s = new Date().toLocaleDateString('es-CO', { month: 'long', year: 'numeric' });
