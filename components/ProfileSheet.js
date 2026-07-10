@@ -343,6 +343,12 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
                 nunca se pierda ni tengas que recordar dónde lo guardaste.
               </p>
               <p>
+                Y como todo empezó por un tema de plata, las finanzas son parte del corazón de
+                Du Life: cuéntale tus gastos e ingresos como le escribirías a un amigo — “gasté
+                20 mil en almuerzo”, “me pagaron” — y él lleva las cuentas por ti: en qué se te va
+                el dinero, cuánto entra y cómo va tu balance. Sin plantillas ni hojas de cálculo.
+              </p>
+              <p>
                 Aquí siempre sabrás dónde preguntar, y tu memoria estará disponible cuando la
                 necesites, las 24 horas del día, los 7 días de la semana.
               </p>
