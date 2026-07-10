@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   IconArrowLeft, IconWallet, IconClock, IconChartBar,
   IconCoin, IconPlus, IconPlayerTrackNext, IconPencil, IconGift,
-  IconHourglass, IconCircleCheck, IconCalendarEvent,
+  IconHourglass, IconCircleCheck, IconCalendarEvent, IconBellRinging,
 } from '@tabler/icons-react';
 import Avatar from '../../../../../components/Avatar';
 import { useAutoRefresh } from '../../../../../components/useAutoRefresh';
@@ -114,6 +114,118 @@ const GraficaPagosPorMes = memo(function GraficaPagosPorMes({ movimientos }) {
     </svg>
   );
 });
+
+function RecordatorioPagoDeudor({ prestamo, onActualizado }) {
+  const [editando, setEditando] = useState(false);
+  const [telefono, setTelefono] = useState(prestamo.telefono_deudor || '');
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState(null);
+
+  const guardarPrestamo = useCallback(async (updates) => {
+    setGuardando(true);
+    setError(null);
+    try {
+      const r = await fetch(`/api/dashboard/prestamos?id=${prestamo.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'No se pudo guardar');
+      onActualizado(data.prestamo);
+      return true;
+    } catch (e) {
+      setError(e.message);
+      return false;
+    } finally {
+      setGuardando(false);
+    }
+  }, [prestamo.id, onActualizado]);
+
+  const activar = async () => {
+    if (!prestamo.telefono_deudor) {
+      setEditando(true);
+      return;
+    }
+    await guardarPrestamo({ recordatorio_pago_activo: true });
+  };
+
+  const desactivar = async () => {
+    await guardarPrestamo({ recordatorio_pago_activo: false });
+  };
+
+  const guardarNumero = async () => {
+    if (!telefono.trim()) {
+      setError('Escribe el número de WhatsApp del deudor');
+      return;
+    }
+    const ok = await guardarPrestamo({ telefono_deudor: telefono.trim(), recordatorio_pago_activo: true });
+    if (ok) setEditando(false);
+  };
+
+  return (
+    <div className="rounded-2xl p-4 mt-4" style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color)' }}>
+      <div className="flex items-center gap-3">
+        <div className="w-11 h-11 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'rgba(196,233,56,0.15)' }}>
+          <IconBellRinging size={20} color="#C4E938" />
+        </div>
+        <div className="flex-1 min-w-0">
+          <div className="text-[13px] font-bold text-ink">Recordatorio de pago</div>
+          <div className="text-[12px] text-muted mt-0.5">
+            {prestamo.recordatorio_pago_activo
+              ? `Le avisamos a ${prestamo.nombre_deudor} cada día ${prestamo.dia_pago} al ${prestamo.telefono_deudor}`
+              : 'Avísale automáticamente por WhatsApp el día de pago'}
+          </div>
+        </div>
+        <button
+          type="button"
+          disabled={guardando}
+          onClick={prestamo.recordatorio_pago_activo ? desactivar : activar}
+          className="w-11 h-6 rounded-full flex-shrink-0 relative transition-colors"
+          style={{ background: prestamo.recordatorio_pago_activo ? '#C4E938' : 'var(--border-color)' }}
+        >
+          <span
+            className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform"
+            style={{ transform: prestamo.recordatorio_pago_activo ? 'translateX(22px)' : 'translateX(2px)' }}
+          />
+        </button>
+      </div>
+
+      {editando && !prestamo.recordatorio_pago_activo && (
+        <div className="mt-3 flex flex-col gap-2">
+          <input
+            type="tel"
+            value={telefono}
+            onChange={(e) => setTelefono(e.target.value)}
+            placeholder="Número de WhatsApp del deudor (ej. 573001234567)"
+            className="w-full h-10 rounded-xl px-3 text-[13px]"
+            style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+          />
+          {error && <div className="text-[11px]" style={{ color: '#F87171' }}>{error}</div>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={guardarNumero}
+              disabled={guardando}
+              className="flex-1 h-10 rounded-full text-[13px] font-bold"
+              style={{ background: '#C4E938', color: '#0D0D11' }}
+            >
+              {guardando ? 'Guardando...' : 'Guardar'}
+            </button>
+            <button
+              type="button"
+              onClick={() => { setEditando(false); setError(null); }}
+              className="flex-1 h-10 rounded-full text-[13px] font-bold"
+              style={{ background: 'var(--bg-page)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)' }}
+            >
+              Cancelar
+            </button>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 export default function PrestamoDetallePage({ params }) {
   const { id } = params;
@@ -276,6 +388,11 @@ export default function PrestamoDetallePage({ params }) {
           </div>
           <div className="text-[16px] font-bold flex-shrink-0" style={{ color: '#C4E938' }}>{formatCOP(prestamo.valor_cuota)}</div>
         </div>
+      )}
+
+      {/* Recordatorio de pago al deudor */}
+      {prestamo.estado === 'activo' && (
+        <RecordatorioPagoDeudor prestamo={prestamo} onActualizado={setPrestamo} />
       )}
 
       {/* Historial de movimientos */}

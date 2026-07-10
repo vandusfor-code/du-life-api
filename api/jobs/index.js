@@ -302,7 +302,7 @@ async function procesarRespuestaInteractiva(usuario, telefono, tapId) {
 
       const candidatos = await resolverPrestamoParaPago(usuario.id, null);
       if (candidatos.length === 0) return 'No tienes préstamos activos registrados.';
-      if (candidatos.length === 1) return await aplicarPagoYFormatear(candidatos[0], decision.datos.monto);
+      if (candidatos.length === 1) return await aplicarPagoYFormatear(candidatos[0], decision.datos.monto, usuario.como_llamar || usuario.nombre);
 
       await guardarDecisionPendiente(usuario, 'seleccion_prestamo_pago', { monto: decision.datos.monto });
       await enviarListaWhatsApp(
@@ -333,7 +333,7 @@ async function procesarRespuestaInteractiva(usuario, telefono, tapId) {
         await limpiarDecisionPendiente(usuario);
         const prestamo = await obtenerPrestamo(tapId);
         if (!prestamo) return 'No encontré ese préstamo.';
-        return await aplicarPagoYFormatear(prestamo, decision.datos.monto);
+        return await aplicarPagoYFormatear(prestamo, decision.datos.monto, usuario.como_llamar || usuario.nombre);
       }
       return null;
     }

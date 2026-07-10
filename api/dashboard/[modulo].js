@@ -416,6 +416,41 @@ async function handleCalendario(usuarioId) {
 async function handlePrestamos(usuarioId, req) {
   const { id } = req.query;
 
+  // Activar/desactivar el recordatorio de pago al deudor y guardar su
+  // WhatsApp — mismo patrón de rama por req.method que admin_usuarios.
+  if (req.method === 'PATCH' && id) {
+    const body = req.body || {};
+    const updates = {};
+
+    if (body.telefono_deudor !== undefined) {
+      updates.telefono_deudor = String(body.telefono_deudor).trim() || null;
+    }
+    if (body.recordatorio_pago_activo !== undefined) {
+      updates.recordatorio_pago_activo = !!body.recordatorio_pago_activo;
+    }
+
+    if (Object.keys(updates).length === 0) {
+      return { status: 400, body: { error: 'Nada que actualizar' } };
+    }
+    if (updates.recordatorio_pago_activo && !updates.telefono_deudor) {
+      const { data: actual } = await supabase.from('prestamos').select('telefono_deudor').eq('id', id).eq('usuario_id', usuarioId).maybeSingle();
+      if (!actual?.telefono_deudor) {
+        return { status: 400, body: { error: 'Falta el número de WhatsApp del deudor' } };
+      }
+    }
+
+    const { data, error } = await supabase
+      .from('prestamos')
+      .update(updates)
+      .eq('id', id)
+      .eq('usuario_id', usuarioId)
+      .select()
+      .single();
+
+    if (error) return { status: 500, body: { error: 'No se pudo actualizar' } };
+    return { status: 200, body: { prestamo: data } };
+  }
+
   if (id) {
     const { data: prestamo, error } = await supabase
       .from('prestamos')
@@ -1239,6 +1274,12 @@ const CRON_JOBS = [
     nombre: 'Recordatorio de registro incompleto',
     disparador: 'Programado por lib/onboarding.js, 3 horas después del último paso respondido',
     descripcion: 'Mensaje libre (sin plantilla) para quien dejó el registro a medias, invitándolo a continuar.',
+  },
+  {
+    id: 'recordatorio-pago-deudor',
+    nombre: 'Recordatorio de pago al deudor',
+    disparador: 'Enviado directo por api/cron-daily.js el día de pago acordado, solo si el usuario activó el recordatorio',
+    descripcion: 'Plantilla al deudor avisando que hoy tiene un pago pendiente. La confirmación de pago recibido se envía aparte, al registrar el pago en el chat (lib/prestamosEngine.js).',
   },
 ];
 

@@ -82,7 +82,7 @@ export default async function handler(req, res) {
       // ── Recordatorio de préstamos: hoy es el día de cobro acordado ──
       const { data: prestamosHoy } = await supabase
         .from('prestamos')
-        .select('id, nombre_deudor, valor_cuota')
+        .select('id, nombre_deudor, valor_cuota, telefono_deudor, recordatorio_pago_activo, recordatorio_pago_enviado_en')
         .eq('usuario_id', usuario.id)
         .eq('dia_pago', diaHoyColombia)
         .eq('estado', 'activo');
@@ -96,6 +96,29 @@ export default async function handler(req, res) {
           nombre_deudor: prestamo.nombre_deudor,
           valor_cuota: `$${Number(prestamo.valor_cuota).toLocaleString('es-CO')}`,
         });
+
+        // ── Recordatorio directo al deudor (si el usuario lo activó) ──
+        // Se reclama el envío con un update atómico condicionado a que no se
+        // haya mandado hoy — mismo patrón usado para el bug de duplicados en
+        // los recordatorios de calendario, por si este cron se reintenta.
+        if (prestamo.recordatorio_pago_activo && prestamo.telefono_deudor) {
+          const inicioHoyColombiaISO = `${hoyStr}T05:00:00.000Z`; // 00:00 Colombia = 05:00 UTC
+          const { data: reclamado } = await supabase
+            .from('prestamos')
+            .update({ recordatorio_pago_enviado_en: ahora.toISOString() })
+            .eq('id', prestamo.id)
+            .or(`recordatorio_pago_enviado_en.is.null,recordatorio_pago_enviado_en.lt.${inicioHoyColombiaISO}`)
+            .select('id')
+            .maybeSingle();
+
+          if (reclamado) {
+            await enviarPlantilla(prestamo.telefono_deudor, 'recordatorio_pago_prestamo', {
+              nombre: prestamo.nombre_deudor,
+              prestamista: nombre,
+              monto: `$${Number(prestamo.valor_cuota).toLocaleString('es-CO')}`,
+            });
+          }
+        }
       }
 
       if (!usuario.onboarding_completo) {
