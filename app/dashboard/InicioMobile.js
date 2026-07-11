@@ -598,8 +598,10 @@ export default function InicioMobile() {
         telefono={usuario?.telefono}
         plan={usuario?.plan}
         fotoUrl={fotoUrl}
+        tratamiento={usuario?.tratamiento}
         onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
         onFotoActualizada={(nuevaFoto) => setUsuario((u) => ({ ...u, foto_url: nuevaFoto }))}
+        onTratamientoActualizado={(nuevo) => setUsuario((u) => ({ ...u, tratamiento: nuevo }))}
       />
 
     </div>

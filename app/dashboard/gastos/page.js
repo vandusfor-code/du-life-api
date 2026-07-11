@@ -4,6 +4,7 @@ import { useState, useEffect, useMemo, useCallback, memo } from 'react';
 import Link from 'next/link';
 import {
   IconArrowLeft, IconArrowUp, IconArrowDown, IconChevronRight, IconWallet,
+  IconPlus, IconX,
 } from '@tabler/icons-react';
 import { useAutoRefresh } from '../../../components/useAutoRefresh';
 import LogoComercio from '../../../components/LogoComercio';
@@ -242,11 +243,239 @@ const BarChart = memo(function BarChart({ gastos, semana, fechaSeleccionada, onS
   );
 });
 
+const METODOS_PAGO = [
+  { value: 'efectivo', label: 'Efectivo' },
+  { value: 'nequi', label: 'Nequi' },
+  { value: 'daviplata', label: 'Daviplata' },
+  { value: 'tarjeta_debito', label: 'Tarjeta débito' },
+  { value: 'tarjeta_credito', label: 'Tarjeta crédito' },
+  { value: 'transferencia', label: 'Transferencia' },
+];
+
+const inputEstilo = { background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' };
+
+function HojaFondo({ titulo, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-[60]">
+      <div className="fixed inset-0" style={{ background: 'rgba(0,0,0,0.6)' }} onClick={onClose} />
+      <div
+        className="fixed left-0 right-0 bottom-0 max-w-app mx-auto"
+        style={{ background: 'var(--bg-card)', borderTopLeftRadius: '20px', borderTopRightRadius: '20px', paddingBottom: 'env(safe-area-inset-bottom)' }}
+      >
+        <div className="px-5 pt-5 pb-8">
+          <div className="flex items-center justify-between mb-4">
+            <div className="text-[16px] font-bold text-ink">{titulo}</div>
+            <button type="button" onClick={onClose}>
+              <IconX size={20} color="var(--text-secondary)" />
+            </button>
+          </div>
+          {children}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function FormAgregarGasto({ onClose, onGuardado }) {
+  const hoy = new Date().toISOString().split('T')[0];
+  const [monto, setMonto] = useState('');
+  const [descripcion, setDescripcion] = useState('');
+  const [lugar, setLugar] = useState('');
+  const [metodoPago, setMetodoPago] = useState('efectivo');
+  const [fecha, setFecha] = useState(hoy);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState('');
+
+  const guardar = async () => {
+    const m = Number(monto);
+    if (!m || m <= 0) {
+      setError('Escribe un monto válido');
+      return;
+    }
+    setGuardando(true);
+    setError('');
+    try {
+      const r = await fetch('/api/dashboard/gastos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          monto: m,
+          descripcion: descripcion.trim() || null,
+          lugar: lugar.trim() || null,
+          metodo_pago: metodoPago,
+          fecha,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'No se pudo guardar');
+      onGuardado();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <HojaFondo titulo="Agregar gasto" onClose={onClose}>
+      <div className="flex flex-col gap-3">
+        <input
+          type="number"
+          inputMode="decimal"
+          placeholder="Monto"
+          value={monto}
+          onChange={(e) => setMonto(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+          autoFocus
+        />
+        <input
+          type="text"
+          placeholder="Descripción (opcional)"
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+        />
+        <input
+          type="text"
+          placeholder="Lugar (opcional)"
+          value={lugar}
+          onChange={(e) => setLugar(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+        />
+        <select
+          value={metodoPago}
+          onChange={(e) => setMetodoPago(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+        >
+          {METODOS_PAGO.map((m) => (
+            <option key={m.value} value={m.value}>{m.label}</option>
+          ))}
+        </select>
+        <input
+          type="date"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+        />
+      </div>
+
+      {error && <div className="text-[12px] mt-2" style={{ color: '#F87171' }}>{error}</div>}
+
+      <button
+        type="button"
+        onClick={guardar}
+        disabled={guardando}
+        className="w-full h-12 rounded-full flex items-center justify-center gap-2 font-bold text-[14px] mt-5"
+        style={{ background: '#C4E938', color: '#0A0A0A', opacity: guardando ? 0.6 : 1 }}
+      >
+        {guardando ? 'Guardando...' : 'Guardar gasto'}
+      </button>
+    </HojaFondo>
+  );
+}
+
+function FormEditarIngreso({ ingreso, onClose, onGuardado }) {
+  const [monto, setMonto] = useState(String(ingreso.monto));
+  const [descripcion, setDescripcion] = useState(ingreso.descripcion || '');
+  const [fuente, setFuente] = useState(ingreso.fuente || '');
+  const [fecha, setFecha] = useState(ingreso.fecha);
+  const [guardando, setGuardando] = useState(false);
+  const [error, setError] = useState('');
+
+  const guardar = async () => {
+    const m = Number(monto);
+    if (!m || m <= 0) {
+      setError('Escribe un monto válido');
+      return;
+    }
+    setGuardando(true);
+    setError('');
+    try {
+      const r = await fetch(`/api/dashboard/gastos?id=${ingreso.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          monto: m,
+          descripcion: descripcion.trim() || null,
+          fuente: fuente.trim() || 'otro',
+          fecha,
+        }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'No se pudo guardar');
+      onGuardado();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  return (
+    <HojaFondo titulo="Editar ingreso" onClose={onClose}>
+      <div className="flex flex-col gap-3">
+        <input
+          type="number"
+          inputMode="decimal"
+          placeholder="Monto"
+          value={monto}
+          onChange={(e) => setMonto(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+          autoFocus
+        />
+        <input
+          type="text"
+          placeholder="Descripción (opcional)"
+          value={descripcion}
+          onChange={(e) => setDescripcion(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+        />
+        <input
+          type="text"
+          placeholder="Fuente (ej. salario, freelance)"
+          value={fuente}
+          onChange={(e) => setFuente(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+        />
+        <input
+          type="date"
+          value={fecha}
+          onChange={(e) => setFecha(e.target.value)}
+          className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+          style={inputEstilo}
+        />
+      </div>
+
+      {error && <div className="text-[12px] mt-2" style={{ color: '#F87171' }}>{error}</div>}
+
+      <button
+        type="button"
+        onClick={guardar}
+        disabled={guardando}
+        className="w-full h-12 rounded-full flex items-center justify-center gap-2 font-bold text-[14px] mt-5"
+        style={{ background: '#C4E938', color: '#0A0A0A', opacity: guardando ? 0.6 : 1 }}
+      >
+        {guardando ? 'Guardando...' : 'Guardar cambios'}
+      </button>
+    </HojaFondo>
+  );
+}
+
 export default function GastosPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [filtro, setFiltro] = useState('todos'); // 'todos' | 'gastos' | 'ingresos'
   const [fechaSeleccionada, setFechaSeleccionada] = useState(null);
+  const [mostrarFormGasto, setMostrarFormGasto] = useState(false);
+  const [ingresoEditando, setIngresoEditando] = useState(null);
 
   const cargarDatos = useCallback(() => {
     fetch('/api/dashboard/gastos')
@@ -446,7 +675,9 @@ export default function GastosPage() {
               return (
                 <div
                   key={m.id}
+                  onClick={esIngreso ? () => setIngresoEditando(m) : undefined}
                   className="flex items-center justify-between py-4"
+                  style={esIngreso ? { cursor: 'pointer' } : undefined}
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <LogoComercio
@@ -466,12 +697,15 @@ export default function GastosPage() {
                       </div>
                     </div>
                   </div>
-                  <div
-                    className="text-[15px] font-bold flex-shrink-0 ml-3"
-                    style={{ color: esIngreso ? '#C4E938' : 'var(--text-primary)' }}
-                  >
-                    {esIngreso ? '+' : '−'}
-                    {formatCOP(Number(m.monto))}
+                  <div className="flex items-center gap-2 flex-shrink-0 ml-3">
+                    <div
+                      className="text-[15px] font-bold"
+                      style={{ color: esIngreso ? '#C4E938' : 'var(--text-primary)' }}
+                    >
+                      {esIngreso ? '+' : '−'}
+                      {formatCOP(Number(m.monto))}
+                    </div>
+                    {esIngreso && <IconChevronRight size={16} color="var(--text-secondary)" />}
                   </div>
                 </div>
               );
@@ -479,6 +713,45 @@ export default function GastosPage() {
           </div>
         )}
       </div>
+
+      <button
+        type="button"
+        onClick={() => setMostrarFormGasto(true)}
+        className="fixed flex items-center justify-center rounded-full"
+        style={{
+          bottom: '104px',
+          right: '20px',
+          width: '56px',
+          height: '56px',
+          background: '#C4E938',
+          boxShadow: '0 8px 20px rgba(196,233,56,0.4)',
+          zIndex: 40,
+        }}
+        aria-label="Agregar gasto"
+      >
+        <IconPlus size={26} color="#0A0A0A" />
+      </button>
+
+      {mostrarFormGasto && (
+        <FormAgregarGasto
+          onClose={() => setMostrarFormGasto(false)}
+          onGuardado={() => {
+            setMostrarFormGasto(false);
+            cargarDatos();
+          }}
+        />
+      )}
+
+      {ingresoEditando && (
+        <FormEditarIngreso
+          ingreso={ingresoEditando}
+          onClose={() => setIngresoEditando(null)}
+          onGuardado={() => {
+            setIngresoEditando(null);
+            cargarDatos();
+          }}
+        />
+      )}
     </div>
   );
 }

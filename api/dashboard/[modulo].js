@@ -7,6 +7,7 @@ import {
   supabase,
   obtenerResumenMes,
   obtenerGastos,
+  registrarGasto,
   obtenerEntidadesPorTipo,
   CATEGORIAS_BORRADO,
   borrarDatosUsuario,
@@ -48,7 +49,7 @@ function parseCookies(cookieHeader) {
 async function handleResumen(usuarioId) {
   const { data: usuario } = await supabase
     .from('usuarios')
-    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url, metadata')
+    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url, metadata, tratamiento')
     .eq('id', usuarioId)
     .single();
 
@@ -259,7 +260,59 @@ async function handleBalance(usuarioId) {
   };
 }
 
-async function handleGastos(usuarioId) {
+async function handleGastos(usuarioId, req) {
+  const metodo = req.method;
+
+  // Agregar gasto directamente desde la app web (mismo registrarGasto que
+  // usa el flujo de WhatsApp, para no duplicar reglas de negocio).
+  if (metodo === 'POST') {
+    const body = req.body || {};
+    const monto = Number(body.monto);
+    if (!monto || monto <= 0) {
+      return { status: 400, body: { error: 'Monto inválido' } };
+    }
+    const gasto = await registrarGasto(usuarioId, {
+      monto,
+      descripcion: body.descripcion || null,
+      lugar: body.lugar || null,
+      metodo_pago: body.metodo_pago || 'efectivo',
+      fecha: body.fecha || undefined,
+    });
+    if (!gasto) return { status: 500, body: { error: 'No se pudo registrar el gasto' } };
+    return { status: 200, body: { gasto } };
+  }
+
+  // Editar un ingreso existente (monto/descripción/fuente/fecha) desde la
+  // app web — distinto de actualizarIngreso() en lib/supabase.js, que solo
+  // completa la fuente de un ingreso recién creado por WhatsApp.
+  if (metodo === 'PATCH' && req.query.id) {
+    const body = req.body || {};
+    const updates = {};
+    if (body.monto !== undefined) {
+      const monto = Number(body.monto);
+      if (!monto || monto <= 0) return { status: 400, body: { error: 'Monto inválido' } };
+      updates.monto = monto;
+    }
+    if (body.descripcion !== undefined) updates.descripcion = body.descripcion || null;
+    if (body.fuente !== undefined) updates.fuente = body.fuente || 'otro';
+    if (body.fecha !== undefined) updates.fecha = body.fecha;
+
+    if (Object.keys(updates).length === 0) {
+      return { status: 400, body: { error: 'Nada que actualizar' } };
+    }
+
+    const { data, error } = await supabase
+      .from('ingresos')
+      .update(updates)
+      .eq('id', req.query.id)
+      .eq('usuario_id', usuarioId)
+      .select()
+      .single();
+
+    if (error) return { status: 500, body: { error: 'No se pudo actualizar' } };
+    return { status: 200, body: { ingreso: data } };
+  }
+
   const [gastos, ingresosData, resumen] = await Promise.all([
     obtenerGastos(usuarioId, { limite: 50 }),
     supabase
@@ -356,7 +409,34 @@ async function handleArbol(usuarioId) {
   };
 }
 
-async function handleNotas(usuarioId) {
+async function handleNotas(usuarioId, req) {
+  // Editar una nota existente (título/contenido) desde la app web.
+  if (req.method === 'PATCH' && req.query.id) {
+    const body = req.body || {};
+    const updates = {};
+    if (body.titulo !== undefined) {
+      const titulo = String(body.titulo).trim();
+      if (!titulo) return { status: 400, body: { error: 'El título no puede quedar vacío' } };
+      updates.titulo = titulo;
+    }
+    if (body.contenido !== undefined) updates.contenido = String(body.contenido).trim() || null;
+
+    if (Object.keys(updates).length === 0) {
+      return { status: 400, body: { error: 'Nada que actualizar' } };
+    }
+
+    const { data, error } = await supabase
+      .from('notas')
+      .update(updates)
+      .eq('id', req.query.id)
+      .eq('usuario_id', usuarioId)
+      .select()
+      .single();
+
+    if (error) return { status: 500, body: { error: 'No se pudo actualizar' } };
+    return { status: 200, body: { nota: data } };
+  }
+
   const { data } = await supabase
     .from('notas')
     .select('*')
@@ -591,6 +671,16 @@ async function handleActualizarPerfil(usuarioId, req) {
       } else {
         return { status: 400, body: { error: 'Imagen inválida' } };
       }
+    }
+
+    // Tratamiento (tú/usted): antes solo se fijaba una vez durante el
+    // onboarding (lib/onboarding.js) — ahora también se puede cambiar desde
+    // el perfil en cualquier momento.
+    if (body.tratamiento !== undefined) {
+      if (body.tratamiento !== 'tu' && body.tratamiento !== 'usted') {
+        return { status: 400, body: { error: 'Tratamiento inválido' } };
+      }
+      updates.tratamiento = body.tratamiento;
     }
 
     if (Object.keys(updates).length === 0) {

@@ -170,11 +170,12 @@ function VistaBorrarDatos({ onVolver, mostrarToast }) {
   );
 }
 
-export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, onNombreActualizado, onFotoActualizada }) {
+export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, tratamiento, onNombreActualizado, onFotoActualizada, onTratamientoActualizado }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [vista, setVista] = useState('menu'); // 'menu' | 'editar-perfil' | 'acerca' | 'borrar-datos'
   const [nombreEditado, setNombreEditado] = useState(nombre || '');
+  const [tratamientoEditado, setTratamientoEditado] = useState(tratamiento || 'tu');
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
   const [toast, setToast] = useState('');
@@ -197,8 +198,9 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
       setToast('');
     } else {
       setNombreEditado(nombre || '');
+      setTratamientoEditado(tratamiento || 'tu');
     }
-  }, [open, nombre]);
+  }, [open, nombre, tratamiento]);
 
   const mostrarToast = useCallback((msg) => {
     setToast(msg);
@@ -229,7 +231,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
       const res = await fetch('/api/dashboard/actualizar_perfil', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ como_llamar: valor }),
+        body: JSON.stringify({ como_llamar: valor, tratamiento: tratamientoEditado }),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -237,6 +239,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
         return;
       }
       onNombreActualizado?.(data.usuario?.como_llamar || valor);
+      onTratamientoActualizado?.(data.usuario?.tratamiento || tratamientoEditado);
       setVista('menu');
       mostrarToast('Perfil actualizado');
     } catch (e) {
@@ -244,7 +247,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
     } finally {
       setGuardando(false);
     }
-  }, [nombreEditado, onNombreActualizado, mostrarToast]);
+  }, [nombreEditado, tratamientoEditado, onNombreActualizado, onTratamientoActualizado, mostrarToast]);
 
   const handleFoto = useCallback(async (e) => {
     const file = e.target.files?.[0];
@@ -445,6 +448,25 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
               style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
               autoFocus
             />
+            <div className="text-[12px] mt-4 mb-2" style={{ color: 'var(--text-secondary)' }}>¿Cómo prefieres que te trate?</div>
+            <div className="flex gap-2">
+              {[{ key: 'tu', label: 'De tú' }, { key: 'usted', label: 'De usted' }].map((op) => (
+                <button
+                  key={op.key}
+                  type="button"
+                  onClick={() => setTratamientoEditado(op.key)}
+                  className="flex-1 h-11 rounded-2xl text-[13px] font-bold"
+                  style={{
+                    background: tratamientoEditado === op.key ? 'var(--accent)' : 'var(--bg-primary)',
+                    color: tratamientoEditado === op.key ? 'var(--accent-text)' : 'var(--text-secondary)',
+                    border: tratamientoEditado === op.key ? 'none' : '1px solid var(--border-color)',
+                  }}
+                >
+                  {op.label}
+                </button>
+              ))}
+            </div>
+
             {errorGuardar && (
               <div className="text-[12px] mt-2" style={{ color: '#F87171' }}>{errorGuardar}</div>
             )}

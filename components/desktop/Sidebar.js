@@ -129,7 +129,9 @@ export default function Sidebar() {
             telefono={usuario?.telefono}
             plan={usuario?.plan}
             fotoUrl={usuario?.foto_url || null}
+            tratamiento={usuario?.tratamiento}
             onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
+            onTratamientoActualizado={(nuevo) => setUsuario((u) => ({ ...u, tratamiento: nuevo }))}
           />
         </div>
       </div>

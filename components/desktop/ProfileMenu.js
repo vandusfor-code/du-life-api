@@ -11,11 +11,12 @@ import { useTheme } from '../ThemeProvider';
 // mal). Reutiliza la misma lógica de negocio (logout, toggle de tema,
 // guardar nombre) — no toca components/ProfileSheet.js, que sigue
 // usándose tal cual en móvil.
-export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fotoUrl, onNombreActualizado }) {
+export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fotoUrl, tratamiento, onNombreActualizado, onTratamientoActualizado }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [editando, setEditando] = useState(false);
   const [nombreEditado, setNombreEditado] = useState(nombre || '');
+  const [tratamientoEditado, setTratamientoEditado] = useState(tratamiento || 'tu');
   const [guardando, setGuardando] = useState(false);
   const ref = useRef(null);
 
@@ -23,12 +24,13 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
     if (!open) return undefined;
     setEditando(false);
     setNombreEditado(nombre || '');
+    setTratamientoEditado(tratamiento || 'tu');
     const handler = (e) => {
       if (ref.current && !ref.current.contains(e.target)) onClose?.();
     };
     document.addEventListener('mousedown', handler);
     return () => document.removeEventListener('mousedown', handler);
-  }, [open, nombre, onClose]);
+  }, [open, nombre, tratamiento, onClose]);
 
   const cerrarSesion = useCallback(async () => {
     const confirmar = confirm('¿Cerrar sesión?');
@@ -50,17 +52,18 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
       const res = await fetch('/api/dashboard/actualizar_perfil', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ como_llamar: valor }),
+        body: JSON.stringify({ como_llamar: valor, tratamiento: tratamientoEditado }),
       });
       const data = await res.json();
       if (res.ok) {
         onNombreActualizado?.(data.usuario?.como_llamar || valor);
+        onTratamientoActualizado?.(data.usuario?.tratamiento || tratamientoEditado);
         setEditando(false);
       }
     } finally {
       setGuardando(false);
     }
-  }, [nombreEditado, onNombreActualizado]);
+  }, [nombreEditado, tratamientoEditado, onNombreActualizado, onTratamientoActualizado]);
 
   const telefonoFormat = telefono
     ? '+' + telefono.slice(0, 2) + ' ' + telefono.slice(2, 5) + ' ' + telefono.slice(5, 8) + ' ' + telefono.slice(8)
@@ -97,6 +100,26 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
             className="w-full px-3 py-2 rounded-xl text-[14px] outline-none"
             style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
           />
+
+          <div className="text-[12px] mt-1" style={{ color: 'var(--text-secondary)' }}>¿Cómo prefieres que te trate?</div>
+          <div className="flex gap-2">
+            {[{ key: 'tu', label: 'De tú' }, { key: 'usted', label: 'De usted' }].map((op) => (
+              <button
+                key={op.key}
+                type="button"
+                onClick={() => setTratamientoEditado(op.key)}
+                className="flex-1 py-2 rounded-xl text-[13px] font-bold"
+                style={{
+                  background: tratamientoEditado === op.key ? 'var(--accent)' : 'var(--bg-primary)',
+                  color: tratamientoEditado === op.key ? 'var(--accent-text)' : 'var(--text-secondary)',
+                  border: tratamientoEditado === op.key ? 'none' : '1px solid var(--border-color)',
+                }}
+              >
+                {op.label}
+              </button>
+            ))}
+          </div>
+
           <div className="flex gap-2 mt-1">
             <button
               type="button"

@@ -12,6 +12,9 @@ const CAMBIOS = [
       'Recordatorio de pago al deudor de un préstamo (activable por préstamo) + confirmación automática al deudor cuando se registra el pago',
       'Rediseño del Dashboard del Control Center con métricas, dona de intenciones y tendencia de mensajes reales',
       'Fix: recordatorio de evento de calendario duplicado cuando coincidían el job puntual y la revisión periódica',
+      'Fix: agradecimientos ("gracias") mal clasificados como saludo',
+      'Perfil: elegir tratamiento (tú/usted) en cualquier momento, no solo durante el registro',
+      'App web: agregar gasto y editar ingresos/notas directamente (antes solo se podía por WhatsApp)',
     ],
   },
   {
