@@ -4,6 +4,7 @@
 // ============================================================
 
 import { supabase } from '../../lib/supabase.js';
+import { verificarLimite, obtenerIP } from '../../lib/ratelimit.js';
 import crypto from 'crypto';
 
 export default async function handler(req, res) {
@@ -15,6 +16,17 @@ export default async function handler(req, res) {
 
   if (!telefono || telefono.length < 7) {
     return res.status(400).json({ error: 'Número inválido' });
+  }
+
+  // Rate limit: 3 códigos por número cada 15 min (frena gasto de saldo
+  // WhatsApp) y 10 por IP cada 1 h (frena enumeración masiva). Fail-open.
+  const porTelefono = await verificarLimite('send_code_telefono', telefono);
+  if (!porTelefono.permitido) {
+    return res.status(429).json({ error: 'Pediste demasiados códigos. Espera unos minutos e intenta de nuevo.' });
+  }
+  const porIP = await verificarLimite('send_code_ip', obtenerIP(req));
+  if (!porIP.permitido) {
+    return res.status(429).json({ error: 'Demasiadas solicitudes. Intenta más tarde.' });
   }
 
   try {

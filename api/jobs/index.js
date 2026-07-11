@@ -10,6 +10,7 @@
 
 import { programarJob } from '../../lib/qstash.js';
 import { Receiver } from '@upstash/qstash';
+import { verificarLimite } from '../../lib/ratelimit.js';
 import {
   enviarMensaje, marcarLeido, enviarPlantilla, enviarPlantillaConBotones,
   enviarListaWhatsApp,
@@ -133,6 +134,22 @@ async function jobProcesarWebhook(body, res) {
 
   // Marcar leído (no bloquea)
   if (messageId) marcarLeido(messageId).catch(() => {});
+
+  // Rate limit del pipeline de Claude: 30 mensajes por usuario cada 10 min,
+  // para proteger el costo de la API de Anthropic (aplica a todos los tipos:
+  // texto/imagen/audio/pdf, que terminan llamando a modelos de pago).
+  // Fail-open. Se responde 200 (no reintentar en QStash) y se avisa al
+  // usuario máximo 1 vez por ventana para no gastar saldo respondiendo a
+  // cada mensaje bloqueado.
+  const limiteClaude = await verificarLimite('claude_usuario', telefono);
+  if (!limiteClaude.permitido) {
+    console.warn('⚠️ Rate limit del pipeline Claude alcanzado — mensaje no procesado');
+    const aviso = await verificarLimite('claude_aviso', telefono);
+    if (aviso.permitido) {
+      await enviarMensaje(telefono, 'Vas muy rápido 😅 Dame unos minutos y me escribes de nuevo, ¿va?').catch(() => {});
+    }
+    return res.status(200).json({ status: 'rate_limited' });
+  }
 
   let respuesta = null;
 

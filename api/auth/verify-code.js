@@ -4,6 +4,7 @@
 // ============================================================
 
 import { supabase, obtenerOCrearUsuario } from '../../lib/supabase.js';
+import { verificarLimite, obtenerIP } from '../../lib/ratelimit.js';
 import crypto from 'crypto';
 
 // Nunca uses un secreto por defecto: si JWT_SECRET no está configurado, la
@@ -32,6 +33,14 @@ export default async function handler(req, res) {
 
   if (!telefono || !codigo) {
     return res.status(400).json({ error: 'Datos incompletos' });
+  }
+
+  // Rate limit por IP: 10 intentos cada 15 min, adicional al bloqueo de 5
+  // intentos por código que ya existe abajo. Frena fuerza bruta que rota
+  // números para evadir el límite por código. Fail-open.
+  const porIP = await verificarLimite('verify_code_ip', obtenerIP(req));
+  if (!porIP.permitido) {
+    return res.status(429).json({ error: 'Demasiados intentos. Espera unos minutos e intenta de nuevo.' });
   }
 
   try {
