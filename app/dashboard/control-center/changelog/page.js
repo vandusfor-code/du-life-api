@@ -6,6 +6,16 @@ import { IconCircleCheck } from '@tabler/icons-react';
 const CAMBIOS = [
   {
     fecha: '2026-07-11',
+    titulo: '👼 Ángel Guardián — acompañamiento nocturno (Fase 1)',
+    items: [
+      'El chequeo de los sábados ahora funciona: "En casa" da un mensaje cálido + tip de Gastos; "Salidita" ofrece activar el Ángel Guardián (opt-in con botones)',
+      'Al activar: disclaimer una sola vez ("no soy un servicio de emergencias, llama al 123"), y chequeos adaptativos durante la noche — "Bien" cada 2h, "Más o menos"/"No muy bien" cada 1h con tono más atento y sugerencias de seguridad (sin indicaciones médicas)',
+      'Cierre automático a las 3:00 AM, o cuando el usuario avisa "ya llegué / estoy bien", y seguimiento cálido el domingo al mediodía',
+      'Estado en usuarios.metadata (sin migración); cada chequeo relee el estado fresco y se auto-cancela si el usuario ya cerró el Ángel Guardián',
+    ],
+  },
+  {
+    fecha: '2026-07-11',
     titulo: 'Du Life responde sobre su seguridad',
     items: [
       'Nueva intención "pregunta_seguridad": cuando un usuario pregunta si Du Life es seguro o cómo protege sus datos, el bot responde de forma cálida y no técnica (comunicación cifrada, cada quien ve solo lo suyo, no se vende la info, puede borrar sus datos cuando quiera)',

@@ -11,7 +11,10 @@
 import { programarJob } from '../../lib/qstash.js';
 import { Receiver } from '@upstash/qstash';
 import { verificarLimite } from '../../lib/ratelimit.js';
-import { procesarBotonPlantilla } from '../../lib/angelGuardianEngine.js';
+import {
+  manejarBotonPlantilla, esRespuestaAngel, manejarRespuestaAngel,
+  ejecutarChequeoAngel, ejecutarCierreAngel, ejecutarSeguimientoDomingo,
+} from '../../lib/angelGuardianEngine.js';
 import {
   enviarMensaje, marcarLeido, enviarPlantilla, enviarPlantillaConBotones,
   enviarListaWhatsApp,
@@ -111,6 +114,15 @@ export default async function handler(req, res) {
         return await jobRecordatorioCalendario(body, res);
       case 'revisar-calendario':
         return await jobRevisarCalendario(body, res);
+      case 'angel-chequeo':
+        await ejecutarChequeoAngel(body.usuario_id, body.telefono);
+        return res.status(200).json({ ok: true });
+      case 'angel-cierre':
+        await ejecutarCierreAngel(body.usuario_id, body.telefono);
+        return res.status(200).json({ ok: true });
+      case 'angel-seguimiento':
+        await ejecutarSeguimientoDomingo(body.usuario_id, body.telefono);
+        return res.status(200).json({ ok: true });
       default:
         console.error('❌ Tipo de job desconocido:', tipo);
         return res.status(400).json({ error: `Tipo desconocido: ${tipo}` });
@@ -310,7 +322,7 @@ async function jobProcesarWebhook(body, res) {
     console.log('🔘 Botón de plantilla recibido');
     const textoBoton = mensaje.button?.text || mensaje.button?.payload;
     const usuario = await obtenerOCrearUsuario(telefono, nombre);
-    respuesta = await procesarBotonPlantilla(usuario, textoBoton);
+    respuesta = await manejarBotonPlantilla(usuario, telefono, textoBoton);
 
   } else if (mensaje.type === 'interactive') {
     // Respuesta a un botón o a una lista (préstamos: confirmar/editar/
@@ -320,7 +332,10 @@ async function jobProcesarWebhook(body, res) {
     console.log('🔘 Respuesta interactiva recibida');
 
     const usuario = await obtenerOCrearUsuario(telefono, nombre);
-    respuesta = await procesarRespuestaInteractiva(usuario, telefono, tapId);
+    // Taps del Ángel Guardián (ag_*) tienen su propio manejador.
+    respuesta = esRespuestaAngel(tapId)
+      ? await manejarRespuestaAngel(usuario, telefono, tapId)
+      : await procesarRespuestaInteractiva(usuario, telefono, tapId);
 
   } else {
     console.log(`⏭️ Tipo ignorado: ${mensaje.type}`);
