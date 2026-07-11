@@ -19,6 +19,7 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
   const [tratamientoEditado, setTratamientoEditado] = useState(tratamiento || 'tu');
   const [nombreNegocioEditado, setNombreNegocioEditado] = useState(nombreNegocio || '');
   const [guardando, setGuardando] = useState(false);
+  const [errorPerfil, setErrorPerfil] = useState('');
   const [activandoNegocio, setActivandoNegocio] = useState(false);
   const [errorNegocio, setErrorNegocio] = useState('');
   const ref = useRef(null);
@@ -26,6 +27,7 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
   useEffect(() => {
     if (!open) return undefined;
     setEditando(false);
+    setErrorPerfil('');
     setNombreEditado(nombre || '');
     setTratamientoEditado(tratamiento || 'tu');
     setNombreNegocioEditado(nombreNegocio || '');
@@ -52,6 +54,7 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
     const valor = nombreEditado.trim();
     if (!valor) return;
     setGuardando(true);
+    setErrorPerfil('');
     try {
       const body = { como_llamar: valor, tratamiento: tratamientoEditado };
       if (modoNegocio) body.nombre_negocio = nombreNegocioEditado.trim();
@@ -60,13 +63,17 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       });
-      const data = await res.json();
-      if (res.ok) {
-        onNombreActualizado?.(data.usuario?.como_llamar || valor);
-        onTratamientoActualizado?.(data.usuario?.tratamiento || tratamientoEditado);
-        if (modoNegocio) onNombreNegocioActualizado?.(data.usuario?.nombre_negocio ?? nombreNegocioEditado.trim());
-        setEditando(false);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setErrorPerfil(data.error || 'No se pudo guardar. Intenta de nuevo.');
+        return;
       }
+      onNombreActualizado?.(data.usuario?.como_llamar || valor);
+      onTratamientoActualizado?.(data.usuario?.tratamiento || tratamientoEditado);
+      if (modoNegocio) onNombreNegocioActualizado?.(data.usuario?.nombre_negocio ?? nombreNegocioEditado.trim());
+      setEditando(false);
+    } catch (e) {
+      setErrorPerfil('Error de conexión. Intenta de nuevo.');
     } finally {
       setGuardando(false);
     }
@@ -166,6 +173,10 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
                 style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
               />
             </>
+          )}
+
+          {errorPerfil && (
+            <div className="text-[12px]" style={{ color: '#F87171' }}>{errorPerfil}</div>
           )}
 
           <div className="flex gap-2 mt-1">

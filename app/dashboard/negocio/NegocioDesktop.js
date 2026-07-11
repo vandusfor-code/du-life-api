@@ -51,34 +51,40 @@ function EncabezadoSeccion({ titulo }) {
   );
 }
 
-// Ranking de productos con barras de progreso proporcionales al valor
-// vendido — mismo espíritu que las mini-gráficas de Inicio, sin depender
-// de una librería de charts genérica para algo que es, en el fondo, una
-// lista ordenada.
+// Ranking de productos como barra horizontal de una sola fila por item
+// (rango + nombre + barra + valor), estilo BI real — no una lista de
+// tarjetas apiladas con la barra debajo, que desperdiciaba mucho alto.
 function RankingProductos({ datos, color }) {
   const max = Math.max(...datos.map((d) => d.total), 1);
   return (
-    <div className="flex flex-col gap-3.5">
+    <div className="flex flex-col gap-2.5">
       {datos.map((d, i) => (
-        <div key={d.producto}>
-          <div className="flex items-center justify-between mb-1.5">
-            <div className="flex items-center gap-2 min-w-0">
-              <span
-                className="w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 text-[10px] font-black"
-                style={{ background: i === 0 ? 'var(--accent-bg)' : 'var(--bg-primary)', color: i === 0 ? 'var(--accent)' : 'var(--text-muted)' }}
-              >
-                {i + 1}
-              </span>
-              <span className="text-[13px] font-semibold truncate" style={{ color: 'var(--text-primary)' }}>{d.producto}</span>
-            </div>
-            <span className="text-[12.5px] font-bold flex-shrink-0 ml-2" style={{ color: 'var(--text-secondary)' }}>{formatCOP(d.total)}</span>
-          </div>
-          <div className="h-1.5 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
+        <div key={d.producto} className="flex items-center gap-3">
+          <span
+            className="text-[11px] font-black flex-shrink-0"
+            style={{ width: '14px', color: i === 0 ? color : 'var(--text-muted)' }}
+          >
+            {i + 1}
+          </span>
+          <span
+            className="text-[12.5px] font-semibold truncate flex-shrink-0"
+            style={{ width: '110px', color: 'var(--text-primary)' }}
+            title={d.producto}
+          >
+            {d.producto}
+          </span>
+          <div className="flex-1 h-2 rounded-full overflow-hidden" style={{ background: 'var(--border-color)' }}>
             <div
               className="h-full rounded-full transition-all"
               style={{ width: `${Math.max(4, (d.total / max) * 100)}%`, background: color, opacity: i === 0 ? 1 : 0.55 - i * 0.06 }}
             />
           </div>
+          <span
+            className="text-[12px] font-bold flex-shrink-0 text-right"
+            style={{ width: '78px', color: 'var(--text-secondary)' }}
+          >
+            {formatCOP(d.total)}
+          </span>
         </div>
       ))}
     </div>
@@ -130,9 +136,10 @@ export default function NegocioDesktop() {
     );
   }
 
-  const { nombre_negocio, contadores, tendencia_7_dias, top_productos, producto_mas_vendido, cliente_mas_importante } = dashboard;
+  const { nombre_negocio, contadores, tendencia_7_dias, ticket_promedio_7_dias, top_productos, producto_mas_vendido, cliente_mas_importante } = dashboard;
   const serieTendencia = tendencia_7_dias.map((d) => d.total);
   const serieUltimos6 = serieTendencia.slice(-6);
+  const serieTicketPromedio = (ticket_promedio_7_dias || []).map((d) => d.total).slice(-6);
 
   return (
     <div className="p-8 flex flex-col gap-6 w-full">
@@ -157,25 +164,27 @@ export default function NegocioDesktop() {
           background: `radial-gradient(120% 140% at 85% 0%, rgba(${ACCENT_RGB}, 0.16) 0%, rgba(${ACCENT_RGB}, 0.04) 45%, var(--bg-card) 75%)`,
         }}
       >
-        <div className="grid grid-cols-[minmax(0,240px)_1fr] gap-6 items-center">
-          <div>
+        <div className="flex flex-wrap gap-6 items-center">
+          <div style={{ flex: '1 1 220px', minWidth: '220px' }}>
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center" style={{ background: 'var(--accent-bg)' }}>
+              <div className="w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0" style={{ background: 'var(--accent-bg)' }}>
                 <IconBriefcase size={14} color={ACCENT} />
               </div>
-              <span className="text-[13px] font-medium" style={{ color: 'var(--text-secondary)' }}>Ventas del mes</span>
+              <span className="text-[13px] font-medium whitespace-nowrap" style={{ color: 'var(--text-secondary)' }}>Ventas del mes</span>
             </div>
             <div className="font-black tracking-tight leading-tight mt-1 text-[32px] md:text-[36px] antialiased" style={{ color: ACCENT }}>
               {formatCOP(contadores.ventas_mes)}
             </div>
             <span
-              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-semibold mt-3"
+              className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[12px] font-semibold mt-3 whitespace-nowrap"
               style={{ background: 'var(--accent-bg)', color: 'var(--accent)' }}
             >
-              {contadores.numero_ventas_mes} venta{contadores.numero_ventas_mes === 1 ? '' : 's'} · ticket prom. {formatCOP(contadores.ticket_promedio)}
+              {contadores.numero_ventas_mes} venta{contadores.numero_ventas_mes === 1 ? '' : 's'} este mes
             </span>
           </div>
-          <GraficoAreaLinea valores={serieTendencia} color={ACCENT} alto={140} conEje />
+          <div style={{ flex: '2 1 320px', minWidth: '280px' }}>
+            <GraficoAreaLinea valores={serieTendencia} color={ACCENT} alto={140} conEje />
+          </div>
         </div>
       </Tarjeta>
 
@@ -200,7 +209,7 @@ export default function NegocioDesktop() {
           <div className="text-[20px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
             {formatCOP(contadores.ventas_semana)}
           </div>
-          <div className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>desde el lunes</div>
+          <div className="mt-3"><GraficoBarras valores={serieTendencia} color={ACCENT} alto={40} /></div>
         </Tarjeta>
 
         <Tarjeta>
@@ -211,7 +220,7 @@ export default function NegocioDesktop() {
           <div className="text-[20px] font-black tracking-tight mt-1" style={{ color: 'var(--text-primary)' }}>
             {formatCOP(contadores.ticket_promedio)}
           </div>
-          <div className="text-[11px] mt-1.5" style={{ color: 'var(--text-muted)' }}>por venta, este mes</div>
+          <div className="mt-3"><GraficoBarras valores={serieTicketPromedio} color={ACCENT} alto={40} /></div>
         </Tarjeta>
 
         <Tarjeta>
@@ -226,17 +235,53 @@ export default function NegocioDesktop() {
         </Tarjeta>
       </div>
 
-      {/* Top productos */}
-      <section>
-        <EncabezadoSeccion titulo="Productos más vendidos" />
-        <Tarjeta>
-          {top_productos.length === 0 ? (
-            <div className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>Sin ventas todavía este mes.</div>
+      {/* Productos + Clientes lado a lado — aprovecha el espacio horizontal */}
+      <div className="grid gap-6" style={{ gridTemplateColumns: '3fr 2fr' }}>
+        <section>
+          <EncabezadoSeccion titulo="Productos más vendidos" />
+          <Tarjeta>
+            {top_productos.length === 0 ? (
+              <div className="py-8 text-center text-[13px]" style={{ color: 'var(--text-muted)' }}>Sin ventas todavía este mes.</div>
+            ) : (
+              <RankingProductos datos={top_productos} color={ACCENT} />
+            )}
+          </Tarjeta>
+        </section>
+
+        <section>
+          <EncabezadoSeccion titulo="Clientes" />
+          {clientes.length === 0 ? (
+            <Tarjeta className="flex flex-col items-center text-center gap-1 py-10">
+              <IconUsers size={26} strokeWidth={1.5} color="var(--text-secondary)" />
+              <div className="text-[13px] font-semibold mt-1" style={{ color: 'var(--text-primary)' }}>Sin clientes todavía</div>
+              <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Cuando le vendas a alguien y menciones su nombre, aparece aquí solo.</div>
+            </Tarjeta>
           ) : (
-            <RankingProductos datos={top_productos} color={ACCENT} />
+            <Tarjeta className="!p-2">
+              {clientes.slice(0, 6).map((c) => (
+                <div key={c.id} className="flex items-center gap-3 px-3 py-3">
+                  <div
+                    className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-black"
+                    style={{ background: 'var(--accent-bg)', color: ACCENT }}
+                  >
+                    {c.nombre.charAt(0).toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{c.nombre}</div>
+                    <div className="text-[12px] truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
+                      {c.numero_compras} compra{c.numero_compras === 1 ? '' : 's'} · última {timeAgo(c.ultima_compra)}
+                    </div>
+                  </div>
+                  <div className="text-[13px] font-black flex-shrink-0 flex items-center gap-0.5" style={{ color: ACCENT }}>
+                    <IconArrowUpRight size={12} color={ACCENT} />
+                    {formatCOP(c.total_comprado)}
+                  </div>
+                </div>
+              ))}
+            </Tarjeta>
           )}
-        </Tarjeta>
-      </section>
+        </section>
+      </div>
 
       {/* Historial */}
       <section>
@@ -264,41 +309,6 @@ export default function NegocioDesktop() {
                   </div>
                 </div>
                 <div className="text-[14px] font-black flex-shrink-0" style={{ color: ACCENT }}>{formatCOP(v.valor_total)}</div>
-              </div>
-            ))}
-          </Tarjeta>
-        )}
-      </section>
-
-      {/* Clientes */}
-      <section>
-        <EncabezadoSeccion titulo="Clientes" />
-        {clientes.length === 0 ? (
-          <Tarjeta className="flex flex-col items-center text-center gap-1 py-10">
-            <IconUsers size={26} strokeWidth={1.5} color="var(--text-secondary)" />
-            <div className="text-[13px] font-semibold mt-1" style={{ color: 'var(--text-primary)' }}>Sin clientes todavía</div>
-            <div className="text-[12px]" style={{ color: 'var(--text-secondary)' }}>Cuando le vendas a alguien y menciones su nombre, aparece aquí solo.</div>
-          </Tarjeta>
-        ) : (
-          <Tarjeta className="!p-2">
-            {clientes.slice(0, 10).map((c) => (
-              <div key={c.id} className="flex items-center gap-3 px-3 py-3">
-                <div
-                  className="w-9 h-9 rounded-full flex items-center justify-center flex-shrink-0 text-[12px] font-black"
-                  style={{ background: 'var(--accent-bg)', color: ACCENT }}
-                >
-                  {c.nombre.charAt(0).toUpperCase()}
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{c.nombre}</div>
-                  <div className="text-[12px] truncate mt-0.5" style={{ color: 'var(--text-secondary)' }}>
-                    {c.numero_compras} compra{c.numero_compras === 1 ? '' : 's'} · última {timeAgo(c.ultima_compra)}
-                  </div>
-                </div>
-                <div className="text-[14px] font-black flex-shrink-0 flex items-center gap-1" style={{ color: ACCENT }}>
-                  <IconArrowUpRight size={13} color={ACCENT} />
-                  {formatCOP(c.total_comprado)}
-                </div>
               </div>
             ))}
           </Tarjeta>

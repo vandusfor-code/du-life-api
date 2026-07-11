@@ -75,7 +75,8 @@ export default function NegocioMobile() {
   }
 
   const { nombre_negocio, contadores, tendencia_7_dias, producto_mas_vendido, cliente_mas_importante } = dashboard;
-  const serieUltimos6 = tendencia_7_dias.map((d) => d.total).slice(-6);
+  const serieTendencia = tendencia_7_dias.map((d) => d.total);
+  const serieUltimos6 = serieTendencia.slice(-6);
 
   return (
     <div className="px-5 pt-4 pb-32 bg-page min-h-screen">
@@ -116,7 +117,12 @@ export default function NegocioMobile() {
           valor={formatCOP(contadores.ventas_hoy)}
           chart={<GraficoBarras valores={serieUltimos6} color={LIMA} alto={30} />}
         />
-        <TarjetaMetrica icon={IconTrendingUp} label="Esta semana" valor={formatCOP(contadores.ventas_semana)} />
+        <TarjetaMetrica
+          icon={IconTrendingUp}
+          label="Esta semana"
+          valor={formatCOP(contadores.ventas_semana)}
+          chart={<GraficoBarras valores={serieTendencia} color={LIMA} alto={30} />}
+        />
         <TarjetaMetrica icon={IconPackage} label="Top producto" valor={producto_mas_vendido || 'Sin datos'} />
         <TarjetaMetrica icon={IconUsers} label="Top cliente" valor={cliente_mas_importante || 'Sin datos'} />
       </div>

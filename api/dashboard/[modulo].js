@@ -431,17 +431,25 @@ async function handleNegocio(usuarioId, req) {
   const ticketPromedio = numeroVentasMes > 0 ? Math.round(totalMes / numeroVentasMes) : 0;
 
   // Tendencia de los últimos 7 días, con los días sin ventas en 0 — mismo
-  // patrón que tendencia_mensajes del dashboard admin.
+  // patrón que tendencia_mensajes del dashboard admin. Se trackea también
+  // el conteo por día para poder sacar un ticket promedio diario real (no
+  // inventado) en vez de repetir el mismo total en dos tarjetas distintas.
   const porDia = {};
   for (const v of ventas) {
     if (v.fecha < hace7Dias) continue;
-    porDia[v.fecha] = (porDia[v.fecha] || 0) + Number(v.valor_total);
+    const d = porDia[v.fecha] || { total: 0, conteo: 0 };
+    d.total += Number(v.valor_total);
+    d.conteo += 1;
+    porDia[v.fecha] = d;
   }
   const tendencia7Dias = [];
+  const ticketPromedio7Dias = [];
   for (let i = 6; i >= 0; i--) {
     const d = new Date(ahora.getTime() - i * 24 * 60 * 60 * 1000 - 5 * 60 * 60 * 1000);
     const fecha = d.toISOString().split('T')[0];
-    tendencia7Dias.push({ fecha, total: porDia[fecha] || 0 });
+    const datoDia = porDia[fecha] || { total: 0, conteo: 0 };
+    tendencia7Dias.push({ fecha, total: datoDia.total });
+    ticketPromedio7Dias.push({ fecha, total: datoDia.conteo > 0 ? Math.round(datoDia.total / datoDia.conteo) : 0 });
   }
 
   // Top productos del mes, por valor vendido.
@@ -483,6 +491,7 @@ async function handleNegocio(usuarioId, req) {
         numero_ventas_mes: numeroVentasMes,
       },
       tendencia_7_dias: tendencia7Dias,
+      ticket_promedio_7_dias: ticketPromedio7Dias,
       top_productos: topProductos,
       producto_mas_vendido: productoMasVendido,
       cliente_mas_importante: clienteMasImportante,
