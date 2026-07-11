@@ -68,30 +68,19 @@ export default async function handler(req, res) {
       console.log('📩 Webhook recibido');
 
       if (!body.entry || !body.entry[0]) return res.status(200).json({ status: 'ok' });
-      
+
       const changes = body.entry[0].changes;
       if (!changes || !changes[0]) return res.status(200).json({ status: 'ok' });
 
       const value = changes[0].value;
-      
-      // ===== DEBUG =====
-      console.log("====================================");
-      console.log("📩 WEBHOOK RECIBIDO");
-      console.log("🌎 ENV WA_PHONE_NUMBER_ID:", process.env.WA_PHONE_NUMBER_ID);
-      
-      const phoneNumberId = value.metadata?.phone_number_id;
-      const displayPhone = value.metadata?.display_phone_number;
 
-      console.log("📱 Display Phone:", displayPhone);
-      console.log("🆔 Phone Number ID:", phoneNumberId);
-      console.log("====================================");
-      // ===== FIN DEBUG =====
+      const phoneNumberId = value.metadata?.phone_number_id;
 
       // ─────────────────────────────────────────────────────────────────
       // RESPUESTA DIRECTA DESDE VERCEL PARA AUDITORÍAS (Número 311)
       // ─────────────────────────────────────────────────────────────────
       if (phoneNumberId === "1239327509257364") {
-        console.log("🔀 Mensaje detectado en canal 311. Respondiendo aviso directamente desde Vercel...");
+        console.log("🔀 Evento en canal 311 (auditoría) — respondiendo aviso automático");
 
         // Verificamos que contenga un mensaje válido antes de intentar responder
         if (value.messages && value.messages[0]) {
@@ -124,10 +113,9 @@ export default async function handler(req, res) {
               body: JSON.stringify(payloadData)
             });
 
-            const dataMeta = await responseMeta.json();
-            console.log("📤 Respuesta de API Meta al despachar advertencia:", JSON.stringify(dataMeta));
+            console.log(`📤 Aviso 311 despachado a Meta — ${responseMeta.ok ? 'ok' : 'error ' + responseMeta.status}`);
           } catch (metaErr) {
-            console.error("❌ Error crítico despachando mensaje desde Vercel hacia Meta:", metaErr.message);
+            console.error("❌ Error despachando aviso 311 a Meta:", metaErr.message);
           }
         }
 

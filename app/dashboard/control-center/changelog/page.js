@@ -6,6 +6,16 @@ import { IconCircleCheck } from '@tabler/icons-react';
 const CAMBIOS = [
   {
     fecha: '2026-07-11',
+    titulo: '🔒 Endurecimiento de seguridad — ronda 2 (auditoría)',
+    items: [
+      'OTP con generador criptográfico (crypto.randomInt) en vez de Math.random(), y ya no se loguea el código ni el teléfono',
+      'Rate limiting con Upstash: 3 códigos por número / 15 min y 10 por IP / 1 h en el envío, 10 intentos por IP / 15 min en la verificación, y 30 mensajes por usuario / 10 min en el pipeline de IA (con aviso único al usuario). Fail-open si Redis cae',
+      'RLS verificado: ya estaba activo con deny-by-default en todas las tablas; se documentó el script de defensa en profundidad',
+      'Logging saneado: se quitó de los logs el contenido de mensajes, transcripciones de audio, códigos OTP y números de teléfono — solo quedan tipo de evento y éxito/error',
+    ],
+  },
+  {
+    fecha: '2026-07-11',
     titulo: '🔒 Endurecimiento de seguridad (auditoría)',
     items: [
       'JWT_SECRET sin fallback: se elimina el secreto por defecto público; si falta la variable, la app falla ruidosamente en vez de firmar sesiones con un valor conocido',

@@ -95,7 +95,7 @@ export default async function handler(req, res) {
       `dulife_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DURACION}`
     ]);
     
-    console.log(`✅ Login exitoso: ${telefono}`);
+    console.log('✅ Login exitoso');
     
     return res.status(200).json({
       success: true,

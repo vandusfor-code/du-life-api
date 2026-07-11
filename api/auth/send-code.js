@@ -106,7 +106,9 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'No pude enviar el código por WhatsApp' });
     }
     
-    console.log(`✅ Código enviado a ${telefono}: ${codigo}`);
+    // NUNCA loguear el código OTP ni el teléfono: los logs de Vercel no son
+    // un lugar para secretos ni PII.
+    console.log('✅ Código OTP enviado');
     
     return res.status(200).json({ 
       success: true, 

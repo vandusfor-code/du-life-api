@@ -155,7 +155,7 @@ async function jobProcesarWebhook(body, res) {
 
   if (mensaje.type === 'text') {
     const textoMensaje = mensaje.text.body;
-    console.log(`📱 ${telefono} (${nombre}): "${textoMensaje}"`);
+    console.log('📱 Mensaje de texto recibido');
 
     // ¿Es la confirmación de un recordatorio ("Listo", "ya", "hecho")?
     // Si el usuario tiene una tarea con recordatorio enviado hace poco y
@@ -243,7 +243,7 @@ async function jobProcesarWebhook(body, res) {
             tarea_id: tareaCreada?.id,
           }, intencionRecordatorio.fechaISO);
 
-          console.log(`⏰ Recordatorio programado: "${intencionRecordatorio.tarea}" para ${intencionRecordatorio.fechaISO}`);
+          console.log(`⏰ Recordatorio programado para ${intencionRecordatorio.fechaISO}`);
         }
       }
     } catch (e) {
@@ -251,7 +251,7 @@ async function jobProcesarWebhook(body, res) {
     }
 
   } else if (mensaje.type === 'image') {
-    console.log(`📸 Imagen recibida de ${telefono}`);
+    console.log('📸 Imagen recibida');
 
     const usuario = await obtenerOCrearUsuario(telefono, nombre);
 
@@ -266,7 +266,7 @@ async function jobProcesarWebhook(body, res) {
     }
 
   } else if (mensaje.type === 'audio' || mensaje.type === 'voice') {
-    console.log(`🎤 Audio recibido de ${telefono}`);
+    console.log('🎤 Audio recibido');
 
     const usuario = await obtenerOCrearUsuario(telefono, nombre);
 
@@ -279,7 +279,7 @@ async function jobProcesarWebhook(body, res) {
       const result = await procesarAudio(usuario.id, audioId);
 
       if (result.exito && result.transcripcion) {
-        console.log(`📝 Transcripción: "${result.transcripcion}"`);
+        console.log('📝 Audio transcrito');
         respuesta = await procesarMensaje(telefono, nombre, result.transcripcion);
       } else {
         respuesta = result.mensaje;
@@ -287,7 +287,7 @@ async function jobProcesarWebhook(body, res) {
     }
 
   } else if (mensaje.type === 'document') {
-    console.log(`📄 Documento recibido de ${telefono}`);
+    console.log('📄 Documento recibido');
 
     const usuario = await obtenerOCrearUsuario(telefono, nombre);
 
@@ -307,7 +307,7 @@ async function jobProcesarWebhook(body, res) {
     // cancelar creación, resolver ambigüedad pago vs ingreso, elegir a cuál
     // préstamo corresponde un pago).
     const tapId = mensaje.interactive?.button_reply?.id || mensaje.interactive?.list_reply?.id;
-    console.log(`🔘 Interactivo recibido de ${telefono}: ${tapId}`);
+    console.log('🔘 Respuesta interactiva recibida');
 
     const usuario = await obtenerOCrearUsuario(telefono, nombre);
     respuesta = await procesarRespuestaInteractiva(usuario, telefono, tapId);
@@ -415,7 +415,7 @@ async function procesarRespuestaInteractiva(usuario, telefono, tapId) {
 
 async function jobRecordatorioTarea(body, res) {
   const { telefono, nombre, tarea, tarea_id } = body;
-  console.log('Body parseado (recordatorio-tarea):', { telefono, nombre, tarea, tarea_id });
+  console.log('🔔 Job recordatorio-tarea');
 
   if (!telefono || !nombre || !tarea) {
     console.error('❌ recordatorio-tarea: faltan datos en el body');
@@ -446,14 +446,14 @@ async function jobRecordatorioTarea(body, res) {
 
 async function jobReflexionNocturna(body, res) {
   const { telefono, nombre } = body;
-  console.log('Body parseado (reflexion-nocturna):', { telefono, nombre });
+  console.log('🔔 Job reflexion-nocturna');
 
   if (!telefono || !nombre) {
     return res.status(400).json({ error: 'Faltan datos' });
   }
 
   const resultado = await enviarPlantilla(telefono, 'reflexion_nocturna', { nombre });
-  console.log(`✅ Reflexión nocturna enviada a ${nombre}:`, JSON.stringify(resultado));
+  console.log(`✅ Reflexión nocturna enviada — ${resultado ? 'ok' : 'sin resultado'}`);
 
   return res.status(200).json({ ok: true });
 }
@@ -469,7 +469,7 @@ async function jobReflexionNocturna(body, res) {
 
 async function jobRecordatorioOnboarding(body, res) {
   const { usuario_id, telefono, nombre } = body;
-  console.log('Body parseado (recordatorio-onboarding):', { usuario_id, telefono });
+  console.log('🔔 Job recordatorio-onboarding');
 
   if (!usuario_id || !telefono) {
     return res.status(400).json({ error: 'Faltan datos' });
@@ -494,7 +494,7 @@ async function jobRecordatorioOnboarding(body, res) {
     metadata: { ...(usuario.metadata || {}), recordatorio_onboarding_enviado: true },
   });
 
-  console.log(`✅ Recordatorio de onboarding enviado a ${telefono}`);
+  console.log('✅ Recordatorio de onboarding enviado');
   return res.status(200).json({ ok: true });
 }
 
@@ -504,14 +504,14 @@ async function jobRecordatorioOnboarding(body, res) {
 
 async function jobChequeoSemana(body, res) {
   const { telefono, nombre } = body;
-  console.log('Body parseado (chequeo-semana):', { telefono, nombre });
+  console.log('🔔 Job chequeo-semana');
 
   if (!telefono || !nombre) {
     return res.status(400).json({ error: 'Faltan datos' });
   }
 
   const resultado = await enviarPlantillaConBotones(telefono, 'chequeo_fin_semana', { nombre });
-  console.log('📨 Resultado:', JSON.stringify(resultado));
+  console.log(`📨 Chequeo fin de semana enviado — ${resultado ? 'ok' : 'sin resultado'}`);
 
   return res.status(200).json({ ok: true });
 }
@@ -522,7 +522,7 @@ async function jobChequeoSemana(body, res) {
 
 async function jobResumenSemanal(body, res) {
   const { usuario_id, telefono, nombre } = body;
-  console.log('Body parseado (resumen-semanal):', { usuario_id, telefono, nombre });
+  console.log('🔔 Job resumen-semanal');
 
   if (!usuario_id || !telefono || !nombre) {
     return res.status(400).json({ error: 'Faltan datos' });
@@ -583,7 +583,7 @@ function getLunes() {
 
 async function jobReactivacion(body, res) {
   const { usuario_id, telefono, nombre } = body;
-  console.log('Body parseado (reactivacion):', { usuario_id, telefono, nombre });
+  console.log('🔔 Job reactivacion');
 
   if (!usuario_id || !telefono || !nombre) {
     return res.status(400).json({ error: 'Faltan datos' });
@@ -607,7 +607,7 @@ async function jobReactivacion(body, res) {
     nombre,
     modulo: moduloElegido.texto,
   });
-  console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
+  console.log(`📨 Reactivación enviada — ${resultado ? 'ok' : 'sin resultado'}`);
 
   return res.status(200).json({ ok: true });
 }
@@ -618,7 +618,7 @@ async function jobReactivacion(body, res) {
 
 async function jobRecordatorioCalendario(body, res) {
   const { telefono, nombre, evento, evento_id } = body;
-  console.log('Body parseado (recordatorio-calendario):', { telefono, nombre, evento, evento_id });
+  console.log('🔔 Job recordatorio-calendario');
 
   if (!telefono || !nombre || !evento) {
     return res.status(400).json({ error: 'Faltan datos' });
@@ -638,7 +638,7 @@ async function jobRecordatorioCalendario(body, res) {
       .select('id')
       .maybeSingle();
     if (!reclamado) {
-      console.log(`⏭️ Recordatorio de evento ${evento_id} ya enviado por otro job, se omite.`);
+      console.log('⏭️ Recordatorio de evento ya enviado por otro job, se omite.');
       return res.status(200).json({ ok: true, omitido: true });
     }
   }
@@ -646,7 +646,7 @@ async function jobRecordatorioCalendario(body, res) {
   // El header "EN 5 MINUTOS" y el footer de esta plantilla son texto fijo:
   // solo se envía el componente body con {{nombre}} y {{evento}}.
   const resultado = await enviarPlantilla(telefono, 'recordatorio_evento_calendario', { nombre, evento });
-  console.log('📨 Resultado enviarPlantilla:', JSON.stringify(resultado));
+  console.log(`📨 Recordatorio de evento enviado — ${resultado ? 'ok' : 'sin resultado'}`);
 
   return res.status(200).json({ ok: true });
 }
@@ -697,7 +697,7 @@ async function jobRevisarCalendario(body, res) {
     const textoEvento = `${evento.titulo} a las ${evento.hora_inicio.slice(0, 5)}`;
     await enviarPlantilla(telefono, 'recordatorio_evento_calendario', { nombre, evento: textoEvento });
 
-    console.log(`✅ Recordatorio enviado: ${textoEvento} a ${nombre}`);
+    console.log('✅ Recordatorio de evento enviado (revisión periódica)');
   }
 
   return res.status(200).json({ ok: true, procesados: eventos?.length || 0 });
