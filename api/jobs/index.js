@@ -146,7 +146,7 @@ async function jobProcesarWebhook(body, res) {
     console.warn('⚠️ Rate limit del pipeline Claude alcanzado — mensaje no procesado');
     const aviso = await verificarLimite('claude_aviso', telefono);
     if (aviso.permitido) {
-      await enviarMensaje(telefono, 'Vas muy rápido 😅 Dame unos minutos y me escribes de nuevo, ¿va?').catch(() => {});
+      await enviarMensaje(telefono, 'Estás enviando mensajes muy rápido, espera unos minutos e intenta de nuevo. 🙏').catch(() => {});
     }
     return res.status(200).json({ status: 'rate_limited' });
   }
