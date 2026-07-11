@@ -73,7 +73,7 @@ export default function NegocioMobile() {
     );
   }
 
-  const { contadores, tendencia_7_dias, producto_mas_vendido, cliente_mas_importante } = dashboard;
+  const { nombre_negocio, contadores, tendencia_7_dias, producto_mas_vendido, cliente_mas_importante } = dashboard;
   const serieUltimos6 = tendencia_7_dias.map((d) => d.total).slice(-6);
 
   return (
@@ -84,7 +84,7 @@ export default function NegocioMobile() {
         </Link>
         <div>
           <div className="text-[13px] text-muted">Modo negocio</div>
-          <div className="text-[19px] font-bold tracking-tight text-ink">Negocio</div>
+          <div className="text-[19px] font-bold tracking-tight text-ink">{nombre_negocio || 'Negocio'}</div>
         </div>
       </div>
 

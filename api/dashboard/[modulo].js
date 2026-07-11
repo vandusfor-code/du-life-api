@@ -52,7 +52,7 @@ function parseCookies(cookieHeader) {
 async function handleResumen(usuarioId) {
   const { data: usuario } = await supabase
     .from('usuarios')
-    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url, metadata, tratamiento, modo_negocio')
+    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url, metadata, tratamiento, modo_negocio, nombre_negocio')
     .eq('id', usuarioId)
     .single();
 
@@ -467,9 +467,12 @@ async function handleNegocio(usuarioId, req) {
     clienteMasImportante = c?.nombre || null;
   }
 
+  const { data: usuarioNegocio } = await supabase.from('usuarios').select('nombre_negocio').eq('id', usuarioId).maybeSingle();
+
   return {
     status: 200,
     body: {
+      nombre_negocio: usuarioNegocio?.nombre_negocio || null,
       contadores: {
         ventas_hoy: totalHoy,
         ventas_semana: totalSemana,
@@ -831,6 +834,17 @@ async function handleActualizarPerfil(usuarioId, req) {
         return { status: 400, body: { error: 'Tratamiento inválido' } };
       }
       updates.tratamiento = body.tratamiento;
+    }
+
+    // Nombre del negocio (solo aplica con modo_negocio activo, pero no hace
+    // falta validarlo acá — si el usuario no activó el modo, el campo
+    // simplemente no se usa en ningún lado).
+    if (body.nombre_negocio !== undefined) {
+      const nombreNegocio = String(body.nombre_negocio).trim();
+      if (nombreNegocio.length > 80) {
+        return { status: 400, body: { error: 'Nombre del negocio muy largo' } };
+      }
+      updates.nombre_negocio = nombreNegocio || null;
     }
 
     if (Object.keys(updates).length === 0) {

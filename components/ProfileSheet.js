@@ -170,12 +170,13 @@ function VistaBorrarDatos({ onVolver, mostrarToast }) {
   );
 }
 
-export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, tratamiento, modoNegocio, onNombreActualizado, onFotoActualizada, onTratamientoActualizado, onModoNegocioActivado }) {
+export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, tratamiento, modoNegocio, nombreNegocio, onNombreActualizado, onFotoActualizada, onTratamientoActualizado, onModoNegocioActivado, onNombreNegocioActualizado }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [vista, setVista] = useState('menu'); // 'menu' | 'editar-perfil' | 'acerca' | 'borrar-datos'
   const [nombreEditado, setNombreEditado] = useState(nombre || '');
   const [tratamientoEditado, setTratamientoEditado] = useState(tratamiento || 'tu');
+  const [nombreNegocioEditado, setNombreNegocioEditado] = useState(nombreNegocio || '');
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
   const [toast, setToast] = useState('');
@@ -200,8 +201,9 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
     } else {
       setNombreEditado(nombre || '');
       setTratamientoEditado(tratamiento || 'tu');
+      setNombreNegocioEditado(nombreNegocio || '');
     }
-  }, [open, nombre, tratamiento]);
+  }, [open, nombre, tratamiento, nombreNegocio]);
 
   const mostrarToast = useCallback((msg) => {
     setToast(msg);
@@ -247,10 +249,12 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
     setGuardando(true);
     setErrorGuardar('');
     try {
+      const body = { como_llamar: valor, tratamiento: tratamientoEditado };
+      if (modoNegocio) body.nombre_negocio = nombreNegocioEditado.trim();
       const res = await fetch('/api/dashboard/actualizar_perfil', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ como_llamar: valor, tratamiento: tratamientoEditado }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -259,6 +263,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
       }
       onNombreActualizado?.(data.usuario?.como_llamar || valor);
       onTratamientoActualizado?.(data.usuario?.tratamiento || tratamientoEditado);
+      if (modoNegocio) onNombreNegocioActualizado?.(data.usuario?.nombre_negocio ?? nombreNegocioEditado.trim());
       setVista('menu');
       mostrarToast('Perfil actualizado');
     } catch (e) {
@@ -266,7 +271,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
     } finally {
       setGuardando(false);
     }
-  }, [nombreEditado, tratamientoEditado, onNombreActualizado, onTratamientoActualizado, mostrarToast]);
+  }, [nombreEditado, tratamientoEditado, nombreNegocioEditado, modoNegocio, onNombreActualizado, onTratamientoActualizado, onNombreNegocioActualizado, mostrarToast]);
 
   const handleFoto = useCallback(async (e) => {
     const file = e.target.files?.[0];
@@ -500,6 +505,21 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
                 </button>
               ))}
             </div>
+
+            {modoNegocio && (
+              <>
+                <div className="text-[12px] mt-4 mb-2" style={{ color: 'var(--text-secondary)' }}>Nombre del negocio</div>
+                <input
+                  type="text"
+                  value={nombreNegocioEditado}
+                  onChange={(e) => setNombreNegocioEditado(e.target.value)}
+                  maxLength={80}
+                  placeholder="Ej. Hamburguesas El Buen Sabor"
+                  className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+                  style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+                />
+              </>
+            )}
 
             {errorGuardar && (
               <div className="text-[12px] mt-2" style={{ color: '#F87171' }}>{errorGuardar}</div>

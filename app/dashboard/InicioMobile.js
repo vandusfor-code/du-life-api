@@ -600,10 +600,12 @@ export default function InicioMobile() {
         fotoUrl={fotoUrl}
         tratamiento={usuario?.tratamiento}
         modoNegocio={usuario?.modo_negocio}
+        nombreNegocio={usuario?.nombre_negocio}
         onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
         onFotoActualizada={(nuevaFoto) => setUsuario((u) => ({ ...u, foto_url: nuevaFoto }))}
         onTratamientoActualizado={(nuevo) => setUsuario((u) => ({ ...u, tratamiento: nuevo }))}
         onModoNegocioActivado={(v) => setUsuario((u) => ({ ...u, modo_negocio: v }))}
+        onNombreNegocioActualizado={(v) => setUsuario((u) => ({ ...u, nombre_negocio: v }))}
       />
 
     </div>

@@ -140,9 +140,11 @@ export default function Sidebar() {
             fotoUrl={usuario?.foto_url || null}
             tratamiento={usuario?.tratamiento}
             modoNegocio={usuario?.modo_negocio}
+            nombreNegocio={usuario?.nombre_negocio}
             onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
             onTratamientoActualizado={(nuevo) => setUsuario((u) => ({ ...u, tratamiento: nuevo }))}
             onModoNegocioActivado={(v) => setUsuario((u) => ({ ...u, modo_negocio: v }))}
+            onNombreNegocioActualizado={(v) => setUsuario((u) => ({ ...u, nombre_negocio: v }))}
           />
         </div>
       </div>

@@ -129,14 +129,16 @@ export default function NegocioDesktop() {
     );
   }
 
-  const { contadores, tendencia_7_dias, top_productos, producto_mas_vendido, cliente_mas_importante } = dashboard;
+  const { nombre_negocio, contadores, tendencia_7_dias, top_productos, producto_mas_vendido, cliente_mas_importante } = dashboard;
   const serieTendencia = tendencia_7_dias.map((d) => d.total);
   const serieUltimos6 = serieTendencia.slice(-6);
 
   return (
     <div className="p-8 flex flex-col gap-6 w-full">
       <div>
-        <h1 className="text-[28px] font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>Negocio</h1>
+        <h1 className="text-[28px] font-black tracking-tight" style={{ color: 'var(--text-primary)' }}>
+          {nombre_negocio || 'Negocio'}
+        </h1>
         <p className="text-[13px] mt-1.5" style={{ color: 'var(--text-secondary)' }}>
           Todo lo que le cuentas a Du Life por WhatsApp sobre tus ventas, en un solo lugar.
         </p>
