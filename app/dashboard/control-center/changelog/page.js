@@ -6,6 +6,16 @@ import { IconCircleCheck } from '@tabler/icons-react';
 const CAMBIOS = [
   {
     fecha: '2026-07-11',
+    titulo: '🔒 Endurecimiento de seguridad (auditoría)',
+    items: [
+      'JWT_SECRET sin fallback: se elimina el secreto por defecto público; si falta la variable, la app falla ruidosamente en vez de firmar sesiones con un valor conocido',
+      'Webhook de WhatsApp: ahora valida la firma X-Hub-Signature-256 (HMAC del App Secret de Meta) antes de procesar — bloquea mensajes inyectados por terceros',
+      'Endpoint de jobs (/api/jobs): valida la firma criptográfica real de QStash (antes solo miraba si el header existía) — bloquea disparo de jobs falsos',
+      'Con esas dos firmas, se cierra el vector de suplantación por número de teléfono: el `from` solo llega por canales firmados y verificados',
+    ],
+  },
+  {
+    fecha: '2026-07-11',
     titulo: 'Fix crítico: perfil desaparecido + sesión permanente',
     items: [
       'Fix: el perfil completo (nombre, foto, resumen financiero y la tarjeta Negocio en Espacios) desaparecía si a la base le faltaba una columna nueva — el endpoint resumen ahora es resiliente a migraciones pendientes',
