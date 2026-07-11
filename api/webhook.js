@@ -4,6 +4,36 @@
 // ============================================================
 
 import { programarJob } from '../lib/qstash.js';
+import crypto from 'crypto';
+
+// La firma X-Hub-Signature-256 de Meta se calcula con HMAC-SHA256 sobre el
+// BODY CRUDO (los bytes exactos que envió Meta), no sobre el JSON parseado.
+// Por eso desactivamos el body-parser de Vercel y leemos el stream nosotros.
+export const config = { api: { bodyParser: false } };
+
+async function leerRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+// HMAC-SHA256 del raw body con el App Secret de Meta, comparado en tiempo
+// constante contra el header. Firma ausente, sin secreto configurado, o que
+// no cuadre → false.
+function firmaMetaValida(rawBuf, headerFirma) {
+  const secret = process.env.META_APP_SECRET;
+  if (!secret) {
+    console.error('❌ Webhook: META_APP_SECRET no está configurado');
+    return false;
+  }
+  if (!headerFirma) return false;
+  const esperado = 'sha256=' + crypto.createHmac('sha256', secret).update(rawBuf).digest('hex');
+  const a = Buffer.from(esperado);
+  const b = Buffer.from(headerFirma);
+  return a.length === b.length && crypto.timingSafeEqual(a, b);
+}
 
 export default async function handler(req, res) {
   
@@ -24,7 +54,17 @@ export default async function handler(req, res) {
   // POST: Mensajes entrantes de WhatsApp
   if (req.method === 'POST') {
     try {
-      const body = req.body;
+      // Validar la firma ANTES de procesar o loguear cualquier cosa: sin esto,
+      // cualquiera que conozca la URL podía inyectar mensajes falsos con un
+      // `from` de víctima (vector de suplantación #2). No se loguea el
+      // contenido del intento rechazado, solo el hecho.
+      const rawBuf = await leerRawBody(req);
+      if (!firmaMetaValida(rawBuf, req.headers['x-hub-signature-256'])) {
+        console.warn('⚠️ Webhook: firma X-Hub-Signature-256 inválida o ausente — rechazado (401)');
+        return res.status(401).json({ error: 'Unauthorized' });
+      }
+
+      const body = JSON.parse(rawBuf.toString('utf8'));
       console.log('📩 Webhook recibido');
 
       if (!body.entry || !body.entry[0]) return res.status(200).json({ status: 'ok' });
