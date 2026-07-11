@@ -6,7 +6,7 @@ import { usePathname } from 'next/navigation';
 import {
   IconHome, IconWallet, IconChartLine, IconLayoutGrid, IconSettings,
   IconClock, IconBulb, IconNote, IconSquareCheck, IconUsers, IconSparkles,
-  IconChevronRight, IconShieldLock,
+  IconChevronRight, IconShieldLock, IconBriefcase,
 } from '@tabler/icons-react';
 import { MODULOS_FIJABLES } from '../BottomNav';
 import Avatar from '../Avatar';
@@ -66,6 +66,7 @@ export default function Sidebar() {
   const nombre = usuario?.como_llamar || usuario?.nombre || '';
   const rol = usuario?.metadata?.rol;
   const esAdmin = rol === 'owner' || rol === 'admin';
+  const modoNegocio = !!usuario?.modo_negocio;
 
   return (
     <aside
@@ -92,6 +93,14 @@ export default function Sidebar() {
           {GRUPO_MODULOS.map((item) => (
             <ItemNav key={item.href} {...item} activo={pathname === item.href} />
           ))}
+          {modoNegocio && (
+            <ItemNav
+              href="/dashboard/negocio"
+              label="Negocio"
+              icon={IconBriefcase}
+              activo={pathname.startsWith('/dashboard/negocio')}
+            />
+          )}
         </div>
       </div>
 
@@ -130,8 +139,10 @@ export default function Sidebar() {
             plan={usuario?.plan}
             fotoUrl={usuario?.foto_url || null}
             tratamiento={usuario?.tratamiento}
+            modoNegocio={usuario?.modo_negocio}
             onNombreActualizado={(nuevo) => setUsuario((u) => ({ ...u, como_llamar: nuevo }))}
             onTratamientoActualizado={(nuevo) => setUsuario((u) => ({ ...u, tratamiento: nuevo }))}
+            onModoNegocioActivado={(v) => setUsuario((u) => ({ ...u, modo_negocio: v }))}
           />
         </div>
       </div>

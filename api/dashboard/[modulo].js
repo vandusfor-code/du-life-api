@@ -11,6 +11,9 @@ import {
   obtenerEntidadesPorTipo,
   CATEGORIAS_BORRADO,
   borrarDatosUsuario,
+  activarModoNegocioDB,
+  obtenerVentas,
+  obtenerClientesNegocio,
 } from '../../lib/supabase.js';
 import crypto from 'crypto';
 import { guardarSuscripcion, eliminarSuscripcion } from '../../lib/push.js';
@@ -49,7 +52,7 @@ function parseCookies(cookieHeader) {
 async function handleResumen(usuarioId) {
   const { data: usuario } = await supabase
     .from('usuarios')
-    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url, metadata, tratamiento')
+    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url, metadata, tratamiento, modo_negocio')
     .eq('id', usuarioId)
     .single();
 
@@ -331,6 +334,153 @@ async function handleGastos(usuarioId, req) {
       gastos,
       ingresos: ingresosData.data || [],
       resumen,
+    },
+  };
+}
+
+// Activar modo negocio desde la app web (mismo efecto que la intención
+// "activar_modo_negocio" por WhatsApp, ver lib/negocioEngine.js).
+async function handleActivarModoNegocio(usuarioId, req) {
+  if (req.method !== 'POST') {
+    return { status: 400, body: { error: 'Solicitud inválida' } };
+  }
+  const usuario = await activarModoNegocioDB(usuarioId);
+  if (!usuario) return { status: 500, body: { error: 'No se pudo activar' } };
+  return { status: 200, body: { usuario } };
+}
+
+// Dashboard + historial + clientes del módulo de Ventas. Un solo módulo con
+// ?vista= para no sumar otra clave al router (mismo criterio que usuario/
+// actualizar_perfil, que ramifican por presencia de campos/query).
+async function handleNegocio(usuarioId, req) {
+  const vista = req.query.vista;
+
+  if (vista === 'historial') {
+    const ventas = await obtenerVentas(usuarioId, { limite: 100 });
+    return { status: 200, body: { ventas } };
+  }
+
+  if (vista === 'clientes') {
+    const [clientes, ventas] = await Promise.all([
+      obtenerClientesNegocio(usuarioId),
+      obtenerVentas(usuarioId, { limite: 2000 }),
+    ]);
+
+    const statsPorCliente = {};
+    for (const v of ventas) {
+      if (!v.cliente_id) continue;
+      const s = statsPorCliente[v.cliente_id] || { numero_compras: 0, total_comprado: 0, primera: v.fecha, ultima: v.fecha };
+      s.numero_compras += 1;
+      s.total_comprado += Number(v.valor_total);
+      if (v.fecha < s.primera) s.primera = v.fecha;
+      if (v.fecha > s.ultima) s.ultima = v.fecha;
+      statsPorCliente[v.cliente_id] = s;
+    }
+
+    const clientesConStats = clientes
+      .map((c) => {
+        const s = statsPorCliente[c.id];
+        return {
+          ...c,
+          numero_compras: s?.numero_compras || 0,
+          total_comprado: s?.total_comprado || 0,
+          ticket_promedio: s ? Math.round(s.total_comprado / s.numero_compras) : 0,
+          primera_compra: s?.primera || null,
+          ultima_compra: s?.ultima || null,
+        };
+      })
+      .sort((a, b) => b.total_comprado - a.total_comprado);
+
+    return { status: 200, body: { clientes: clientesConStats } };
+  }
+
+  // Dashboard (vista por defecto)
+  const ahora = new Date();
+  // Colombia es UTC-5 fijo — mismo criterio de zona horaria usado en el
+  // resto del proyecto (dashboard admin, cron diario, etc.).
+  const hoyColombiaStr = new Date(ahora.getTime() - 5 * 60 * 60 * 1000).toISOString().split('T')[0];
+  const inicioMes = `${hoyColombiaStr.slice(0, 7)}-01`;
+  const inicioSemana = (() => {
+    const d = new Date(hoyColombiaStr + 'T00:00:00');
+    const diaSemana = d.getDay(); // 0=domingo..6=sábado
+    const offset = diaSemana === 0 ? -6 : 1 - diaSemana;
+    d.setDate(d.getDate() + offset);
+    return d.toISOString().split('T')[0];
+  })();
+  const hace7Dias = new Date(ahora.getTime() - 7 * 24 * 60 * 60 * 1000 - 5 * 60 * 60 * 1000).toISOString().split('T')[0];
+
+  const { data: ventasMesRes, error } = await supabase
+    .from('ventas')
+    .select('valor_total, producto, cantidad, fecha, cliente_id')
+    .eq('usuario_id', usuarioId)
+    .is('eliminado_en', null)
+    .gte('fecha', inicioMes);
+
+  if (error) return { status: 500, body: { error: 'No se pudo cargar el dashboard de negocio' } };
+
+  const ventas = ventasMesRes || [];
+  const ventasHoy = ventas.filter((v) => v.fecha === hoyColombiaStr);
+  const ventasSemana = ventas.filter((v) => v.fecha >= inicioSemana);
+
+  const totalHoy = ventasHoy.reduce((s, v) => s + Number(v.valor_total), 0);
+  const totalSemana = ventasSemana.reduce((s, v) => s + Number(v.valor_total), 0);
+  const totalMes = ventas.reduce((s, v) => s + Number(v.valor_total), 0);
+  const numeroVentasMes = ventas.length;
+  const ticketPromedio = numeroVentasMes > 0 ? Math.round(totalMes / numeroVentasMes) : 0;
+
+  // Tendencia de los últimos 7 días, con los días sin ventas en 0 — mismo
+  // patrón que tendencia_mensajes del dashboard admin.
+  const porDia = {};
+  for (const v of ventas) {
+    if (v.fecha < hace7Dias) continue;
+    porDia[v.fecha] = (porDia[v.fecha] || 0) + Number(v.valor_total);
+  }
+  const tendencia7Dias = [];
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(ahora.getTime() - i * 24 * 60 * 60 * 1000 - 5 * 60 * 60 * 1000);
+    const fecha = d.toISOString().split('T')[0];
+    tendencia7Dias.push({ fecha, total: porDia[fecha] || 0 });
+  }
+
+  // Top productos del mes, por valor vendido.
+  const porProducto = {};
+  for (const v of ventas) {
+    const key = v.producto || 'Otro';
+    porProducto[key] = (porProducto[key] || 0) + Number(v.valor_total);
+  }
+  const topProductos = Object.entries(porProducto)
+    .map(([producto, total]) => ({ producto, total }))
+    .sort((a, b) => b.total - a.total)
+    .slice(0, 6);
+  const productoMasVendido = topProductos[0]?.producto || null;
+
+  // Cliente más importante del mes, por valor comprado.
+  const porCliente = {};
+  for (const v of ventas) {
+    if (!v.cliente_id) continue;
+    porCliente[v.cliente_id] = (porCliente[v.cliente_id] || 0) + Number(v.valor_total);
+  }
+  const topClienteId = Object.entries(porCliente).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  let clienteMasImportante = null;
+  if (topClienteId) {
+    const { data: c } = await supabase.from('clientes_negocio').select('nombre').eq('id', topClienteId).maybeSingle();
+    clienteMasImportante = c?.nombre || null;
+  }
+
+  return {
+    status: 200,
+    body: {
+      contadores: {
+        ventas_hoy: totalHoy,
+        ventas_semana: totalSemana,
+        ventas_mes: totalMes,
+        ticket_promedio: ticketPromedio,
+        numero_ventas_mes: numeroVentasMes,
+      },
+      tendencia_7_dias: tendencia7Dias,
+      top_productos: topProductos,
+      producto_mas_vendido: productoMasVendido,
+      cliente_mas_importante: clienteMasImportante,
     },
   };
 }
@@ -1014,6 +1164,8 @@ const TABLAS_HIJAS_USUARIO = [
   'archivos_multimedia',
   'onboarding_estado',
   'usuario_perfil_estado',
+  'ventas',
+  'clientes_negocio',
 ];
 
 const ROLES_VALIDOS = ['owner', 'admin', 'developer', 'support', 'user'];
@@ -1229,7 +1381,7 @@ const TABLAS_TODAS = [
   'prestamos_movimientos', 'patrones', 'arbol_vida', 'documentos',
   'push_subscriptions', 'emociones', 'archivos_multimedia', 'relaciones',
   'onboarding_estado', 'usuario_perfil_estado', 'resumen_semanal',
-  'registro_animo', 'codigos_otp',
+  'registro_animo', 'codigos_otp', 'ventas', 'clientes_negocio',
 ];
 
 async function handleAdminBaseDeDatos(usuarioId) {
@@ -1505,6 +1657,7 @@ const MODULOS_PRODUCTO = [
   { id: 'arbol', nombre: 'Árbol de Vida', tabla: 'arbol_vida' },
   { id: 'documentos', nombre: 'Documentos', tabla: 'documentos' },
   { id: 'emociones', nombre: 'Estado de ánimo', tabla: 'emociones' },
+  { id: 'ventas', nombre: 'Ventas (Negocio)', tabla: 'ventas' },
 ];
 
 async function handleAdminModulos(usuarioId) {
@@ -1698,6 +1851,8 @@ const HANDLERS = {
   push_subscribe: handlePushSubscribe,
   push_unsubscribe: handlePushUnsubscribe,
   borrar_datos: handleBorrarDatos,
+  activar_modo_negocio: handleActivarModoNegocio,
+  negocio: handleNegocio,
   admin_dashboard: handleAdminDashboard,
   admin_actividad: handleAdminActividad,
   admin_arquitectura: handleAdminArquitectura,

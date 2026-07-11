@@ -5,10 +5,10 @@ import Link from 'next/link';
 import {
   IconArrowLeft, IconNote, IconBulb, IconSquareCheck, IconUsers, IconTree,
   IconBellRinging, IconClock, IconChevronRight, IconCalendar, IconCoins,
-  IconPin, IconPinFilled,
+  IconPin, IconPinFilled, IconBriefcase,
 } from '@tabler/icons-react';
 
-const MODULOS = [
+const MODULOS_BASE = [
   { href: '/dashboard/notas', label: 'Notas', desc: 'Tus pensamientos, siempre contigo', color: '#60A5FA', icon: IconNote, pinKey: 'notas' },
   { href: '/dashboard/ideas', label: 'Ideas', desc: 'Captura, organiza y desarrolla', color: '#FB923C', icon: IconBulb, pinKey: 'ideas' },
   { href: '/dashboard/tareas', label: 'Tareas', desc: 'Lo que tienes pendiente', color: '#A78BFA', icon: IconSquareCheck, pinKey: 'tareas' },
@@ -20,15 +20,25 @@ const MODULOS = [
   { href: '/dashboard/recordatorios', label: 'Recordatorios', desc: 'Próximamente', color: '#F87171', icon: IconBellRinging },
 ];
 
+const MODULO_NEGOCIO = {
+  href: '/dashboard/negocio', label: 'Negocio', desc: 'Ventas y clientes, por conversación', color: '#C4E938', icon: IconBriefcase, pinKey: 'negocio',
+};
+
 export default function EspaciosPage() {
   const [moduloFijado, setModuloFijado] = useState(null);
+  const [modoNegocio, setModoNegocio] = useState(false);
 
   useEffect(() => {
     fetch('/api/dashboard/resumen')
       .then((r) => r.json())
-      .then((data) => setModuloFijado(data?.usuario?.metadata?.modulo_fijado || null))
+      .then((data) => {
+        setModuloFijado(data?.usuario?.metadata?.modulo_fijado || null);
+        setModoNegocio(!!data?.usuario?.modo_negocio);
+      })
       .catch(() => {});
   }, []);
+
+  const MODULOS = modoNegocio ? [MODULO_NEGOCIO, ...MODULOS_BASE] : MODULOS_BASE;
 
   const alternarPin = useCallback((e, pinKey) => {
     e.preventDefault();

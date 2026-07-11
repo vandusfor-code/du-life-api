@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { IconUser, IconLogout, IconMoonStars, IconSun } from '@tabler/icons-react';
+import { IconUser, IconLogout, IconMoonStars, IconSun, IconBriefcase } from '@tabler/icons-react';
 import Avatar from '../Avatar';
 import { useTheme } from '../ThemeProvider';
 
@@ -11,13 +11,14 @@ import { useTheme } from '../ThemeProvider';
 // mal). Reutiliza la misma lógica de negocio (logout, toggle de tema,
 // guardar nombre) — no toca components/ProfileSheet.js, que sigue
 // usándose tal cual en móvil.
-export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fotoUrl, tratamiento, onNombreActualizado, onTratamientoActualizado }) {
+export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fotoUrl, tratamiento, modoNegocio, onNombreActualizado, onTratamientoActualizado, onModoNegocioActivado }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [editando, setEditando] = useState(false);
   const [nombreEditado, setNombreEditado] = useState(nombre || '');
   const [tratamientoEditado, setTratamientoEditado] = useState(tratamiento || 'tu');
   const [guardando, setGuardando] = useState(false);
+  const [activandoNegocio, setActivandoNegocio] = useState(false);
   const ref = useRef(null);
 
   useEffect(() => {
@@ -64,6 +65,16 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
       setGuardando(false);
     }
   }, [nombreEditado, tratamientoEditado, onNombreActualizado, onTratamientoActualizado]);
+
+  const activarNegocio = useCallback(async () => {
+    setActivandoNegocio(true);
+    try {
+      const res = await fetch('/api/dashboard/activar_modo_negocio', { method: 'POST' });
+      if (res.ok) onModoNegocioActivado?.(true);
+    } finally {
+      setActivandoNegocio(false);
+    }
+  }, [onModoNegocioActivado]);
 
   const telefonoFormat = telefono
     ? '+' + telefono.slice(0, 2) + ' ' + telefono.slice(2, 5) + ' ' + telefono.slice(5, 8) + ' ' + telefono.slice(8)
@@ -158,6 +169,19 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
           >
             {theme === 'dark' ? <IconSun size={16} color="var(--text-secondary)" /> : <IconMoonStars size={16} color="var(--text-secondary)" />}
             {theme === 'dark' ? 'Tema claro' : 'Tema oscuro'}
+          </button>
+          <button
+            type="button"
+            onClick={modoNegocio ? undefined : activarNegocio}
+            disabled={activandoNegocio}
+            className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium hover:bg-[var(--bg-card-hover)]"
+            style={{ color: 'var(--text-primary)' }}
+          >
+            <IconBriefcase size={16} color="var(--text-secondary)" />
+            <span className="flex-1 text-left">Modo negocio</span>
+            <span className="text-[12px]" style={{ color: modoNegocio ? 'var(--accent)' : 'var(--text-secondary)' }}>
+              {modoNegocio ? '✓ Activo' : activandoNegocio ? '...' : 'Activar'}
+            </span>
           </button>
           <button
             type="button"

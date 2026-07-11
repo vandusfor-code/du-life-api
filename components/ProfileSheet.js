@@ -4,7 +4,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   IconUser, IconBell, IconDiamond, IconHelp, IconInfoCircle, IconPalette,
-  IconChevronRight, IconArrowLeft, IconCheck, IconCamera, IconTrash,
+  IconChevronRight, IconArrowLeft, IconCheck, IconCamera, IconTrash, IconBriefcase,
 } from '@tabler/icons-react';
 import Avatar from './Avatar';
 import { useTheme } from './ThemeProvider';
@@ -170,7 +170,7 @@ function VistaBorrarDatos({ onVolver, mostrarToast }) {
   );
 }
 
-export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, tratamiento, onNombreActualizado, onFotoActualizada, onTratamientoActualizado }) {
+export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, tratamiento, modoNegocio, onNombreActualizado, onFotoActualizada, onTratamientoActualizado, onModoNegocioActivado }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
   const [vista, setVista] = useState('menu'); // 'menu' | 'editar-perfil' | 'acerca' | 'borrar-datos'
@@ -180,6 +180,7 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
   const [errorGuardar, setErrorGuardar] = useState('');
   const [toast, setToast] = useState('');
   const [subiendoFoto, setSubiendoFoto] = useState(false);
+  const [activandoNegocio, setActivandoNegocio] = useState(false);
   const fileRef = useRef(null);
 
   useEffect(() => {
@@ -218,6 +219,24 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
       alert('Error cerrando sesión. Intenta de nuevo.');
     }
   }, [router]);
+
+  const activarNegocio = useCallback(async () => {
+    setActivandoNegocio(true);
+    try {
+      const res = await fetch('/api/dashboard/activar_modo_negocio', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        mostrarToast(data.error || 'No se pudo activar');
+        return;
+      }
+      onModoNegocioActivado?.(true);
+      mostrarToast('💼 Modo negocio activado');
+    } catch (e) {
+      mostrarToast('Error de conexión');
+    } finally {
+      setActivandoNegocio(false);
+    }
+  }, [mostrarToast, onModoNegocioActivado]);
 
   const guardarPerfil = useCallback(async () => {
     const valor = nombreEditado.trim();
@@ -401,6 +420,21 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
                 {theme === 'dark' ? 'Oscuro' : 'Claro'}
               </span>
               <IconChevronRight size={16} color="var(--text-secondary)" />
+            </button>
+
+            <button
+              type="button"
+              onClick={modoNegocio ? undefined : activarNegocio}
+              disabled={activandoNegocio}
+              className="w-full flex items-center gap-3 px-5 mt-1"
+              style={{ height: '48px' }}
+            >
+              <IconBriefcase size={18} color="var(--text-secondary)" />
+              <span className="flex-1 text-left text-[14px]" style={{ color: 'var(--text-primary)' }}>Modo negocio</span>
+              <span className="text-[13px]" style={{ color: modoNegocio ? 'var(--accent)' : 'var(--text-secondary)' }}>
+                {modoNegocio ? '✓ Activo' : activandoNegocio ? 'Activando...' : 'Activar'}
+              </span>
+              {!modoNegocio && <IconChevronRight size={16} color="var(--text-secondary)" />}
             </button>
 
             <button

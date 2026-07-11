@@ -6,6 +6,7 @@ import Link from 'next/link';
 import {
   IconHome, IconWallet, IconChartLine, IconTree, IconLayoutGrid,
   IconCalendar, IconNote, IconBulb, IconSquareCheck, IconUsers, IconClock, IconCoins,
+  IconBriefcase,
 } from '@tabler/icons-react';
 import { useTheme } from './ThemeProvider';
 
@@ -21,6 +22,7 @@ export const MODULOS_FIJABLES = {
   tareas: { href: '/dashboard/tareas', label: 'Tareas', icon: IconSquareCheck },
   personas: { href: '/dashboard/personas', label: 'Personas', icon: IconUsers },
   timeline: { href: '/dashboard/timeline', label: 'Timeline', icon: IconClock },
+  negocio: { href: '/dashboard/negocio', label: 'Negocio', icon: IconBriefcase },
 };
 
 const ITEMS_BASE = [

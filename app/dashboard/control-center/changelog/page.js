@@ -6,6 +6,18 @@ import { IconCircleCheck } from '@tabler/icons-react';
 const CAMBIOS = [
   {
     fecha: '2026-07-10',
+    titulo: '💼 Nuevo módulo: Negocio (Ventas) — Fase 1',
+    items: [
+      'Modo negocio opcional (opt-in): activable desde el perfil (web) o pidiéndolo por WhatsApp',
+      'Registrar una venta en lenguaje natural por WhatsApp (ej. "vendí 2 hamburguesas por $35.000", "cobré $120.000 a Juan por mantenimiento") — sin formularios',
+      'Clientes automáticos: si se menciona un nombre, se crea o actualiza el cliente y su historial',
+      'Dashboard de Negocio (web, desktop y móvil): ventas hoy/semana/mes, ticket promedio, tendencia de 7 días, productos más vendidos, cliente más importante, historial y lista de clientes',
+      'La intención "venta" solo existe para Claude si el usuario activó modo negocio — cero riesgo de confundir gastos/ingresos personales con ventas para el resto de usuarios',
+      'Fase 2 (pendiente): fiados/cartera, inventario simple, alertas inteligentes, comprobantes, resumen nocturno e insights de IA',
+    ],
+  },
+  {
+    fecha: '2026-07-10',
     titulo: 'Borrar mis datos + recordatorio de pago a deudores',
     items: [
       'Opción para borrar datos por categoría (financiero, notas, tareas, calendario, memoria, etc.) desde la app y por WhatsApp con confirmación "ELIMINAR" — nunca borra la cuenta',
