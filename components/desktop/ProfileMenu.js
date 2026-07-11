@@ -72,23 +72,31 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
     }
   }, [nombreEditado, tratamientoEditado, nombreNegocioEditado, modoNegocio, onNombreActualizado, onTratamientoActualizado, onNombreNegocioActualizado]);
 
-  const activarNegocio = useCallback(async () => {
+  const toggleNegocio = useCallback(async () => {
+    if (modoNegocio) {
+      const confirmar = confirm('¿Desactivar modo negocio? Tus ventas y clientes se conservan — solo dejas de ver la sección Negocio hasta que lo vuelvas a activar.');
+      if (!confirmar) return;
+    }
     setActivandoNegocio(true);
     setErrorNegocio('');
     try {
-      const res = await fetch('/api/dashboard/activar_modo_negocio', { method: 'POST' });
+      const res = await fetch('/api/dashboard/activar_modo_negocio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !modoNegocio }),
+      });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        onModoNegocioActivado?.(true);
+        onModoNegocioActivado?.(!modoNegocio);
       } else {
-        setErrorNegocio(data.error || 'No se pudo activar. Intenta de nuevo.');
+        setErrorNegocio(data.error || 'No se pudo actualizar. Intenta de nuevo.');
       }
     } catch (e) {
       setErrorNegocio('Error de conexión. Intenta de nuevo.');
     } finally {
       setActivandoNegocio(false);
     }
-  }, [onModoNegocioActivado]);
+  }, [modoNegocio, onModoNegocioActivado]);
 
   const telefonoFormat = telefono
     ? '+' + telefono.slice(0, 2) + ' ' + telefono.slice(2, 5) + ' ' + telefono.slice(5, 8) + ' ' + telefono.slice(8)
@@ -201,15 +209,24 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
           </button>
           <button
             type="button"
-            onClick={modoNegocio ? undefined : activarNegocio}
+            onClick={toggleNegocio}
             disabled={activandoNegocio}
             className="w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-[14px] font-medium hover:bg-[var(--bg-card-hover)]"
-            style={{ color: 'var(--text-primary)' }}
+            style={{ color: 'var(--text-primary)', opacity: activandoNegocio ? 0.6 : 1 }}
           >
             <IconBriefcase size={16} color="var(--text-secondary)" />
             <span className="flex-1 text-left">Modo negocio</span>
-            <span className="text-[12px]" style={{ color: modoNegocio ? 'var(--accent)' : 'var(--text-secondary)' }}>
-              {modoNegocio ? '✓ Activo' : activandoNegocio ? '...' : 'Activar'}
+            <span
+              className="w-11 h-6 rounded-full flex-shrink-0"
+              style={{ position: 'relative', background: modoNegocio ? 'var(--accent)' : 'var(--border-color)', transition: 'background-color 0.2s ease' }}
+            >
+              <span
+                style={{
+                  position: 'absolute', top: '2px', left: modoNegocio ? '22px' : '2px',
+                  width: '20px', height: '20px', borderRadius: '9999px', background: '#FFFFFF',
+                  transition: 'left 0.2s ease',
+                }}
+              />
             </span>
           </button>
           {errorNegocio && (

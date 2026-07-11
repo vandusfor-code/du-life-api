@@ -8,6 +8,7 @@ import {
 import { useAutoRefresh } from '../../../components/useAutoRefresh';
 import { useTheme } from '../../../components/ThemeProvider';
 import { GraficoAreaLinea, GraficoBarras, formatCOP } from '../InicioMobile';
+import { emojiParaProducto } from '../../../lib/emojiProductos';
 
 function timeAgo(fechaISO) {
   if (!fechaISO) return '';
@@ -251,10 +252,10 @@ export default function NegocioDesktop() {
             {ventas.slice(0, 15).map((v) => (
               <div key={v.id} className="flex items-center gap-3 px-3 py-3">
                 <div
-                  className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"
+                  className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0 text-[17px]"
                   style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
                 >
-                  <IconReceipt2 size={16} strokeWidth={1.6} color="var(--text-primary)" />
+                  {emojiParaProducto(v.producto)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[14px] font-bold truncate" style={{ color: 'var(--text-primary)' }}>{v.producto}</div>

@@ -8,6 +8,7 @@ import {
 } from '@tabler/icons-react';
 import { useAutoRefresh } from '../../../components/useAutoRefresh';
 import { GraficoBarras, formatCOP } from '../InicioMobile';
+import { emojiParaProducto } from '../../../lib/emojiProductos';
 
 const LIMA = '#C4E938';
 
@@ -133,10 +134,10 @@ export default function NegocioMobile() {
             {ventas.slice(0, 8).map((v) => (
               <div key={v.id} className="flex items-center gap-3 px-2 py-3">
                 <div
-                  className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0"
+                  className="w-9 h-9 rounded-[11px] flex items-center justify-center flex-shrink-0 text-[16px]"
                   style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)' }}
                 >
-                  <IconReceipt2 size={15} strokeWidth={1.6} color="var(--text-primary)" />
+                  {emojiParaProducto(v.producto)}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="text-[14px] font-bold text-ink truncate">{v.producto}</div>

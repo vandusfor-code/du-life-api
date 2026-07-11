@@ -222,23 +222,31 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
     }
   }, [router]);
 
-  const activarNegocio = useCallback(async () => {
+  const toggleNegocio = useCallback(async () => {
+    if (modoNegocio) {
+      const confirmar = confirm('¿Desactivar modo negocio? Tus ventas y clientes se conservan — solo dejas de ver la sección Negocio hasta que lo vuelvas a activar.');
+      if (!confirmar) return;
+    }
     setActivandoNegocio(true);
     try {
-      const res = await fetch('/api/dashboard/activar_modo_negocio', { method: 'POST' });
+      const res = await fetch('/api/dashboard/activar_modo_negocio', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ activo: !modoNegocio }),
+      });
       const data = await res.json();
       if (!res.ok) {
-        mostrarToast(data.error || 'No se pudo activar');
+        mostrarToast(data.error || 'No se pudo actualizar');
         return;
       }
-      onModoNegocioActivado?.(true);
-      mostrarToast('💼 Modo negocio activado');
+      onModoNegocioActivado?.(!modoNegocio);
+      mostrarToast(modoNegocio ? 'Modo negocio desactivado' : '💼 Modo negocio activado');
     } catch (e) {
       mostrarToast('Error de conexión');
     } finally {
       setActivandoNegocio(false);
     }
-  }, [mostrarToast, onModoNegocioActivado]);
+  }, [modoNegocio, mostrarToast, onModoNegocioActivado]);
 
   const guardarPerfil = useCallback(async () => {
     const valor = nombreEditado.trim();
@@ -429,17 +437,25 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
 
             <button
               type="button"
-              onClick={modoNegocio ? undefined : activarNegocio}
+              onClick={toggleNegocio}
               disabled={activandoNegocio}
               className="w-full flex items-center gap-3 px-5 mt-1"
-              style={{ height: '48px' }}
+              style={{ height: '48px', opacity: activandoNegocio ? 0.6 : 1 }}
             >
               <IconBriefcase size={18} color="var(--text-secondary)" />
               <span className="flex-1 text-left text-[14px]" style={{ color: 'var(--text-primary)' }}>Modo negocio</span>
-              <span className="text-[13px]" style={{ color: modoNegocio ? 'var(--accent)' : 'var(--text-secondary)' }}>
-                {modoNegocio ? '✓ Activo' : activandoNegocio ? 'Activando...' : 'Activar'}
+              <span
+                className="w-11 h-6 rounded-full flex-shrink-0"
+                style={{ position: 'relative', background: modoNegocio ? 'var(--accent)' : 'var(--border-color)', transition: 'background-color 0.2s ease' }}
+              >
+                <span
+                  style={{
+                    position: 'absolute', top: '2px', left: modoNegocio ? '22px' : '2px',
+                    width: '20px', height: '20px', borderRadius: '9999px', background: '#FFFFFF',
+                    transition: 'left 0.2s ease',
+                  }}
+                />
               </span>
-              {!modoNegocio && <IconChevronRight size={16} color="var(--text-secondary)" />}
             </button>
 
             <button

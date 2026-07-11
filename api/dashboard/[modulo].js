@@ -11,7 +11,7 @@ import {
   obtenerEntidadesPorTipo,
   CATEGORIAS_BORRADO,
   borrarDatosUsuario,
-  activarModoNegocioDB,
+  actualizarModoNegocioDB,
   obtenerVentas,
   obtenerClientesNegocio,
 } from '../../lib/supabase.js';
@@ -344,8 +344,10 @@ async function handleActivarModoNegocio(usuarioId, req) {
   if (req.method !== 'POST') {
     return { status: 400, body: { error: 'Solicitud inválida' } };
   }
-  const usuario = await activarModoNegocioDB(usuarioId);
-  if (!usuario) return { status: 500, body: { error: 'No se pudo activar' } };
+  const body = req.body || {};
+  const activo = body.activo !== undefined ? !!body.activo : true;
+  const usuario = await actualizarModoNegocioDB(usuarioId, activo);
+  if (!usuario) return { status: 500, body: { error: 'No se pudo actualizar' } };
   return { status: 200, body: { usuario } };
 }
 
