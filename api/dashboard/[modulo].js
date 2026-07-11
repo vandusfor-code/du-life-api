@@ -8,6 +8,8 @@ import {
   obtenerResumenMes,
   obtenerGastos,
   obtenerEntidadesPorTipo,
+  CATEGORIAS_BORRADO,
+  borrarDatosUsuario,
 } from '../../lib/supabase.js';
 import crypto from 'crypto';
 import { guardarSuscripcion, eliminarSuscripcion } from '../../lib/push.js';
@@ -493,6 +495,33 @@ async function handlePrestamos(usuarioId, req) {
       movimientos: movimientosRes.data || [],
     },
   };
+}
+
+// Borrar los datos del usuario por categoría (nunca la cuenta). El texto de
+// confirmación "ELIMINAR" se valida acá, igual que en el flujo de WhatsApp,
+// para que no baste con un solo click accidental en el frontend.
+async function handleBorrarDatos(usuarioId, req) {
+  if (req.method !== 'POST') {
+    return { status: 400, body: { error: 'Solicitud inválida' } };
+  }
+
+  const body = req.body || {};
+  const categorias = Array.isArray(body.categorias) ? body.categorias : [];
+  const confirmacion = String(body.confirmacion || '').trim();
+
+  if (categorias.length === 0) {
+    return { status: 400, body: { error: 'Selecciona qué quieres borrar' } };
+  }
+  const validas = categorias.every((c) => c === 'todo' || CATEGORIAS_BORRADO[c]);
+  if (!validas) {
+    return { status: 400, body: { error: 'Categoría inválida' } };
+  }
+  if (confirmacion !== 'ELIMINAR') {
+    return { status: 400, body: { error: 'Escribe ELIMINAR para confirmar' } };
+  }
+
+  const tablasBorradas = await borrarDatosUsuario(usuarioId, categorias);
+  return { status: 200, body: { ok: true, tablas: tablasBorradas } };
 }
 
 async function handlePushSubscribe(usuarioId, req) {
@@ -1578,6 +1607,7 @@ const HANDLERS = {
   preferencias: handleGuardarPreferencias,
   push_subscribe: handlePushSubscribe,
   push_unsubscribe: handlePushUnsubscribe,
+  borrar_datos: handleBorrarDatos,
   admin_dashboard: handleAdminDashboard,
   admin_actividad: handleAdminActividad,
   admin_arquitectura: handleAdminArquitectura,

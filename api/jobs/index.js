@@ -24,6 +24,7 @@ import {
   supabase, obtenerOCrearUsuario, crearTarea,
   obtenerTareaConRecordatorioPendiente, completarTarea,
   registrarIngreso, obtenerPrestamo, actualizarUsuario,
+  CATEGORIAS_BORRADO,
 } from '../../lib/supabase.js';
 import {
   confirmarCreacionPrestamo, reiniciarCreacionPrestamo, cancelarCreacionPrestamo,
@@ -280,6 +281,19 @@ async function jobProcesarWebhook(body, res) {
 
 async function procesarRespuestaInteractiva(usuario, telefono, tapId) {
   if (!usuario || !tapId) return null;
+
+  // Tap en la lista de categorías a borrar (ver ejecutarEliminarDatos en
+  // lib/asistente.js) — se guarda la categoría elegida y se pide la
+  // confirmación por texto ("ELIMINAR"), interceptada en procesarMensaje.
+  if (tapId.startsWith('elim_')) {
+    const decision = obtenerDecisionPendiente(usuario);
+    if (!decision || decision.tipo !== 'eliminacion_datos') return 'Ya no tengo esa solicitud de borrado pendiente.';
+    const categoria = tapId.slice('elim_'.length);
+    if (categoria !== 'todo' && !CATEGORIAS_BORRADO[categoria]) return 'No reconozco esa opción.';
+    await guardarDecisionPendiente(usuario, 'eliminacion_datos', { categoria });
+    const nombreCategoria = categoria === 'todo' ? 'TODA tu información' : CATEGORIAS_BORRADO[categoria].nombre;
+    return `Entiendo que quieres eliminar *${nombreCategoria}*. Para continuar, escribe *ELIMINAR* en mayúsculas. Cualquier otro mensaje cancela.`;
+  }
 
   switch (tapId) {
     case 'guardar_prestamo': {

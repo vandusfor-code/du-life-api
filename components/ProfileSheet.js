@@ -4,7 +4,7 @@ import { useEffect, useCallback, useState, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import {
   IconUser, IconBell, IconDiamond, IconHelp, IconInfoCircle, IconPalette,
-  IconChevronRight, IconArrowLeft, IconCheck, IconCamera,
+  IconChevronRight, IconArrowLeft, IconCheck, IconCamera, IconTrash,
 } from '@tabler/icons-react';
 import Avatar from './Avatar';
 import { useTheme } from './ThemeProvider';
@@ -46,10 +46,134 @@ const MENU_ITEMS = [
   { key: 'acerca', icon: IconInfoCircle, label: 'Acerca de Du Life' },
 ];
 
+// Mismas categorías/keys que CATEGORIAS_BORRADO en lib/supabase.js — solo
+// para mostrar la lista acá (no se puede importar lib/supabase.js en un
+// componente de cliente, tiene la service key de Supabase). La validación
+// real de qué se puede borrar vive en el backend.
+const CATEGORIAS_BORRADO = [
+  { key: 'financiero', label: 'Registros financieros' },
+  { key: 'notas_ideas', label: 'Notas e ideas' },
+  { key: 'tareas', label: 'Tareas y recordatorios' },
+  { key: 'calendario', label: 'Calendario' },
+  { key: 'memoria', label: 'Personas y memoria' },
+  { key: 'arbol_emociones', label: 'Árbol y emociones' },
+  { key: 'documentos', label: 'Documentos y archivos' },
+];
+
+function VistaBorrarDatos({ onVolver, mostrarToast }) {
+  const [seleccionadas, setSeleccionadas] = useState([]);
+  const [todo, setTodo] = useState(false);
+  const [confirmarTexto, setConfirmarTexto] = useState('');
+  const [borrando, setBorrando] = useState(false);
+  const [error, setError] = useState('');
+
+  const alternarCategoria = (key) => {
+    setTodo(false);
+    setSeleccionadas((prev) => (prev.includes(key) ? prev.filter((k) => k !== key) : [...prev, key]));
+  };
+
+  const alternarTodo = () => {
+    setTodo((v) => !v);
+    setSeleccionadas([]);
+  };
+
+  const haySeleccion = todo || seleccionadas.length > 0;
+  const puedeBorrar = haySeleccion && confirmarTexto.trim() === 'ELIMINAR' && !borrando;
+
+  const borrar = async () => {
+    setBorrando(true);
+    setError('');
+    try {
+      const categorias = todo ? ['todo'] : seleccionadas;
+      const r = await fetch('/api/dashboard/borrar_datos', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ categorias, confirmacion: confirmarTexto.trim() }),
+      });
+      const data = await r.json();
+      if (!r.ok) throw new Error(data.error || 'No se pudo borrar');
+      mostrarToast('Listo, borré esa información');
+      onVolver();
+    } catch (e) {
+      setError(e.message);
+    } finally {
+      setBorrando(false);
+    }
+  };
+
+  return (
+    <div className="px-5 pb-6">
+      <div className="flex items-center gap-3 mb-5">
+        <button type="button" onClick={onVolver} className="p-1 -ml-1">
+          <IconArrowLeft size={20} color="var(--text-primary)" />
+        </button>
+        <div className="text-[16px] font-bold" style={{ color: 'var(--text-primary)' }}>Borrar mis datos</div>
+      </div>
+
+      <div className="text-[12.5px] leading-relaxed mb-4" style={{ color: 'var(--text-secondary)' }}>
+        Esto borra la información que has registrado. Tu cuenta y tu número siguen activos — puedes volver a registrar lo que quieras cuando quieras.
+      </div>
+
+      <div className="flex flex-col">
+        {CATEGORIAS_BORRADO.map((c) => (
+          <label key={c.key} className="flex items-center gap-3 py-2.5" style={{ opacity: todo ? 0.4 : 1 }}>
+            <input
+              type="checkbox"
+              checked={todo || seleccionadas.includes(c.key)}
+              disabled={todo}
+              onChange={() => alternarCategoria(c.key)}
+              style={{ width: 18, height: 18, accentColor: '#F87171' }}
+            />
+            <span className="text-[14px]" style={{ color: 'var(--text-primary)' }}>{c.label}</span>
+          </label>
+        ))}
+
+        <label className="flex items-center gap-3 py-2.5 mt-1" style={{ borderTop: '1px solid var(--border-color)' }}>
+          <input
+            type="checkbox"
+            checked={todo}
+            onChange={alternarTodo}
+            style={{ width: 18, height: 18, accentColor: '#F87171' }}
+          />
+          <span className="text-[14px] font-bold" style={{ color: '#F87171' }}>Todo</span>
+        </label>
+      </div>
+
+      {haySeleccion && (
+        <div className="mt-3">
+          <div className="text-[12px] mb-2" style={{ color: 'var(--text-secondary)' }}>
+            Escribe <b>ELIMINAR</b> para confirmar
+          </div>
+          <input
+            type="text"
+            value={confirmarTexto}
+            onChange={(e) => setConfirmarTexto(e.target.value)}
+            placeholder="ELIMINAR"
+            className="w-full px-4 py-3 rounded-2xl text-[15px] outline-none"
+            style={{ background: 'var(--bg-primary)', border: '1px solid var(--border-color)', color: 'var(--text-primary)' }}
+          />
+        </div>
+      )}
+
+      {error && <div className="text-[12px] mt-2" style={{ color: '#F87171' }}>{error}</div>}
+
+      <button
+        type="button"
+        onClick={borrar}
+        disabled={!puedeBorrar}
+        className="w-full h-12 rounded-full flex items-center justify-center gap-2 font-bold text-[14px] mt-5"
+        style={{ background: '#F87171', color: '#1A0000', opacity: puedeBorrar ? 1 : 0.4 }}
+      >
+        {borrando ? 'Borrando...' : 'Borrar datos'}
+      </button>
+    </div>
+  );
+}
+
 export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fotoUrl, onNombreActualizado, onFotoActualizada }) {
   const router = useRouter();
   const { theme, toggleTheme } = useTheme();
-  const [vista, setVista] = useState('menu'); // 'menu' | 'editar-perfil' | 'acerca'
+  const [vista, setVista] = useState('menu'); // 'menu' | 'editar-perfil' | 'acerca' | 'borrar-datos'
   const [nombreEditado, setNombreEditado] = useState(nombre || '');
   const [guardando, setGuardando] = useState(false);
   const [errorGuardar, setErrorGuardar] = useState('');
@@ -159,6 +283,10 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
     }
     if (key === 'acerca') {
       setVista('acerca');
+      return;
+    }
+    if (key === 'borrar-datos') {
+      setVista('borrar-datos');
       return;
     }
     mostrarToast('Próximamente');
@@ -274,6 +402,17 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
 
             <button
               type="button"
+              onClick={() => handleMenuClick('borrar-datos')}
+              className="w-full flex items-center gap-3 px-5 mt-1"
+              style={{ height: '48px' }}
+            >
+              <IconTrash size={18} color="#FF453A" />
+              <span className="flex-1 text-left text-[14px]" style={{ color: '#FF453A' }}>Borrar mis datos</span>
+              <IconChevronRight size={16} color="#FF453A" />
+            </button>
+
+            <button
+              type="button"
               onClick={cerrarSesion}
               className="w-full text-center py-4 mt-1 text-[15px] font-medium"
               style={{ color: '#FF453A' }}
@@ -281,6 +420,10 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
               Cerrar sesión
             </button>
           </>
+        )}
+
+        {vista === 'borrar-datos' && (
+          <VistaBorrarDatos onVolver={() => setVista('menu')} mostrarToast={mostrarToast} />
         )}
 
         {vista === 'editar-perfil' && (

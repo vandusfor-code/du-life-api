@@ -5,6 +5,16 @@ import { IconCircleCheck } from '@tabler/icons-react';
 // features grandes nuevas (ver regla de sync del Control Center).
 const CAMBIOS = [
   {
+    fecha: '2026-07-10',
+    titulo: 'Borrar mis datos + recordatorio de pago a deudores',
+    items: [
+      'Opción para borrar datos por categoría (financiero, notas, tareas, calendario, memoria, etc.) desde la app y por WhatsApp con confirmación "ELIMINAR" — nunca borra la cuenta',
+      'Recordatorio de pago al deudor de un préstamo (activable por préstamo) + confirmación automática al deudor cuando se registra el pago',
+      'Rediseño del Dashboard del Control Center con métricas, dona de intenciones y tendencia de mensajes reales',
+      'Fix: recordatorio de evento de calendario duplicado cuando coincidían el job puntual y la revisión periódica',
+    ],
+  },
+  {
     fecha: '2026-07-07',
     titulo: 'Módulo Usuarios del Control Center',
     items: [
