@@ -11,6 +11,7 @@
 import { programarJob } from '../../lib/qstash.js';
 import { Receiver } from '@upstash/qstash';
 import { verificarLimite } from '../../lib/ratelimit.js';
+import { procesarBotonPlantilla } from '../../lib/angelGuardianEngine.js';
 import {
   enviarMensaje, marcarLeido, enviarPlantilla, enviarPlantillaConBotones,
   enviarListaWhatsApp,
@@ -301,6 +302,15 @@ async function jobProcesarWebhook(body, res) {
       const result = await procesarDocumento(usuario, doc.id, doc.mime_type, doc.filename, caption);
       respuesta = result.mensaje;
     }
+
+  } else if (mensaje.type === 'button') {
+    // Tap en un botón de PLANTILLA (quick-reply). Llega distinto a los
+    // botones interactivos: mensaje.button.{text,payload}. Hoy es solo el
+    // chequeo de fin de semana (chequeo_fin_semana → "En casa"/"Salidita").
+    console.log('🔘 Botón de plantilla recibido');
+    const textoBoton = mensaje.button?.text || mensaje.button?.payload;
+    const usuario = await obtenerOCrearUsuario(telefono, nombre);
+    respuesta = await procesarBotonPlantilla(usuario, textoBoton);
 
   } else if (mensaje.type === 'interactive') {
     // Respuesta a un botón o a una lista (préstamos: confirmar/editar/
