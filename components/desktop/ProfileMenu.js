@@ -71,6 +71,12 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
       onNombreActualizado?.(data.usuario?.como_llamar || valor);
       onTratamientoActualizado?.(data.usuario?.tratamiento || tratamientoEditado);
       if (modoNegocio) onNombreNegocioActualizado?.(data.usuario?.nombre_negocio ?? nombreNegocioEditado.trim());
+      if (data.advertencia) {
+        // Guardado parcial (ej. falta una migración en la base): el nombre
+        // sí se guardó, pero hay que decir qué quedó pendiente.
+        setErrorPerfil(data.advertencia);
+        return;
+      }
       setEditando(false);
     } catch (e) {
       setErrorPerfil('Error de conexión. Intenta de nuevo.');

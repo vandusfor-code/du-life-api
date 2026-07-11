@@ -272,6 +272,12 @@ export default function ProfileSheet({ open, onClose, nombre, telefono, plan, fo
       onNombreActualizado?.(data.usuario?.como_llamar || valor);
       onTratamientoActualizado?.(data.usuario?.tratamiento || tratamientoEditado);
       if (modoNegocio) onNombreNegocioActualizado?.(data.usuario?.nombre_negocio ?? nombreNegocioEditado.trim());
+      if (data.advertencia) {
+        // Guardado parcial (ej. falta una migración en la base): el nombre
+        // sí se guardó, pero hay que decir qué quedó pendiente.
+        setErrorGuardar(data.advertencia);
+        return;
+      }
       setVista('menu');
       mostrarToast('Perfil actualizado');
     } catch (e) {

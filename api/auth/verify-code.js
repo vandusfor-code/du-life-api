@@ -64,15 +64,18 @@ export default async function handler(req, res) {
       return res.status(500).json({ error: 'Error con el usuario' });
     }
     
+    // 90 días + renovación deslizante en api/dashboard/[modulo].js: mientras
+    // el usuario siga entrando, la sesión no se cierra nunca.
+    const DURACION = 90 * 24 * 60 * 60;
     const token = generarToken({
       usuario_id: usuario.id,
       telefono: usuario.telefono,
       iat: Math.floor(Date.now() / 1000),
-      exp: Math.floor(Date.now() / 1000) + (30 * 24 * 60 * 60)
+      exp: Math.floor(Date.now() / 1000) + DURACION
     });
-    
+
     res.setHeader('Set-Cookie', [
-      `dulife_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${30 * 24 * 60 * 60}`
+      `dulife_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${DURACION}`
     ]);
     
     console.log(`✅ Login exitoso: ${telefono}`);

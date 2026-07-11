@@ -47,16 +47,55 @@ function parseCookies(cookieHeader) {
   }, {});
 }
 
+const SESION_DURACION_SEG = 90 * 24 * 60 * 60; // 90 días
+const SESION_RENOVAR_TRAS_SEG = 7 * 24 * 60 * 60; // renovar si el token tiene más de 7 días
+
+function generarToken(payload) {
+  const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
+  const payloadStr = Buffer.from(JSON.stringify(payload)).toString('base64url');
+  const data = `${header}.${payloadStr}`;
+  const secret = process.env.JWT_SECRET || 'dulife_secret_change_in_production';
+  const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
+  return `${data}.${signature}`;
+}
+
+// Sesión deslizante: mientras el usuario siga usando la app, la sesión no
+// expira nunca — cada request después de 7 días re-emite una cookie fresca
+// de 90 días. Solo se cierra si deja de entrar 90 días seguidos (o hace
+// logout). El login se configura una sola vez por WhatsApp/OTP.
+function renovarSesionSiHaceFalta(sesion, res) {
+  const ahora = Math.floor(Date.now() / 1000);
+  if (!sesion.iat || ahora - sesion.iat < SESION_RENOVAR_TRAS_SEG) return;
+  const token = generarToken({
+    usuario_id: sesion.usuario_id,
+    telefono: sesion.telefono,
+    iat: ahora,
+    exp: ahora + SESION_DURACION_SEG,
+  });
+  res.setHeader('Set-Cookie', [
+    `dulife_token=${token}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${SESION_DURACION_SEG}`,
+  ]);
+}
+
 // ===== HANDLERS POR MÓDULO =====
 
 async function handleResumen(usuarioId) {
-  const { data: usuario } = await supabase
+  // select('*') a propósito: si el select pide una columna que aún no
+  // existe en la base (migración pendiente), Postgres rechaza TODA la
+  // consulta y el perfil completo desaparece de la app (nombre, foto,
+  // modo_negocio...). Con '*' el perfil nunca se cae por una columna
+  // nueva; los campos que falten llegan como undefined y la UI ya tiene
+  // fallbacks para eso.
+  const { data: usuario, error: errorUsuario } = await supabase
     .from('usuarios')
-    .select('id, nombre, como_llamar, telefono, pais, plan, foto_url, metadata, tratamiento, modo_negocio, nombre_negocio')
+    .select('*')
     .eq('id', usuarioId)
     .single();
 
-  if (!usuario) return { status: 404, body: { error: 'Usuario no encontrado' } };
+  if (!usuario) {
+    console.error('handleResumen: usuario no cargó:', errorUsuario?.message || 'sin error, row inexistente');
+    return { status: 404, body: { error: 'Usuario no encontrado' } };
+  }
 
   const hoy = new Date().toISOString().split('T')[0];
 
@@ -862,19 +901,37 @@ async function handleActualizarPerfil(usuarioId, req) {
       return { status: 400, body: { error: 'Nada que actualizar' } };
     }
 
-    const { data, error } = await supabase
+    let { data, error } = await supabase
       .from('usuarios')
       .update(updates)
       .eq('id', usuarioId)
       .select()
       .single();
 
+    // Si la base rechaza el update porque nombre_negocio aún no existe
+    // (migración pendiente, código 42703 = undefined_column), no se pierde
+    // todo el guardado: se reintenta sin ese campo y se avisa qué faltó.
+    let advertencia = null;
+    if (error && updates.nombre_negocio !== undefined && error.code === '42703') {
+      advertencia = 'El nombre del negocio no se pudo guardar: falta la columna nombre_negocio en la base de datos.';
+      const { nombre_negocio: _omitido, ...restoUpdates } = updates;
+      if (Object.keys(restoUpdates).length === 0) {
+        return { status: 500, body: { error: advertencia } };
+      }
+      ({ data, error } = await supabase
+        .from('usuarios')
+        .update(restoUpdates)
+        .eq('id', usuarioId)
+        .select()
+        .single());
+    }
+
     if (error) {
       console.error('Error actualizando perfil:', error.message);
       return { status: 500, body: { error: 'No se pudo actualizar' } };
     }
 
-    return { status: 200, body: { usuario: data } };
+    return { status: 200, body: { usuario: data, ...(advertencia ? { advertencia } : {}) } };
   } catch (e) {
     console.error('Error actualizar_perfil:', e.message);
     return { status: 500, body: { error: 'Error interno' } };
@@ -1902,6 +1959,7 @@ export default async function handler(req, res) {
   if (!sesion || !sesion.usuario_id) {
     return res.status(401).json({ error: 'No autorizado' });
   }
+  renovarSesionSiHaceFalta(sesion, res);
 
   // Router
   const { modulo } = req.query;
