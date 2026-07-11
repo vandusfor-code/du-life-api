@@ -6,11 +6,19 @@
 import { supabase, obtenerOCrearUsuario } from '../../lib/supabase.js';
 import crypto from 'crypto';
 
+// Nunca uses un secreto por defecto: si JWT_SECRET no está configurado, la
+// app debe fallar ruidosamente, no firmar sesiones con un valor público.
+function obtenerJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET no está configurado');
+  return secret;
+}
+
 function generarToken(payload) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const payloadStr = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const data = `${header}.${payloadStr}`;
-  const secret = process.env.JWT_SECRET || 'dulife_secret_change_in_production';
+  const secret = obtenerJwtSecret();
   const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
   return `${data}.${signature}`;
 }

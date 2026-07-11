@@ -20,13 +20,23 @@ import { guardarSuscripcion, eliminarSuscripcion } from '../../lib/push.js';
 
 // ===== AUTH HELPERS =====
 
+// Nunca uses un secreto por defecto: si JWT_SECRET no está configurado, la
+// app debe fallar ruidosamente, no verificar/firmar sesiones con un valor
+// público. Se lee FUERA del try de verificarToken para que un secreto
+// faltante propague el error (500) en vez de tragarse como "token inválido".
+function obtenerJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET no está configurado');
+  return secret;
+}
+
 function verificarToken(token) {
   if (!token) return null;
+  const secret = obtenerJwtSecret();
   try {
     const partes = token.split('.');
     if (partes.length !== 3) return null;
     const [header, payload, signature] = partes;
-    const secret = process.env.JWT_SECRET || 'dulife_secret_change_in_production';
     const data = `${header}.${payload}`;
     const expected = crypto.createHmac('sha256', secret).update(data).digest('base64url');
     if (signature !== expected) return null;
@@ -54,7 +64,7 @@ function generarToken(payload) {
   const header = Buffer.from(JSON.stringify({ alg: 'HS256', typ: 'JWT' })).toString('base64url');
   const payloadStr = Buffer.from(JSON.stringify(payload)).toString('base64url');
   const data = `${header}.${payloadStr}`;
-  const secret = process.env.JWT_SECRET || 'dulife_secret_change_in_production';
+  const secret = obtenerJwtSecret();
   const signature = crypto.createHmac('sha256', secret).update(data).digest('base64url');
   return `${data}.${signature}`;
 }

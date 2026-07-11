@@ -8,13 +8,20 @@ import AdminShell from '../../../components/control-center/AdminShell.js';
 // layouts corren como Server Component normal). Se duplica en vez de
 // importar del router de la API para no tocar ese archivo ni su patrón de
 // consolidación de endpoints.
+// Nunca uses un secreto por defecto: si JWT_SECRET falta, falla ruidosamente.
+function obtenerJwtSecret() {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET no está configurado');
+  return secret;
+}
+
 function verificarToken(token) {
   if (!token) return null;
+  const secret = obtenerJwtSecret();
   try {
     const partes = token.split('.');
     if (partes.length !== 3) return null;
     const [header, payload, signature] = partes;
-    const secret = process.env.JWT_SECRET || 'dulife_secret_change_in_production';
     const data = `${header}.${payload}`;
     const expected = crypto.createHmac('sha256', secret).update(data).digest('base64url');
     if (signature !== expected) return null;

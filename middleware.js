@@ -92,7 +92,9 @@ async function obtenerRol(usuarioId) {
 
 export async function middleware(req) {
   const token = req.cookies.get('dulife_token')?.value;
-  const secret = process.env.JWT_SECRET || 'dulife_secret_change_in_production';
+  // Nunca uses un secreto por defecto: si JWT_SECRET falta, falla ruidosamente.
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error('JWT_SECRET no está configurado');
   const sesion = await verificarTokenEdge(token, secret);
   const esControlCenter = req.nextUrl.pathname.startsWith('/dashboard/control-center');
 
