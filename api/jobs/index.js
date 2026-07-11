@@ -8,7 +8,8 @@
 //  único endpoint que despacha por el campo "tipo" del body.
 // ============================================================
 
-import { esLlamadaQStash, programarJob } from '../../lib/qstash.js';
+import { programarJob } from '../../lib/qstash.js';
+import { Receiver } from '@upstash/qstash';
 import {
   enviarMensaje, marcarLeido, enviarPlantilla, enviarPlantillaConBotones,
   enviarListaWhatsApp,
@@ -35,6 +36,24 @@ import Anthropic from '@anthropic-ai/sdk';
 
 const anthropic = new Anthropic({ apiKey: process.env.CLAUDE_API_KEY });
 
+// La firma de QStash se calcula sobre el BODY CRUDO (bytes exactos que envió
+// QStash), no sobre el JSON re-serializado. Por eso desactivamos el parser
+// de body de Vercel y leemos el stream nosotros mismos.
+export const config = { api: { bodyParser: false } };
+
+const qstashReceiver = new Receiver({
+  currentSigningKey: process.env.QSTASH_CURRENT_SIGNING_KEY,
+  nextSigningKey: process.env.QSTASH_NEXT_SIGNING_KEY,
+});
+
+async function leerRawBody(req) {
+  const chunks = [];
+  for await (const chunk of req) {
+    chunks.push(typeof chunk === 'string' ? Buffer.from(chunk) : chunk);
+  }
+  return Buffer.concat(chunks).toString('utf8');
+}
+
 const MODULOS_REACTIVACION = [
   { tabla: 'gastos', texto: 'gastos' },
   { tabla: 'tareas', texto: 'tareas' },
@@ -46,9 +65,28 @@ const MODULOS_REACTIVACION = [
 export default async function handler(req, res) {
   try {
     if (req.method !== 'POST') return res.status(405).end();
-    if (!esLlamadaQStash(req)) return res.status(401).json({ error: 'Unauthorized' });
 
-    const body = typeof req.body === 'string' ? JSON.parse(req.body) : req.body;
+    // Verificación criptográfica real de la firma de QStash sobre el raw body.
+    // Antes solo se comprobaba que EXISTIERA el header Upstash-Signature, lo
+    // que dejaba el endpoint abierto: cualquiera podía disparar jobs
+    // (incluido procesar-webhook con un teléfono arbitrario) mandando un
+    // header cualquiera. Ahora firma inválida o ausente → 401 sin procesar.
+    const rawBody = await leerRawBody(req);
+    const firma = req.headers['upstash-signature'];
+    let firmaValida = false;
+    if (firma) {
+      try {
+        firmaValida = await qstashReceiver.verify({ signature: firma, body: rawBody });
+      } catch (e) {
+        firmaValida = false;
+      }
+    }
+    if (!firmaValida) {
+      console.warn('⚠️ /api/jobs: firma QStash inválida o ausente — request rechazado (401)');
+      return res.status(401).json({ error: 'Unauthorized' });
+    }
+
+    const body = rawBody ? JSON.parse(rawBody) : {};
     const { tipo } = body;
     console.log(`🔔 Job recibido: ${tipo}`);
 
