@@ -181,12 +181,24 @@ function RecordatorioPagoDeudor({ prestamo, onActualizado }) {
           type="button"
           disabled={guardando}
           onClick={prestamo.recordatorio_pago_activo ? desactivar : activar}
-          className="w-11 h-6 rounded-full flex-shrink-0 relative transition-colors"
-          style={{ background: prestamo.recordatorio_pago_activo ? '#C4E938' : 'var(--border-color)' }}
+          className="w-11 h-6 rounded-full flex-shrink-0"
+          style={{
+            position: 'relative',
+            background: prestamo.recordatorio_pago_activo ? '#C4E938' : '#3A3A44',
+            transition: 'background-color 0.2s ease',
+          }}
         >
           <span
-            className="absolute top-0.5 w-5 h-5 rounded-full bg-white transition-transform"
-            style={{ transform: prestamo.recordatorio_pago_activo ? 'translateX(22px)' : 'translateX(2px)' }}
+            style={{
+              position: 'absolute',
+              top: '2px',
+              left: prestamo.recordatorio_pago_activo ? '22px' : '2px',
+              width: '20px',
+              height: '20px',
+              borderRadius: '9999px',
+              background: '#FFFFFF',
+              transition: 'left 0.2s ease',
+            }}
           />
         </button>
       </div>
