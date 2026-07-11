@@ -12,6 +12,7 @@ const CAMBIOS = [
       'Al activar: disclaimer una sola vez ("no soy un servicio de emergencias, llama al 123"), y chequeos adaptativos durante la noche — "Bien" cada 2h, "Más o menos"/"No muy bien" cada 1h con tono más atento y sugerencias de seguridad (sin indicaciones médicas)',
       'Cierre automático a las 3:00 AM, o cuando el usuario avisa "ya llegué / estoy bien", y seguimiento cálido el domingo al mediodía',
       'Estado en usuarios.metadata (sin migración); cada chequeo relee el estado fresco y se auto-cancela si el usuario ya cerró el Ángel Guardián',
+      'Funciona también por texto: escribir "salida"/"salidita" en el chat ofrece activarlo, y responder "sí"/"no" o "bien"/"mal" escrito (no solo tocando el botón) sigue el flujo igual',
     ],
   },
   {
