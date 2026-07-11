@@ -19,6 +19,7 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
   const [tratamientoEditado, setTratamientoEditado] = useState(tratamiento || 'tu');
   const [guardando, setGuardando] = useState(false);
   const [activandoNegocio, setActivandoNegocio] = useState(false);
+  const [errorNegocio, setErrorNegocio] = useState('');
   const ref = useRef(null);
 
   useEffect(() => {
@@ -68,9 +69,17 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
 
   const activarNegocio = useCallback(async () => {
     setActivandoNegocio(true);
+    setErrorNegocio('');
     try {
       const res = await fetch('/api/dashboard/activar_modo_negocio', { method: 'POST' });
-      if (res.ok) onModoNegocioActivado?.(true);
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        onModoNegocioActivado?.(true);
+      } else {
+        setErrorNegocio(data.error || 'No se pudo activar. Intenta de nuevo.');
+      }
+    } catch (e) {
+      setErrorNegocio('Error de conexión. Intenta de nuevo.');
     } finally {
       setActivandoNegocio(false);
     }
@@ -183,6 +192,9 @@ export default function ProfileMenu({ open, onClose, nombre, telefono, plan, fot
               {modoNegocio ? '✓ Activo' : activandoNegocio ? '...' : 'Activar'}
             </span>
           </button>
+          {errorNegocio && (
+            <div className="px-3 pb-1 text-[11px]" style={{ color: '#F87171' }}>{errorNegocio}</div>
+          )}
           <button
             type="button"
             onClick={cerrarSesion}
