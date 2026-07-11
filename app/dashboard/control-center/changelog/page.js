@@ -5,6 +5,16 @@ import { IconCircleCheck } from '@tabler/icons-react';
 // features grandes nuevas (ver regla de sync del Control Center).
 const CAMBIOS = [
   {
+    fecha: '2026-07-11',
+    titulo: 'Fix crítico: perfil desaparecido + sesión permanente',
+    items: [
+      'Fix: el perfil completo (nombre, foto, resumen financiero y la tarjeta Negocio en Espacios) desaparecía si a la base le faltaba una columna nueva — el endpoint resumen ahora es resiliente a migraciones pendientes',
+      'Fix: guardar el perfil ya no falla completo si el nombre del negocio no se puede guardar — guarda el resto y avisa exactamente qué faltó',
+      'Sesión permanente: 90 días con renovación automática en cada uso — mientras sigas entrando, la sesión configurada por WhatsApp nunca se cierra',
+      'Dashboard Negocio: hero sin texto partido, ranking de productos compacto estilo BI, Productos y Clientes en dos columnas, mini-gráficas en Ventas semana y Ticket promedio (serie real por día)',
+    ],
+  },
+  {
     fecha: '2026-07-10',
     titulo: '💼 Nuevo módulo: Negocio (Ventas) — Fase 1',
     items: [
