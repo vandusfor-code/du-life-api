@@ -4,6 +4,7 @@
 // ============================================================
 
 import { supabase } from '../../lib/supabase.js';
+import crypto from 'crypto';
 
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
@@ -17,8 +18,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    // 1. Generar código de 6 dígitos
-    const codigo = Math.floor(100000 + Math.random() * 900000).toString();
+    // 1. Generar código de 6 dígitos con un CSPRNG (crypto.randomInt), no
+    //    Math.random() que es predecible. randomInt(100000, 1000000) da un
+    //    entero uniforme en [100000, 999999] → siempre 6 dígitos.
+    const codigo = crypto.randomInt(100000, 1000000).toString();
     
     // 2. Expiración (5 minutos)
     const expiracion = new Date();
