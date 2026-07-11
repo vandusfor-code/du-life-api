@@ -6,6 +6,14 @@ import { IconCircleCheck } from '@tabler/icons-react';
 const CAMBIOS = [
   {
     fecha: '2026-07-11',
+    titulo: 'Du Life responde sobre su seguridad',
+    items: [
+      'Nueva intención "pregunta_seguridad": cuando un usuario pregunta si Du Life es seguro o cómo protege sus datos, el bot responde de forma cálida y no técnica (comunicación cifrada, cada quien ve solo lo suyo, no se vende la info, puede borrar sus datos cuando quiera)',
+      'La respuesta evita a propósito revelar proveedores, límites o detalles internos, y no promete cosas falsas ("imposible de hackear")',
+    ],
+  },
+  {
+    fecha: '2026-07-11',
     titulo: '🔒 Endurecimiento de seguridad — ronda 2 (auditoría)',
     items: [
       'OTP con generador criptográfico (crypto.randomInt) en vez de Math.random(), y ya no se loguea el código ni el teléfono',
