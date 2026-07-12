@@ -6,6 +6,14 @@ import { IconCircleCheck } from '@tabler/icons-react';
 const CAMBIOS = [
   {
     fecha: '2026-07-11',
+    titulo: 'Indicador de "escribiendo…" en WhatsApp',
+    items: [
+      'Cuando llega un mensaje, Du Life marca leído y muestra el indicador de "escribiendo…" mientras procesa la respuesta — se siente más humano y vivo',
+      'Se desactiva solo al enviar la respuesta (o a los 25s, máximo de la API de WhatsApp)',
+    ],
+  },
+  {
+    fecha: '2026-07-11',
     titulo: '👼 Ángel Guardián — acompañamiento nocturno (Fase 1)',
     items: [
       'El chequeo de los sábados ahora funciona: "En casa" da un mensaje cálido + tip de Gastos; "Salidita" ofrece activar el Ángel Guardián (opt-in con botones)',
